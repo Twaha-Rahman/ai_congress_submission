@@ -1,0 +1,54 @@
+{
+  "content_sha256": "f38df7f31a6e8d908f8ed2483cca0864adf41020a8f9431c7fd576867b1832cd",
+  "model_metadata": {
+    "attempts": 1,
+    "latency_ms": 0,
+    "model": "synthetic-fixture-v1",
+    "provider": "synthetic-replay-fixture",
+    "route": "offline-replay"
+  },
+  "prompt_version": "extract-v1",
+  "proposal": {
+    "notes": null,
+    "rules": [
+      {
+        "ambiguous": false,
+        "ambiguous_reason": null,
+        "conditions": [],
+        "evidence": {
+          "end_char": null,
+          "page": 1,
+          "quote": "requires at least five approvals from the audit board",
+          "section": null,
+          "start_char": null
+        },
+        "rule": {
+          "kind": "required_minimum",
+          "unit": "approvals",
+          "value": 5
+        },
+        "scope": {
+          "amount_minor": {
+            "lower": 50000000,
+            "lower_inclusive": false,
+            "upper": null,
+            "upper_inclusive": false
+          },
+          "currency": "USD",
+          "kind": "loan",
+          "loan_type": "business",
+          "origin_office": "DHAKA"
+        },
+        "subject": "loan_approval",
+        "unsupported_conditions": []
+      }
+    ],
+    "schema_version": "1",
+    "source_language": "en",
+    "unsupported_cases": []
+  },
+  "region": "FRANKFURT",
+  "schema_version": "1",
+  "source_identity": "eval_fra_quality_hallucinated",
+  "version_label": "v1"
+}

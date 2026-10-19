@@ -1,0 +1,85 @@
+{
+  "content_sha256": "2f608998975bffbf420206b0ee6b2c6a9978e1ebf2a2242a9a7f7225e5d0c6ca",
+  "model_metadata": {
+    "attempts": 1,
+    "latency_ms": 0,
+    "model": "synthetic-fixture-v1",
+    "provider": "synthetic-replay-fixture",
+    "route": "offline-replay"
+  },
+  "prompt_version": "extract-v1",
+  "proposal": {
+    "notes": "'50k' shorthand and number words must normalize.",
+    "rules": [
+      {
+        "ambiguous": false,
+        "ambiguous_reason": null,
+        "conditions": [],
+        "evidence": {
+          "end_char": null,
+          "page": 1,
+          "quote": "Business loans up to 50k need only one approval from the credit committee.",
+          "section": null,
+          "start_char": null
+        },
+        "rule": {
+          "kind": "advised_sufficient",
+          "unit": "approvals",
+          "value": 1
+        },
+        "scope": {
+          "amount_minor": {
+            "lower": 0,
+            "lower_inclusive": true,
+            "upper": 5000000,
+            "upper_inclusive": true
+          },
+          "currency": "USD",
+          "kind": "loan",
+          "loan_type": "business",
+          "origin_office": "DHAKA"
+        },
+        "subject": "loan_approval",
+        "unsupported_conditions": []
+      },
+      {
+        "ambiguous": false,
+        "ambiguous_reason": null,
+        "conditions": [],
+        "evidence": {
+          "end_char": null,
+          "page": 1,
+          "quote": "A business loan in USD with an amount greater than USD 40,000 requires at least two approvals from the credit committee.",
+          "section": null,
+          "start_char": null
+        },
+        "rule": {
+          "kind": "required_minimum",
+          "unit": "approvals",
+          "value": 2
+        },
+        "scope": {
+          "amount_minor": {
+            "lower": 4000000,
+            "lower_inclusive": false,
+            "upper": null,
+            "upper_inclusive": false
+          },
+          "currency": "USD",
+          "kind": "loan",
+          "loan_type": "business",
+          "origin_office": "DHAKA"
+        },
+        "subject": "loan_approval",
+        "unsupported_conditions": []
+      }
+    ],
+    "schema_version": "1",
+    "source_language": "en",
+    "unsupported_cases": []
+  },
+  "region": "FRANKFURT",
+  "schema_version": "1",
+  "source_identity": "eval_fra_quality_number_forms",
+  "version_label": "v1"
+}

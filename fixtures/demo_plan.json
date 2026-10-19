@@ -1,0 +1,44 @@
+{
+  "demo1_slack": {
+    "file": "slack/dhaka_credit_update_2026_03_03.json",
+    "manifest": "manifests/dhaka_credit_update_2026_03_03.json"
+  },
+  "scenario_time": "2026-03-03T12:00:00Z",
+  "sources": [
+    {
+      "file": "documents/dhaka/dhaka_lending_policy_v2.pdf",
+      "kind": "pdf",
+      "manifest": "manifests/dhaka_lending_policy_v2.json",
+      "region": "DHAKA"
+    },
+    {
+      "file": "documents/dhaka/dhaka_lending_policy_v3.pdf",
+      "kind": "pdf",
+      "manifest": "manifests/dhaka_lending_policy_v3.json",
+      "region": "DHAKA"
+    },
+    {
+      "file": "documents/dhaka/dhaka_records_procedure_v1.pdf",
+      "kind": "pdf",
+      "manifest": "manifests/dhaka_records_procedure_v1.json",
+      "region": "DHAKA"
+    },
+    {
+      "file": "documents/dhaka/dhaka_credit_note_restricted_v1.pdf",
+      "kind": "pdf",
+      "manifest": "manifests/dhaka_credit_note_restricted_v1.json",
+      "region": "DHAKA"
+    },
+    {
+      "file": "documents/frankfurt/frankfurt_records_policy_v1.pdf",
+      "kind": "pdf",
+      "manifest": "manifests/frankfurt_records_policy_v1.json",
+      "region": "FRANKFURT"
+    }
+  ],
+  "tampered": {
+    "metadata_only": "tampered/dhaka_lending_policy_v3_metadata_only.pdf",
+    "modified_text": "tampered/dhaka_lending_policy_v3_modified_text.pdf"
+  },
+  "tenant_id": "meridian_demo"
+}

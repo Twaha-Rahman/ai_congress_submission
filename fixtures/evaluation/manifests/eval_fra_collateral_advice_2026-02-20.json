@@ -1,0 +1,34 @@
+{
+  "schema_version": "1",
+  "tenant_id": "meridian_demo",
+  "region": "FRANKFURT",
+  "source_identity": "eval_fra_collateral_advice",
+  "version_label": "2026-02-20",
+  "source_type": "slack",
+  "subject": "loan_approval",
+  "authority": "informal",
+  "policy_family": "fra_collateral_signoffs",
+  "scope": {
+    "kind": "loan",
+    "loan_type": "business",
+    "currency": "USD",
+    "origin_office": "DHAKA",
+    "amount_minor": {
+      "lower": null,
+      "lower_inclusive": true,
+      "upper": 10000000,
+      "upper_inclusive": true
+    }
+  },
+  "effective_from": "2026-02-20T10:00:00Z",
+  "effective_to": null,
+  "publication_time": "2026-02-20T10:00:00Z",
+  "sensitivity": "demo_shareable",
+  "permissions": {
+    "office_export": true,
+    "hosted_model": true
+  },
+  "supersedes": null,
+  "declared_conditions": [],
+  "rationale": null
+}

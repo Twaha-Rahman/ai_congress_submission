@@ -1,0 +1,50 @@
+{
+  "content_sha256": "35a213f3c7700170ced111bad2a946315a457105893a30524fc66492266794b0",
+  "model_metadata": {
+    "attempts": 1,
+    "latency_ms": 0,
+    "model": "synthetic-fixture-v1",
+    "provider": "synthetic-replay-fixture",
+    "route": "offline-replay"
+  },
+  "prompt_version": "extract-v1",
+  "proposal": {
+    "notes": null,
+    "rules": [
+      {
+        "ambiguous": false,
+        "ambiguous_reason": null,
+        "conditions": [],
+        "evidence": {
+          "end_char": null,
+          "page": 1,
+          "quote": "These records may be retained for a maximum of four years from loan closure.",
+          "section": null,
+          "start_char": null
+        },
+        "rule": {
+          "kind": "maximum_allowed",
+          "unit": "years",
+          "value": "4"
+        },
+        "scope": {
+          "kind": "record",
+          "origin_office": "DHAKA",
+          "processing_office": "FRANKFURT",
+          "product": "MTF_CROSS_OFFICE",
+          "record_class": "loan_records",
+          "starting_event": "loan_closure"
+        },
+        "subject": "record_retention",
+        "unsupported_conditions": []
+      }
+    ],
+    "schema_version": "1",
+    "source_language": "en",
+    "unsupported_cases": []
+  },
+  "region": "FRANKFURT",
+  "schema_version": "1",
+  "source_identity": "eval_xb_records_ceiling_four",
+  "version_label": "v1"
+}

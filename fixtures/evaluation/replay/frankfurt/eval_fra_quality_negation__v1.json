@@ -1,0 +1,54 @@
+{
+  "content_sha256": "8b09bb37d6e2960b286d4eb4131f9471f4eeac41f4a14a2af6eed0383962c855",
+  "model_metadata": {
+    "attempts": 1,
+    "latency_ms": 0,
+    "model": "synthetic-fixture-v1",
+    "provider": "synthetic-replay-fixture",
+    "route": "offline-replay"
+  },
+  "prompt_version": "extract-v1",
+  "proposal": {
+    "notes": null,
+    "rules": [
+      {
+        "ambiguous": false,
+        "ambiguous_reason": null,
+        "conditions": [],
+        "evidence": {
+          "end_char": null,
+          "page": 1,
+          "quote": "A business loan in USD with an amount greater than USD 100,000 does not require two approvals from the credit committee.",
+          "section": null,
+          "start_char": null
+        },
+        "rule": {
+          "kind": "required_minimum",
+          "unit": "approvals",
+          "value": 2
+        },
+        "scope": {
+          "amount_minor": {
+            "lower": 10000000,
+            "lower_inclusive": false,
+            "upper": null,
+            "upper_inclusive": false
+          },
+          "currency": "USD",
+          "kind": "loan",
+          "loan_type": "business",
+          "origin_office": "DHAKA"
+        },
+        "subject": "loan_approval",
+        "unsupported_conditions": []
+      }
+    ],
+    "schema_version": "1",
+    "source_language": "en",
+    "unsupported_cases": []
+  },
+  "region": "FRANKFURT",
+  "schema_version": "1",
+  "source_identity": "eval_fra_quality_negation",
+  "version_label": "v1"
+}

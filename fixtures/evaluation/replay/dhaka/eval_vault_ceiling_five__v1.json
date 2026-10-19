@@ -1,0 +1,50 @@
+{
+  "content_sha256": "24076dc3f71b9da87ee45a1fd0d80440a134033587a509498c1adee32cb5559d",
+  "model_metadata": {
+    "attempts": 1,
+    "latency_ms": 0,
+    "model": "synthetic-fixture-v1",
+    "provider": "synthetic-replay-fixture",
+    "route": "offline-replay"
+  },
+  "prompt_version": "extract-v1",
+  "proposal": {
+    "notes": null,
+    "rules": [
+      {
+        "ambiguous": false,
+        "ambiguous_reason": null,
+        "conditions": [],
+        "evidence": {
+          "end_char": null,
+          "page": 1,
+          "quote": "Cross-office loan records may be retained for a maximum of five years.",
+          "section": null,
+          "start_char": null
+        },
+        "rule": {
+          "kind": "maximum_allowed",
+          "unit": "years",
+          "value": "5"
+        },
+        "scope": {
+          "kind": "record",
+          "origin_office": "DHAKA",
+          "processing_office": "FRANKFURT",
+          "product": "MTF_CROSS_OFFICE",
+          "record_class": "loan_records",
+          "starting_event": "loan_closure"
+        },
+        "subject": "record_retention",
+        "unsupported_conditions": []
+      }
+    ],
+    "schema_version": "1",
+    "source_language": "en",
+    "unsupported_cases": []
+  },
+  "region": "DHAKA",
+  "schema_version": "1",
+  "source_identity": "eval_vault_ceiling_five",
+  "version_label": "v1"
+}

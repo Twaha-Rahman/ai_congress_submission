@@ -1,0 +1,34 @@
+{
+  "schema_version": "1",
+  "tenant_id": "meridian_demo",
+  "region": "DHAKA",
+  "source_identity": "eval_lending_exact_one",
+  "version_label": "v1",
+  "source_type": "pdf",
+  "subject": "loan_approval",
+  "authority": "policy",
+  "policy_family": "dha_retail_lending",
+  "scope": {
+    "kind": "loan",
+    "loan_type": "business",
+    "currency": "USD",
+    "origin_office": "DHAKA",
+    "amount_minor": {
+      "lower": 0,
+      "lower_inclusive": true,
+      "upper": null,
+      "upper_inclusive": false
+    }
+  },
+  "effective_from": "2026-01-01T00:00:00Z",
+  "effective_to": null,
+  "publication_time": "2025-12-16T00:00:00Z",
+  "sensitivity": "demo_shareable",
+  "permissions": {
+    "office_export": true,
+    "hosted_model": true
+  },
+  "supersedes": null,
+  "declared_conditions": [],
+  "rationale": null
+}

@@ -1,0 +1,54 @@
+{
+  "content_sha256": "e041867bf0fb66509968771a067a53cde2a10eb300f55512c11fc58300df1a14",
+  "model_metadata": {
+    "attempts": 1,
+    "latency_ms": 0,
+    "model": "synthetic-fixture-v1",
+    "provider": "synthetic-replay-fixture",
+    "route": "offline-replay"
+  },
+  "prompt_version": "extract-v1",
+  "proposal": {
+    "notes": null,
+    "rules": [
+      {
+        "ambiguous": false,
+        "ambiguous_reason": null,
+        "conditions": [],
+        "evidence": {
+          "end_char": null,
+          "page": 1,
+          "quote": "A business loan in USD with an amount of USD 40,000 or less requires at least one approval from the credit committee.",
+          "section": null,
+          "start_char": null
+        },
+        "rule": {
+          "kind": "required_minimum",
+          "unit": "approvals",
+          "value": 1
+        },
+        "scope": {
+          "amount_minor": {
+            "lower": 0,
+            "lower_inclusive": false,
+            "upper": 4000000,
+            "upper_inclusive": true
+          },
+          "currency": "USD",
+          "kind": "loan",
+          "loan_type": "business",
+          "origin_office": "DHAKA"
+        },
+        "subject": "loan_approval",
+        "unsupported_conditions": []
+      }
+    ],
+    "schema_version": "1",
+    "source_language": "en",
+    "unsupported_cases": []
+  },
+  "region": "DHAKA",
+  "schema_version": "1",
+  "source_identity": "eval_lending_small_band",
+  "version_label": "v1"
+}

@@ -1,0 +1,54 @@
+{
+  "content_sha256": "7c5a7290b4f5e3d4fe8b12cd5c9927d2f10dac41d90fc4d20862641f91b9c90f",
+  "model_metadata": {
+    "attempts": 1,
+    "latency_ms": 0,
+    "model": "synthetic-fixture-v1",
+    "provider": "synthetic-replay-fixture",
+    "route": "offline-replay"
+  },
+  "prompt_version": "extract-v1",
+  "proposal": {
+    "notes": null,
+    "rules": [
+      {
+        "ambiguous": true,
+        "ambiguous_reason": "wording does not state a single required count",
+        "conditions": [],
+        "evidence": {
+          "end_char": null,
+          "page": 1,
+          "quote": "Approval practice for high-value loans varies by regional desk and is described in the operating handbook.",
+          "section": null,
+          "start_char": null
+        },
+        "rule": {
+          "kind": "advised_sufficient",
+          "unit": "approvals",
+          "value": 1
+        },
+        "scope": {
+          "amount_minor": {
+            "lower": 0,
+            "lower_inclusive": true,
+            "upper": null,
+            "upper_inclusive": false
+          },
+          "currency": "USD",
+          "kind": "loan",
+          "loan_type": "business",
+          "origin_office": "DHAKA"
+        },
+        "subject": "loan_approval",
+        "unsupported_conditions": []
+      }
+    ],
+    "schema_version": "1",
+    "source_language": "en",
+    "unsupported_cases": []
+  },
+  "region": "FRANKFURT",
+  "schema_version": "1",
+  "source_identity": "eval_fra_quality_ambiguous",
+  "version_label": "v1"
+}

@@ -1,0 +1,54 @@
+{
+  "content_sha256": "c07703338679c0a0200ec1254eb16524ee16b6b3137647e0b98842725239c75a",
+  "model_metadata": {
+    "attempts": 1,
+    "latency_ms": 0,
+    "model": "synthetic-fixture-v1",
+    "provider": "synthetic-replay-fixture",
+    "route": "offline-replay"
+  },
+  "prompt_version": "extract-v1",
+  "proposal": {
+    "notes": "Synthetic saved Slack event; treated as informal guidance, not authority.",
+    "rules": [
+      {
+        "ambiguous": false,
+        "ambiguous_reason": null,
+        "conditions": [],
+        "evidence": {
+          "end_char": null,
+          "page": 1,
+          "quote": "For our USD business loans up to 50k, one approval is sufficient. You do not need a second sign-off.",
+          "section": null,
+          "start_char": null
+        },
+        "rule": {
+          "kind": "advised_sufficient",
+          "unit": "approvals",
+          "value": 1
+        },
+        "scope": {
+          "amount_minor": {
+            "lower": null,
+            "lower_inclusive": true,
+            "upper": 5000000,
+            "upper_inclusive": true
+          },
+          "currency": "USD",
+          "kind": "loan",
+          "loan_type": "business",
+          "origin_office": "DHAKA"
+        },
+        "subject": "loan_approval",
+        "unsupported_conditions": []
+      }
+    ],
+    "schema_version": "1",
+    "source_language": "en",
+    "unsupported_cases": []
+  },
+  "region": "DHAKA",
+  "schema_version": "1",
+  "source_identity": "dha_slack_credit_channel",
+  "version_label": "2026-03-03"
+}

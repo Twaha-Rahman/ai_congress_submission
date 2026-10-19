@@ -1,0 +1,53 @@
+{
+  "schema_version": "1",
+  "tenant_id": "meridian_demo",
+  "region": "FRANKFURT",
+  "source_identity": "eval_fra_hv_policy",
+  "version_label": "v1",
+  "source_type": "pdf",
+  "subject": "loan_approval",
+  "authority": "policy",
+  "policy_family": "fra_high_value",
+  "scope": {
+    "kind": "loan",
+    "loan_type": "business",
+    "currency": "USD",
+    "origin_office": "DHAKA",
+    "amount_minor": {
+      "lower": 0,
+      "lower_inclusive": true,
+      "upper": null,
+      "upper_inclusive": false
+    }
+  },
+  "effective_from": "2026-02-01T00:00:00Z",
+  "effective_to": null,
+  "publication_time": "2026-01-20T00:00:00Z",
+  "sensitivity": "demo_shareable",
+  "permissions": {
+    "office_export": true,
+    "hosted_model": true
+  },
+  "supersedes": {
+    "supersedes_source_identity": "eval_fra_hv_policy",
+    "supersedes_version_label": "v0",
+    "replaced_clause_ids": [
+      "eval_fra_hv_policy:v0:2.1"
+    ],
+    "replaced_scope": {
+      "kind": "loan",
+      "loan_type": "business",
+      "currency": "USD",
+      "origin_office": "DHAKA",
+      "amount_minor": {
+        "lower": 0,
+        "lower_inclusive": true,
+        "upper": null,
+        "upper_inclusive": false
+      }
+    },
+    "effective_from": "2026-02-01T00:00:00Z"
+  },
+  "declared_conditions": [],
+  "rationale": null
+}

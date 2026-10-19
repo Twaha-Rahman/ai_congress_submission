@@ -1,0 +1,2277 @@
+{
+  "components": {
+    "schemas": {
+      "AmountInterval": {
+        "additionalProperties": false,
+        "description": "Discrete integer amount interval in minor units (cents).\n\n``lower``/``upper`` are inclusive or exclusive according to the flags; ``None``\nmeans unbounded on that side.  Bounds are never negative.",
+        "properties": {
+          "lower": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Lower"
+          },
+          "lower_inclusive": {
+            "default": true,
+            "title": "Lower Inclusive",
+            "type": "boolean"
+          },
+          "upper": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Upper"
+          },
+          "upper_inclusive": {
+            "default": false,
+            "title": "Upper Inclusive",
+            "type": "boolean"
+          }
+        },
+        "title": "AmountInterval",
+        "type": "object"
+      },
+      "AmountScope": {
+        "additionalProperties": false,
+        "description": "Loan scope: currency, loan type, originating office and amount band.",
+        "properties": {
+          "amount_minor": {
+            "$ref": "#/components/schemas/AmountInterval"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "kind": {
+            "const": "loan",
+            "default": "loan",
+            "title": "Kind",
+            "type": "string"
+          },
+          "loan_type": {
+            "$ref": "#/components/schemas/LoanType"
+          },
+          "origin_office": {
+            "$ref": "#/components/schemas/OfficeRegion"
+          }
+        },
+        "required": [
+          "loan_type",
+          "currency",
+          "origin_office",
+          "amount_minor"
+        ],
+        "title": "AmountScope",
+        "type": "object"
+      },
+      "AnswerPayload": {
+        "additionalProperties": false,
+        "description": "Signed answer record; ``answer_text`` is bound by its hash.",
+        "properties": {
+          "answer_id": {
+            "title": "Answer Id",
+            "type": "string"
+          },
+          "answer_text": {
+            "title": "Answer Text",
+            "type": "string"
+          },
+          "answer_text_hash": {
+            "title": "Answer Text Hash",
+            "type": "string"
+          },
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/Citation"
+            },
+            "title": "Citations",
+            "type": "array"
+          },
+          "cited_claim_payload_hashes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Cited Claim Payload Hashes",
+            "type": "array"
+          },
+          "cited_manifest_roots": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Cited Manifest Roots",
+            "type": "array"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "governing_facts": {
+            "items": {
+              "$ref": "#/components/schemas/GoverningFact"
+            },
+            "title": "Governing Facts",
+            "type": "array"
+          },
+          "known_at": {
+            "format": "date-time",
+            "title": "Known At",
+            "type": "string"
+          },
+          "model_metadata": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Model Metadata",
+            "type": "object"
+          },
+          "modes": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Mode"
+            },
+            "title": "Modes",
+            "type": "object"
+          },
+          "partial_reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Partial Reasons",
+            "type": "array"
+          },
+          "query_hash": {
+            "title": "Query Hash",
+            "type": "string"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          },
+          "region": {
+            "$ref": "#/components/schemas/Region"
+          },
+          "schema_version": {
+            "default": "1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "signer_key_id": {
+            "title": "Signer Key Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AnswerStatus"
+          },
+          "target": {
+            "$ref": "#/components/schemas/TargetFacts"
+          },
+          "template_version": {
+            "default": "deterministic-template-v1",
+            "title": "Template Version",
+            "type": "string"
+          },
+          "tenant_id": {
+            "title": "Tenant Id",
+            "type": "string"
+          },
+          "valid_at": {
+            "format": "date-time",
+            "title": "Valid At",
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "$ref": "#/components/schemas/AnswerWarning"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "region",
+          "answer_id",
+          "status",
+          "question",
+          "query_hash",
+          "answer_text",
+          "answer_text_hash",
+          "target",
+          "valid_at",
+          "known_at",
+          "governing_facts",
+          "citations",
+          "warnings",
+          "modes",
+          "signer_key_id",
+          "cited_claim_payload_hashes",
+          "cited_manifest_roots",
+          "created_at"
+        ],
+        "title": "AnswerPayload",
+        "type": "object"
+      },
+      "AnswerStatus": {
+        "enum": [
+          "answered",
+          "needs_review",
+          "abstained",
+          "partial"
+        ],
+        "title": "AnswerStatus",
+        "type": "string"
+      },
+      "AnswerWarning": {
+        "additionalProperties": false,
+        "properties": {
+          "claim_revision_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Claim Revision Ids",
+            "type": "array"
+          },
+          "code": {
+            "$ref": "#/components/schemas/QueryWarningCode"
+          },
+          "finding_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Finding Ids",
+            "type": "array"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "AnswerWarning",
+        "type": "object"
+      },
+      "Authority": {
+        "enum": [
+          "policy",
+          "procedure",
+          "informal"
+        ],
+        "title": "Authority",
+        "type": "string"
+      },
+      "BundleClause": {
+        "additionalProperties": false,
+        "description": "Disclosed clause text carried inside a verification bundle.",
+        "properties": {
+          "clause_id": {
+            "title": "Clause Id",
+            "type": "string"
+          },
+          "end_char": {
+            "title": "End Char",
+            "type": "integer"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "section": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section"
+          },
+          "start_char": {
+            "title": "Start Char",
+            "type": "integer"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "clause_id",
+          "page",
+          "section",
+          "start_char",
+          "end_char",
+          "text"
+        ],
+        "title": "BundleClause",
+        "type": "object"
+      },
+      "Citation": {
+        "additionalProperties": false,
+        "description": "A factual-statement citation bound to a claim revision and its evidence.",
+        "properties": {
+          "authority": {
+            "title": "Authority",
+            "type": "string"
+          },
+          "claim_id": {
+            "title": "Claim Id",
+            "type": "string"
+          },
+          "claim_payload_hash": {
+            "title": "Claim Payload Hash",
+            "type": "string"
+          },
+          "claim_revision_id": {
+            "title": "Claim Revision Id",
+            "type": "string"
+          },
+          "clause_id": {
+            "title": "Clause Id",
+            "type": "string"
+          },
+          "end_char": {
+            "title": "End Char",
+            "type": "integer"
+          },
+          "manifest_root": {
+            "title": "Manifest Root",
+            "type": "string"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "quote": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quote"
+          },
+          "remote": {
+            "default": false,
+            "title": "Remote",
+            "type": "boolean"
+          },
+          "restricted": {
+            "default": false,
+            "title": "Restricted",
+            "type": "boolean"
+          },
+          "section": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_identity": {
+            "title": "Source Identity",
+            "type": "string"
+          },
+          "source_version_label": {
+            "title": "Source Version Label",
+            "type": "string"
+          },
+          "start_char": {
+            "title": "Start Char",
+            "type": "integer"
+          },
+          "statement_id": {
+            "title": "Statement Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "statement_id",
+          "claim_revision_id",
+          "claim_id",
+          "source_id",
+          "source_identity",
+          "source_version_label",
+          "clause_id",
+          "manifest_root",
+          "claim_payload_hash",
+          "authority",
+          "page",
+          "section",
+          "quote",
+          "start_char",
+          "end_char"
+        ],
+        "title": "Citation",
+        "type": "object"
+      },
+      "ClaimBundleEntry": {
+        "additionalProperties": false,
+        "properties": {
+          "claim": {
+            "$ref": "#/components/schemas/ClaimRevision"
+          },
+          "claim_hash": {
+            "title": "Claim Hash",
+            "type": "string"
+          },
+          "clause_disclosed": {
+            "default": false,
+            "title": "Clause Disclosed",
+            "type": "boolean"
+          },
+          "clause_proof": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ClauseProof"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "extraction": {
+            "$ref": "#/components/schemas/ExtractionProvenance"
+          },
+          "key_id": {
+            "title": "Key Id",
+            "type": "string"
+          },
+          "signature": {
+            "title": "Signature",
+            "type": "string"
+          }
+        },
+        "required": [
+          "claim",
+          "claim_hash",
+          "signature",
+          "key_id",
+          "extraction"
+        ],
+        "title": "ClaimBundleEntry",
+        "type": "object"
+      },
+      "ClaimOrigin": {
+        "enum": [
+          "local",
+          "remote"
+        ],
+        "title": "ClaimOrigin",
+        "type": "string"
+      },
+      "ClaimRevision": {
+        "additionalProperties": false,
+        "description": "Immutable signed payload of one accepted claim revision.\n\n``system_from`` is the *actual* backend receipt time of the source version that\nproduced this revision; ``system_to`` is deliberately absent — it is derived from\nappend-only closure events and never written into signed content.",
+        "properties": {
+          "authority": {
+            "$ref": "#/components/schemas/Authority"
+          },
+          "claim_id": {
+            "title": "Claim Id",
+            "type": "string"
+          },
+          "evidence": {
+            "$ref": "#/components/schemas/VerifiedEvidence"
+          },
+          "extraction": {
+            "$ref": "#/components/schemas/ExtractionProvenance"
+          },
+          "origin": {
+            "$ref": "#/components/schemas/ClaimOrigin",
+            "default": "local"
+          },
+          "policy_family": {
+            "title": "Policy Family",
+            "type": "string"
+          },
+          "region": {
+            "$ref": "#/components/schemas/OfficeRegion"
+          },
+          "revision_id": {
+            "title": "Revision Id",
+            "type": "string"
+          },
+          "rule": {
+            "$ref": "#/components/schemas/Rule"
+          },
+          "schema_version": {
+            "default": "1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "scope": {
+            "discriminator": {
+              "mapping": {
+                "loan": "#/components/schemas/AmountScope",
+                "record": "#/components/schemas/RecordScope"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AmountScope"
+              },
+              {
+                "$ref": "#/components/schemas/RecordScope"
+              }
+            ],
+            "title": "Scope"
+          },
+          "source_clause_id": {
+            "title": "Source Clause Id",
+            "type": "string"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_identity": {
+            "title": "Source Identity",
+            "type": "string"
+          },
+          "source_version_label": {
+            "title": "Source Version Label",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ClaimStatus",
+            "default": "accepted"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/Subject"
+          },
+          "system_from": {
+            "format": "date-time",
+            "title": "System From",
+            "type": "string"
+          },
+          "tenant_id": {
+            "title": "Tenant Id",
+            "type": "string"
+          },
+          "valid_from": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid From"
+          },
+          "valid_to": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid To"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "region",
+          "claim_id",
+          "revision_id",
+          "subject",
+          "scope",
+          "rule",
+          "authority",
+          "policy_family",
+          "source_id",
+          "source_identity",
+          "source_version_label",
+          "source_clause_id",
+          "valid_from",
+          "valid_to",
+          "system_from",
+          "evidence",
+          "extraction"
+        ],
+        "title": "ClaimRevision",
+        "type": "object"
+      },
+      "ClaimStatus": {
+        "enum": [
+          "accepted",
+          "needs_review",
+          "rejected"
+        ],
+        "title": "ClaimStatus",
+        "type": "string"
+      },
+      "ClauseProof": {
+        "additionalProperties": false,
+        "description": "RFC 9162 inclusion proof for one committed clause leaf.",
+        "properties": {
+          "clause_id": {
+            "title": "Clause Id",
+            "type": "string"
+          },
+          "leaf_hash": {
+            "title": "Leaf Hash",
+            "type": "string"
+          },
+          "leaf_index": {
+            "title": "Leaf Index",
+            "type": "integer"
+          },
+          "merkle_root": {
+            "title": "Merkle Root",
+            "type": "string"
+          },
+          "siblings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Siblings",
+            "type": "array"
+          },
+          "tree_size": {
+            "title": "Tree Size",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "clause_id",
+          "leaf_index",
+          "tree_size",
+          "leaf_hash",
+          "siblings",
+          "merkle_root"
+        ],
+        "title": "ClauseProof",
+        "type": "object"
+      },
+      "Currency": {
+        "enum": [
+          "USD"
+        ],
+        "title": "Currency",
+        "type": "string"
+      },
+      "EvidenceBundle": {
+        "additionalProperties": false,
+        "description": "Self-contained verification bundle for one answer.",
+        "properties": {
+          "answer": {
+            "$ref": "#/components/schemas/AnswerPayload"
+          },
+          "answer_hash": {
+            "title": "Answer Hash",
+            "type": "string"
+          },
+          "answer_key_id": {
+            "title": "Answer Key Id",
+            "type": "string"
+          },
+          "answer_signature": {
+            "title": "Answer Signature",
+            "type": "string"
+          },
+          "bundle_id": {
+            "title": "Bundle Id",
+            "type": "string"
+          },
+          "claims": {
+            "items": {
+              "$ref": "#/components/schemas/ClaimBundleEntry"
+            },
+            "title": "Claims",
+            "type": "array"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "manifests": {
+            "items": {
+              "$ref": "#/components/schemas/ManifestBundleEntry"
+            },
+            "title": "Manifests",
+            "type": "array"
+          },
+          "region": {
+            "$ref": "#/components/schemas/OfficeRegion"
+          },
+          "remote_references": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Remote References",
+            "type": "array"
+          },
+          "schema_version": {
+            "default": "1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "tenant_id": {
+            "title": "Tenant Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "bundle_id",
+          "tenant_id",
+          "region",
+          "answer",
+          "answer_hash",
+          "answer_signature",
+          "answer_key_id",
+          "created_at"
+        ],
+        "title": "EvidenceBundle",
+        "type": "object"
+      },
+      "ExportClaim": {
+        "additionalProperties": false,
+        "description": "Allowlisted projection of one accepted claim revision.",
+        "properties": {
+          "authority": {
+            "$ref": "#/components/schemas/Authority"
+          },
+          "claim_id": {
+            "title": "Claim Id",
+            "type": "string"
+          },
+          "claim_payload_hash": {
+            "title": "Claim Payload Hash",
+            "type": "string"
+          },
+          "claim_revision_id": {
+            "title": "Claim Revision Id",
+            "type": "string"
+          },
+          "manifest_root": {
+            "title": "Manifest Root",
+            "type": "string"
+          },
+          "policy_family": {
+            "title": "Policy Family",
+            "type": "string"
+          },
+          "rule": {
+            "$ref": "#/components/schemas/Rule"
+          },
+          "scope": {
+            "discriminator": {
+              "mapping": {
+                "loan": "#/components/schemas/AmountScope",
+                "record": "#/components/schemas/RecordScope"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AmountScope"
+              },
+              {
+                "$ref": "#/components/schemas/RecordScope"
+              }
+            ],
+            "title": "Scope"
+          },
+          "source_kind": {
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "source_ref": {
+            "title": "Source Ref",
+            "type": "string"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/Subject"
+          },
+          "system_from": {
+            "format": "date-time",
+            "title": "System From",
+            "type": "string"
+          },
+          "system_to": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "System To"
+          },
+          "valid_from": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid From"
+          },
+          "valid_to": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid To"
+          }
+        },
+        "required": [
+          "claim_revision_id",
+          "claim_id",
+          "subject",
+          "scope",
+          "rule",
+          "authority",
+          "policy_family",
+          "valid_from",
+          "valid_to",
+          "system_from",
+          "system_to",
+          "claim_payload_hash",
+          "manifest_root",
+          "source_ref",
+          "source_kind"
+        ],
+        "title": "ExportClaim",
+        "type": "object"
+      },
+      "ExtractionProvenance": {
+        "additionalProperties": false,
+        "description": "How a persisted claim was produced (never contains credentials).",
+        "properties": {
+          "attempts": {
+            "default": 1,
+            "title": "Attempts",
+            "type": "integer"
+          },
+          "cache_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Cache Key"
+          },
+          "latency_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Latency Ms"
+          },
+          "mode": {
+            "title": "Mode",
+            "type": "string"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "prompt_version": {
+            "default": "extract-v1",
+            "title": "Prompt Version",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "raw_output_sha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Raw Output Sha256"
+          },
+          "schema_version": {
+            "default": "1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "usage": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Usage",
+            "type": "object"
+          },
+          "validator_version": {
+            "title": "Validator Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "mode",
+          "provider",
+          "model",
+          "validator_version"
+        ],
+        "title": "ExtractionProvenance",
+        "type": "object"
+      },
+      "FederationExport": {
+        "additionalProperties": false,
+        "properties": {
+          "key_id": {
+            "title": "Key Id",
+            "type": "string"
+          },
+          "payload": {
+            "$ref": "#/components/schemas/FederationExportPayload"
+          },
+          "payload_hash": {
+            "title": "Payload Hash",
+            "type": "string"
+          },
+          "signature": {
+            "title": "Signature",
+            "type": "string"
+          }
+        },
+        "required": [
+          "payload",
+          "payload_hash",
+          "signature",
+          "key_id"
+        ],
+        "title": "FederationExport",
+        "type": "object"
+      },
+      "FederationExportPayload": {
+        "additionalProperties": false,
+        "properties": {
+          "claims": {
+            "items": {
+              "$ref": "#/components/schemas/ExportClaim"
+            },
+            "title": "Claims",
+            "type": "array"
+          },
+          "commitments": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Commitments",
+            "type": "array"
+          },
+          "complete": {
+            "default": true,
+            "title": "Complete",
+            "type": "boolean"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "known_at": {
+            "format": "date-time",
+            "title": "Known At",
+            "type": "string"
+          },
+          "not_checked": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Not Checked",
+            "type": "array"
+          },
+          "origin_region": {
+            "$ref": "#/components/schemas/OfficeRegion"
+          },
+          "reason_codes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reason Codes",
+            "type": "array"
+          },
+          "request_id": {
+            "title": "Request Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "default": "1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "signer_key_id": {
+            "title": "Signer Key Id",
+            "type": "string"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/Subject"
+          },
+          "target_fingerprint": {
+            "title": "Target Fingerprint",
+            "type": "string"
+          },
+          "tenant_id": {
+            "title": "Tenant Id",
+            "type": "string"
+          },
+          "valid_at": {
+            "format": "date-time",
+            "title": "Valid At",
+            "type": "string"
+          },
+          "withheld_restricted": {
+            "default": 0,
+            "title": "Withheld Restricted",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "origin_region",
+          "request_id",
+          "subject",
+          "valid_at",
+          "known_at",
+          "target_fingerprint",
+          "claims",
+          "commitments",
+          "signer_key_id",
+          "generated_at"
+        ],
+        "title": "FederationExportPayload",
+        "type": "object"
+      },
+      "FederationImportRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "export": {
+            "$ref": "#/components/schemas/FederationExport"
+          }
+        },
+        "required": [
+          "export"
+        ],
+        "type": "object"
+      },
+      "FederationSubquery": {
+        "additionalProperties": false,
+        "description": "Typed subquery accepted by an office's federation endpoint.\n\n``target_fingerprint`` binds the request to the exact canonical target when the\ngateway supplies it; the office rejects a fingerprint that does not match its own\ncanonicalisation of ``target``.",
+        "properties": {
+          "egress_policy": {
+            "const": "structured_claims_only",
+            "default": "structured_claims_only",
+            "title": "Egress Policy",
+            "type": "string"
+          },
+          "known_at": {
+            "format": "date-time",
+            "title": "Known At",
+            "type": "string"
+          },
+          "request_id": {
+            "title": "Request Id",
+            "type": "string"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/Subject"
+          },
+          "target": {
+            "discriminator": {
+              "mapping": {
+                "loan": "#/components/schemas/LoanTarget",
+                "record": "#/components/schemas/RecordTarget"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/LoanTarget"
+              },
+              {
+                "$ref": "#/components/schemas/RecordTarget"
+              }
+            ],
+            "title": "Target"
+          },
+          "target_fingerprint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Target Fingerprint"
+          },
+          "valid_at": {
+            "format": "date-time",
+            "title": "Valid At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "subject",
+          "target",
+          "valid_at",
+          "known_at"
+        ],
+        "title": "FederationSubquery",
+        "type": "object"
+      },
+      "GoverningFact": {
+        "additionalProperties": false,
+        "properties": {
+          "authority": {
+            "title": "Authority",
+            "type": "string"
+          },
+          "claim_id": {
+            "title": "Claim Id",
+            "type": "string"
+          },
+          "claim_revision_id": {
+            "title": "Claim Revision Id",
+            "type": "string"
+          },
+          "policy_family": {
+            "title": "Policy Family",
+            "type": "string"
+          },
+          "rule_summary": {
+            "title": "Rule Summary",
+            "type": "string"
+          },
+          "scope_summary": {
+            "title": "Scope Summary",
+            "type": "string"
+          },
+          "valid_interval": {
+            "$ref": "#/components/schemas/TimeInterval"
+          }
+        },
+        "required": [
+          "claim_revision_id",
+          "claim_id",
+          "authority",
+          "policy_family",
+          "rule_summary",
+          "scope_summary",
+          "valid_interval"
+        ],
+        "title": "GoverningFact",
+        "type": "object"
+      },
+      "LoanTarget": {
+        "additionalProperties": false,
+        "properties": {
+          "amount_minor": {
+            "exclusiveMinimum": 0,
+            "title": "Amount Minor",
+            "type": "integer"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "kind": {
+            "const": "loan",
+            "default": "loan",
+            "title": "Kind",
+            "type": "string"
+          },
+          "loan_type": {
+            "$ref": "#/components/schemas/LoanType"
+          },
+          "origin_office": {
+            "$ref": "#/components/schemas/OfficeRegion"
+          },
+          "subject": {
+            "const": "loan_approval",
+            "default": "loan_approval",
+            "title": "Subject",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loan_type",
+          "currency",
+          "origin_office",
+          "amount_minor"
+        ],
+        "title": "LoanTarget",
+        "type": "object"
+      },
+      "LoanType": {
+        "enum": [
+          "business"
+        ],
+        "title": "LoanType",
+        "type": "string"
+      },
+      "ManifestBundleEntry": {
+        "additionalProperties": false,
+        "properties": {
+          "clause_proofs": {
+            "items": {
+              "$ref": "#/components/schemas/ClauseProof"
+            },
+            "title": "Clause Proofs",
+            "type": "array"
+          },
+          "clauses": {
+            "items": {
+              "$ref": "#/components/schemas/BundleClause"
+            },
+            "title": "Clauses",
+            "type": "array"
+          },
+          "clauses_disclosed": {
+            "default": false,
+            "title": "Clauses Disclosed",
+            "type": "boolean"
+          },
+          "key_id": {
+            "title": "Key Id",
+            "type": "string"
+          },
+          "manifest_hash": {
+            "title": "Manifest Hash",
+            "type": "string"
+          },
+          "manifest_payload": {
+            "additionalProperties": true,
+            "title": "Manifest Payload",
+            "type": "object"
+          },
+          "merkle_root": {
+            "title": "Merkle Root",
+            "type": "string"
+          },
+          "office_export": {
+            "title": "Office Export",
+            "type": "boolean"
+          },
+          "region": {
+            "$ref": "#/components/schemas/OfficeRegion"
+          },
+          "sensitivity": {
+            "title": "Sensitivity",
+            "type": "string"
+          },
+          "signature": {
+            "title": "Signature",
+            "type": "string"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_identity": {
+            "title": "Source Identity",
+            "type": "string"
+          },
+          "source_sha256": {
+            "title": "Source Sha256",
+            "type": "string"
+          },
+          "tree_size": {
+            "title": "Tree Size",
+            "type": "integer"
+          },
+          "version_label": {
+            "title": "Version Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_id",
+          "region",
+          "source_identity",
+          "version_label",
+          "source_sha256",
+          "merkle_root",
+          "tree_size",
+          "manifest_payload",
+          "manifest_hash",
+          "signature",
+          "key_id",
+          "sensitivity",
+          "office_export"
+        ],
+        "title": "ManifestBundleEntry",
+        "type": "object"
+      },
+      "Mode": {
+        "enum": [
+          "live",
+          "cached",
+          "replay"
+        ],
+        "title": "Mode",
+        "type": "string"
+      },
+      "OfficeRegion": {
+        "enum": [
+          "DHAKA",
+          "FRANKFURT"
+        ],
+        "title": "OfficeRegion",
+        "type": "string"
+      },
+      "Product": {
+        "enum": [
+          "MTF_CROSS_OFFICE"
+        ],
+        "title": "Product",
+        "type": "string"
+      },
+      "QueryRequest": {
+        "additionalProperties": false,
+        "description": "Public query body.  Tenant and office always come from server context.",
+        "properties": {
+          "known_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Known At"
+          },
+          "mode": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Mode"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          },
+          "remote_snapshot_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Remote Snapshot Ids",
+            "type": "array"
+          },
+          "remote_snapshot_required": {
+            "default": false,
+            "title": "Remote Snapshot Required",
+            "type": "boolean"
+          },
+          "remote_source_known_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Remote Source Known At"
+          },
+          "target": {
+            "$ref": "#/components/schemas/TargetFacts"
+          },
+          "valid_at": {
+            "format": "date-time",
+            "title": "Valid At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "question",
+          "target",
+          "valid_at"
+        ],
+        "title": "QueryRequest",
+        "type": "object"
+      },
+      "QueryWarningCode": {
+        "enum": [
+          "stale_guidance_present",
+          "stale_guidance_partly_covers_target",
+          "only_informal_guidance",
+          "restricted_evidence_withheld",
+          "remote_clause_not_checked",
+          "incomplete_ingestion",
+          "office_unavailable",
+          "cache_miss",
+          "generated_prose_removed",
+          "knowledge_snapshot_differs_from_effective_history",
+          "pending_replacement",
+          "review_required"
+        ],
+        "title": "QueryWarningCode",
+        "type": "string"
+      },
+      "RecordClass": {
+        "enum": [
+          "loan_records"
+        ],
+        "title": "RecordClass",
+        "type": "string"
+      },
+      "RecordScope": {
+        "additionalProperties": false,
+        "description": "Record scope: record class, offices, product and retention starting event.",
+        "properties": {
+          "kind": {
+            "const": "record",
+            "default": "record",
+            "title": "Kind",
+            "type": "string"
+          },
+          "origin_office": {
+            "$ref": "#/components/schemas/OfficeRegion"
+          },
+          "processing_office": {
+            "$ref": "#/components/schemas/OfficeRegion"
+          },
+          "product": {
+            "$ref": "#/components/schemas/Product"
+          },
+          "record_class": {
+            "$ref": "#/components/schemas/RecordClass"
+          },
+          "starting_event": {
+            "$ref": "#/components/schemas/StartingEvent"
+          }
+        },
+        "required": [
+          "record_class",
+          "origin_office",
+          "processing_office",
+          "product",
+          "starting_event"
+        ],
+        "title": "RecordScope",
+        "type": "object"
+      },
+      "RecordTarget": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "record",
+            "default": "record",
+            "title": "Kind",
+            "type": "string"
+          },
+          "origin_office": {
+            "$ref": "#/components/schemas/OfficeRegion"
+          },
+          "processing_office": {
+            "$ref": "#/components/schemas/OfficeRegion"
+          },
+          "product": {
+            "$ref": "#/components/schemas/Product"
+          },
+          "record_class": {
+            "$ref": "#/components/schemas/RecordClass"
+          },
+          "starting_event": {
+            "$ref": "#/components/schemas/StartingEvent"
+          },
+          "subject": {
+            "const": "record_retention",
+            "default": "record_retention",
+            "title": "Subject",
+            "type": "string"
+          }
+        },
+        "required": [
+          "record_class",
+          "origin_office",
+          "processing_office",
+          "product",
+          "starting_event"
+        ],
+        "title": "RecordTarget",
+        "type": "object"
+      },
+      "Region": {
+        "enum": [
+          "DHAKA",
+          "FRANKFURT",
+          "GATEWAY"
+        ],
+        "title": "Region",
+        "type": "string"
+      },
+      "ReviewRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "acknowledge",
+              "resolve",
+              "dismiss"
+            ],
+            "type": "string"
+          },
+          "reason": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "referenced_revision_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "action",
+          "reason"
+        ],
+        "type": "object"
+      },
+      "Rule": {
+        "additionalProperties": false,
+        "description": "A normalized rule.\n\n``value`` is an ``int`` for approval counts and a normalized decimal *string*\nfor retention years; ``unit`` decides which representation is required.",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/RuleKind"
+          },
+          "unit": {
+            "$ref": "#/components/schemas/UnitKind"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "kind",
+          "unit",
+          "value"
+        ],
+        "title": "Rule",
+        "type": "object"
+      },
+      "RuleKind": {
+        "enum": [
+          "required_minimum",
+          "maximum_allowed",
+          "exactly_required",
+          "advised_sufficient",
+          "operating_exact"
+        ],
+        "title": "RuleKind",
+        "type": "string"
+      },
+      "Sensitivity": {
+        "enum": [
+          "demo_shareable",
+          "restricted"
+        ],
+        "title": "Sensitivity",
+        "type": "string"
+      },
+      "SlackIngestion": {
+        "additionalProperties": true,
+        "oneOf": [
+          {
+            "required": [
+              "event"
+            ]
+          },
+          {
+            "required": [
+              "events"
+            ]
+          }
+        ],
+        "properties": {
+          "event": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "events": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "manifest": {
+            "$ref": "#/components/schemas/SourceManifest"
+          },
+          "mode": {
+            "enum": [
+              "live",
+              "cached",
+              "replay"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "manifest"
+        ],
+        "type": "object"
+      },
+      "SourceManifest": {
+        "additionalProperties": false,
+        "description": "Immutable, trusted description of one source version.",
+        "properties": {
+          "authority": {
+            "$ref": "#/components/schemas/Authority"
+          },
+          "declared_conditions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Declared Conditions",
+            "type": "array"
+          },
+          "effective_from": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective From"
+          },
+          "effective_to": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective To"
+          },
+          "permissions": {
+            "$ref": "#/components/schemas/SourcePermissions"
+          },
+          "policy_family": {
+            "title": "Policy Family",
+            "type": "string"
+          },
+          "publication_time": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publication Time"
+          },
+          "rationale": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Rationale"
+          },
+          "region": {
+            "$ref": "#/components/schemas/OfficeRegion"
+          },
+          "schema_version": {
+            "default": "1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "scope": {
+            "discriminator": {
+              "mapping": {
+                "loan": "#/components/schemas/AmountScope",
+                "record": "#/components/schemas/RecordScope"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AmountScope"
+              },
+              {
+                "$ref": "#/components/schemas/RecordScope"
+              }
+            ],
+            "title": "Scope"
+          },
+          "sensitivity": {
+            "$ref": "#/components/schemas/Sensitivity"
+          },
+          "source_identity": {
+            "title": "Source Identity",
+            "type": "string"
+          },
+          "source_type": {
+            "$ref": "#/components/schemas/SourceType"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/Subject"
+          },
+          "supersedes": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SupersessionClaim"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "tenant_id": {
+            "title": "Tenant Id",
+            "type": "string"
+          },
+          "version_label": {
+            "title": "Version Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "region",
+          "source_identity",
+          "version_label",
+          "source_type",
+          "subject",
+          "authority",
+          "policy_family",
+          "scope",
+          "effective_from",
+          "effective_to",
+          "publication_time",
+          "sensitivity",
+          "permissions"
+        ],
+        "title": "SourceManifest",
+        "type": "object"
+      },
+      "SourcePermissions": {
+        "additionalProperties": false,
+        "description": "Separate egress decisions: inter-office export vs hosted-model processing.",
+        "properties": {
+          "hosted_model": {
+            "title": "Hosted Model",
+            "type": "boolean"
+          },
+          "office_export": {
+            "title": "Office Export",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "office_export",
+          "hosted_model"
+        ],
+        "title": "SourcePermissions",
+        "type": "object"
+      },
+      "SourceType": {
+        "enum": [
+          "pdf",
+          "slack"
+        ],
+        "title": "SourceType",
+        "type": "string"
+      },
+      "StartingEvent": {
+        "enum": [
+          "loan_closure"
+        ],
+        "title": "StartingEvent",
+        "type": "string"
+      },
+      "Subject": {
+        "enum": [
+          "loan_approval",
+          "record_retention"
+        ],
+        "title": "Subject",
+        "type": "string"
+      },
+      "SupersessionClaim": {
+        "additionalProperties": false,
+        "description": "An authorised, explicit replacement relationship declared in the manifest.",
+        "properties": {
+          "effective_from": {
+            "format": "date-time",
+            "title": "Effective From",
+            "type": "string"
+          },
+          "replaced_clause_ids": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Replaced Clause Ids",
+            "type": "array"
+          },
+          "replaced_scope": {
+            "discriminator": {
+              "mapping": {
+                "loan": "#/components/schemas/AmountScope",
+                "record": "#/components/schemas/RecordScope"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AmountScope"
+              },
+              {
+                "$ref": "#/components/schemas/RecordScope"
+              }
+            ],
+            "title": "Replaced Scope"
+          },
+          "supersedes_source_identity": {
+            "title": "Supersedes Source Identity",
+            "type": "string"
+          },
+          "supersedes_version_label": {
+            "title": "Supersedes Version Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "supersedes_source_identity",
+          "supersedes_version_label",
+          "replaced_clause_ids",
+          "replaced_scope",
+          "effective_from"
+        ],
+        "title": "SupersessionClaim",
+        "type": "object"
+      },
+      "TargetFacts": {
+        "additionalProperties": false,
+        "description": "Explicit typed target facts for a supported query.",
+        "properties": {
+          "amount_minor": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Amount Minor"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Currency"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "loan_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LoanType"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "origin_office": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OfficeRegion"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "processing_office": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OfficeRegion"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "product": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Product"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "record_class": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RecordClass"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "starting_event": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StartingEvent"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "subject": {
+            "$ref": "#/components/schemas/Subject"
+          }
+        },
+        "required": [
+          "subject"
+        ],
+        "title": "TargetFacts",
+        "type": "object"
+      },
+      "TimeInterval": {
+        "additionalProperties": false,
+        "description": "Half-open interval ``[start, end)``; ``None`` end means unbounded.",
+        "properties": {
+          "end": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End"
+          },
+          "start": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start"
+          }
+        },
+        "required": [
+          "start",
+          "end"
+        ],
+        "title": "TimeInterval",
+        "type": "object"
+      },
+      "UnitKind": {
+        "enum": [
+          "approvals",
+          "years"
+        ],
+        "title": "UnitKind",
+        "type": "string"
+      },
+      "VerifiedEvidence": {
+        "additionalProperties": false,
+        "description": "Evidence resolved against preserved parser text by the backend.",
+        "properties": {
+          "clause_id": {
+            "title": "Clause Id",
+            "type": "string"
+          },
+          "end_char": {
+            "title": "End Char",
+            "type": "integer"
+          },
+          "leaf_hash": {
+            "title": "Leaf Hash",
+            "type": "string"
+          },
+          "manifest_root": {
+            "title": "Manifest Root",
+            "type": "string"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "quote": {
+            "title": "Quote",
+            "type": "string"
+          },
+          "section": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section"
+          },
+          "start_char": {
+            "title": "Start Char",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "clause_id",
+          "page",
+          "section",
+          "quote",
+          "start_char",
+          "end_char",
+          "leaf_hash",
+          "manifest_root"
+        ],
+        "title": "VerifiedEvidence",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "BearerAuth": {
+        "bearerFormat": "opaque demo token supplied through environment variables",
+        "description": "Protected routes require `Authorization: Bearer <token>`. Tokens are read from the configured environment and never embedded in this document.",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "description": "Meridian backend API. Protected routes use an opaque bearer token mapped to a server-side principal; tenant and office are derived from that principal, never from request fields. Exactly one of `event` or `events` is supplied to the Slack ingestion route. Nullable values are shown as `anyOf` with `null` in the schemas.",
+    "title": "Meridian Gateway API",
+    "version": "0.1.0-mvp"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Health Health Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health"
+      }
+    },
+    "/ready": {
+      "get": {
+        "operationId": "ready_ready_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Ready"
+      }
+    },
+    "/v1/audit/egress": {
+      "get": {
+        "operationId": "gateway_egress_v1_audit_egress_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Gateway Egress V1 Audit Egress Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Gateway Egress"
+      }
+    },
+    "/v1/queries": {
+      "post": {
+        "operationId": "gateway_query_v1_queries_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "example": {
+                "known_at": "2026-03-10T12:00:00Z",
+                "mode": "replay",
+                "question": "How many approvals are required for a USD 30,000 business loan originated in Dhaka?",
+                "target": {
+                  "amount_minor": 3000000,
+                  "currency": "USD",
+                  "loan_type": "business",
+                  "origin_office": "DHAKA",
+                  "subject": "loan_approval"
+                },
+                "valid_at": "2026-03-03T12:00:00Z"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/QueryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Gateway Query V1 Queries Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Gateway Query"
+      }
+    }
+  }
+}

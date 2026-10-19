@@ -1,0 +1,30 @@
+{
+  "schema_version": "1",
+  "tenant_id": "meridian_demo",
+  "region": "DHAKA",
+  "source_identity": "eval_records_reference",
+  "version_label": "v1",
+  "source_type": "pdf",
+  "subject": "record_retention",
+  "authority": "policy",
+  "policy_family": "eval_records_gov",
+  "scope": {
+    "kind": "record",
+    "record_class": "loan_records",
+    "origin_office": "DHAKA",
+    "processing_office": "FRANKFURT",
+    "product": "MTF_CROSS_OFFICE",
+    "starting_event": "loan_closure"
+  },
+  "effective_from": "2026-01-01T00:00:00Z",
+  "effective_to": null,
+  "publication_time": "2025-12-15T00:00:00Z",
+  "sensitivity": "demo_shareable",
+  "permissions": {
+    "office_export": true,
+    "hosted_model": true
+  },
+  "supersedes": null,
+  "declared_conditions": [],
+  "rationale": null
+}

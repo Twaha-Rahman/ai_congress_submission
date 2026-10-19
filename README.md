@@ -1,0 +1,295 @@
+# Meridian — verifiable institutional memory
+
+Meridian is a non-UI backend for two bank offices (Dhaka and Frankfurt) plus a
+metadata-only gateway. It ingests PDFs and saved Slack events, extracts typed policy
+claims with evidence, keeps effective-time and knowledge-time history, detects
+stale/contradictory/incomplete guidance, answers scoped questions deterministically,
+and produces signed evidence bundles that an independent verifier can check.
+
+The repository also contains the synthetic demo corpus, replay proposals, evaluation
+labels, command-line demos and an offline test suite. There is no custom frontend.
+
+## What is implemented
+
+- **Trusted ingestion:** uploader-supplied manifests carry authority, permissions,
+  sensitivity and supersession. Model output can never set those fields.
+- **Evidence-grounded extraction:** strict JSON schema; exact quotes are resolved in
+  preserved parser text; hallucinated quotes, unsupported conditions, unsupported
+  negation, scope escapes and number mismatches are rejected or sent to review.
+- **Durable office state:** SQLite with append-only migrations, transactional
+  publication, immutable originals, durable jobs and restart recovery.
+- **Temporal history:** separate effective (`valid_from`/`valid_to`) and system
+  (`system_from`/closure) axes; explicit manifest supersession closes old knowledge
+  with signed append-only events and carries corrected history as new revisions.
+- **Deterministic comparison:** requirement allowed-set intersections, amount-band
+  boundaries, advice-vs-requirement classification, procedure-level compliance gaps.
+- **Signed evidence:** canonical JSON, RFC 9162 Merkle commitments, Ed25519
+  signatures, pinned public-key verification, per-component bundle verification.
+- **Explicit model modes:** `live`, `cached`, `replay` per stage. Missing credentials,
+  cache misses and missing replay data fail visibly; there is no silent fallback.
+- **Federation:** signed structured-claim exports, source-office egress policy,
+  recipient verification, isolated remote-claim storage, opaque remote citations and
+  `not_checked` clause inclusion.
+- **Authorization:** bearer identities scoped by tenant/office; restricted evidence is
+  excluded before query computation, lineage and federation.
+- **Audit:** egress events record structured bytes, hashes, outcomes and model
+  metadata separately for office-to-office and hosted-model channels.
+
+## Repository layout
+
+```
+meridian/              application packages (contracts, rules, storage, ingestion,
+                       extraction, temporal, queries, federation, office/gateway APIs)
+scripts/               setup, stack supervisor, seed/reset, demos, evaluation
+fixtures/              demo + evaluation sources, manifests, replay and cache material
+config/principals.json static identity/permission map (tokens come from env)
+docs/openapi/          generated office and gateway OpenAPI documents
+tests/                 offline pytest suite
+evidence/              generated demo/evaluation JSON (git-ignored)
+runtime/               SQLite databases, source bytes, keys, logs (git-ignored)
+```
+
+## Prerequisites
+
+- Python **3.11** (`python3.11`)
+- `make`
+- Docker with Compose v2 (only for the packaged stack; local processes work without it)
+- For genuinely live extraction: an OpenRouter API key plus a model ID, set only in
+  `.env` or the environment.
+
+No local model server is required for replay/cached demos or tests.
+
+## Quick start (local processes)
+
+```bash
+make setup          # .venv, locked deps, Ed25519 keys, trusted pins, demo tokens, .env
+make test           # offline suite; no network or model calls
+make demo-replay    # reset, seed, run all three stories, leave services running
+make local-down     # stop the three local services
+```
+
+`make setup` is idempotent: it never overwrites existing keys, tokens or configured
+model values. `.env` is git-ignored and written with permissions `0600`.
+
+## Runtime configuration
+
+All credentials and model routing live in `.env` / environment variables; nothing is
+hardcoded. Important variables:
+
+| Variable | Purpose |
+|---|---|
+| `LLM_MODEL`, `LLM_API_KEY`, `LLM_BASE_URL` | shared hosted-model route |
+| `DHAKA_LLM_*`, `FRANKFURT_LLM_*` | per-office overrides |
+| `LLM_TEMPERATURE`, `LLM_TIMEOUT_SECONDS`, `LLM_MAX_ATTEMPTS` | live-call behavior |
+| `DHAKA_DB_PATH`, `FRANKFURT_DB_PATH` | office SQLite paths |
+| `TRUSTED_KEYS_PATH` | pinned public-key registry |
+| `DEMO_TOKEN_*` | bearer tokens for the static principal map |
+| `DEMO_EXTRACTION_MODE` | default `replay`, `cached` or `live` |
+
+See `.env.example` for the full template. Do not commit `.env`, `runtime/` or
+`evidence/`.
+
+## The three demonstrations
+
+All commands below run offline except `demo-live`.
+
+### 1. Catch stale guidance
+
+```bash
+make demo-replay
+# or, after a reset/seed:
+.venv/bin/python scripts/demo1_catch.py --mode replay
+```
+
+The baseline corpus contains lending policy v2 (one approval up to USD 50k) and v3
+(two approvals above USD 25k, explicitly superseding v2). A saved Slack message says
+one approval is enough “up to 50k”. Ingesting it publishes a high-severity
+`stale_guidance` finding over **`(USD 25,000.00, USD 50,000.00]`**, with a signed link
+to the superseded requirement. The January knowledge snapshot still answers with the
+old policy; March answers with v3 and warns about the guidance. Evidence:
+`evidence/demo1_finding.json`.
+
+### 2. Trace, verify and tamper
+
+```bash
+.venv/bin/python scripts/demo2_trace.py
+```
+
+The script asks a question, follows answer → claims → clauses → source manifests,
+fetches the signed bundle, verifies every component, then tampers with the answer
+text and shows the specific checks that fail. It also compares the original source
+bytes, a metadata-only change and a modified-text copy. Evidence:
+`evidence/demo2_bundle.json`, `evidence/demo2_tamper_report.json`.
+
+### 3. Cross-border comparison
+
+```bash
+.venv/bin/python scripts/demo3_border.py
+```
+
+Dhaka's procedure retains records for exactly five years; Frankfurt's policy requires
+at least seven for the same cross-office record scope. The gateway retrieves signed
+structured exports, the processing office imports them and runs the local comparator,
+producing a procedure-level `compliance_gap` (5 < 7) with an opaque remote citation
+and `clause_inclusion = not_checked`. A restricted-only export is blocked with
+`egress_denied_restricted_source`, and audit counters show zero raw source text bytes
+between offices. Evidence: `evidence/demo3_federation.json`.
+
+### All three in one command
+
+```bash
+make demo-replay    # fresh demo DBs, replay proposals, all stories
+make demo-cached    # same stories from the explicitly labelled synthetic cache
+make demo-live      # requires credentials; new Slack extraction is uncached
+```
+
+`make demo-live` exits with status 2 and a prerequisite message when `LLM_MODEL` and
+`LLM_API_KEY` are not configured. It does not fall back to replay.
+
+## Evaluation
+
+```bash
+make evaluate
+# optional subsets:
+.venv/bin/python scripts/evaluate.py --only holdout_collateral
+```
+
+The corpus has 10 complete scenarios, 38 sources and 41 labeled comparisons split into
+development and held-out policy families. The runner starts an isolated stack on ports
+8090–8092 with fresh databases, asserts every replay quote against parsed text, measures
+end-to-end precision/recall, classification and scope accuracy, persistence, review
+outcomes and mode behavior, then writes `evidence/evaluation_results.json`. The latest
+run is recorded in `IMPLEMENTATION_STATUS.md`.
+
+## API overview
+
+Every office exposes:
+
+```
+GET  /health, /ready
+POST /v1/ingestions/pdf              multipart file + manifest + mode
+POST /v1/ingestions/slack            saved event(s) + manifest + mode
+GET  /v1/jobs, /v1/jobs/{id}
+GET  /v1/sources, /v1/sources/{id}, /v1/sources/{id}/content
+GET  /v1/claims, /v1/claims/reviews
+GET  /v1/findings, /v1/findings/{id}
+POST /v1/findings/{id}/reviews
+POST /v1/queries
+GET  /v1/answers/{id}, /v1/answers/{id}/lineage, /v1/answers/{id}/bundle
+POST /v1/verifications/source, /v1/verifications/bundle
+POST /v1/comparisons                 federation comparator (service auth)
+POST /v1/federation/claims           signed export (service auth)
+POST /v1/federation/imports          verify + import (service auth)
+GET  /v1/federation/remote-claims
+GET  /v1/audit/egress
+```
+
+The gateway exposes `/health`, `/ready`, `POST /v1/queries` and
+`GET /v1/audit/egress`. Generated OpenAPI documents are in `docs/openapi/`; regenerate
+with `make schemas`.
+
+Example (after `make demo-replay`):
+
+```bash
+set -a; . ./.env; set +a
+
+curl -s http://127.0.0.1:8081/health | python3 -m json.tool
+
+curl -s -X POST http://127.0.0.1:8081/v1/queries \
+  -H "Authorization: Bearer $DEMO_TOKEN_DHAKA_READER" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "question": "How many approvals are required for a USD 30,000 business loan originated in Dhaka?",
+    "target": {
+      "subject": "loan_approval",
+      "amount_minor": 3000000,
+      "currency": "USD",
+      "loan_type": "business",
+      "origin_office": "DHAKA"
+    },
+    "valid_at": "2026-03-03T12:00:00Z"
+  }' | python3 -m json.tool
+```
+
+Use the uploader token and `-F mode=replay` for a manual PDF ingestion; use the
+reviewer token for review actions and restricted evidence. Tokens are read from
+`.env` and are never stored in the identity map.
+
+## Tests
+
+```bash
+make test
+# 65 passed in ~0.6s (offline)
+```
+
+The suite covers strict contracts, number normalization, amount singletons and empty
+intervals, allowed-set comparisons, supersession/known-at history, evidence-validator
+rejections, Merkle proofs at every tree size, Ed25519 pinning, bundle tampering,
+authorization/restricted exclusion, federation export/import/conflict/blocked paths,
+live/cached/replay mode behavior, fake-transport provider success/timeout/500/schema
+failures, and full replay ingest → finding → answer → verification.
+
+## Docker Compose
+
+```bash
+make up             # setup + build image + start dhaka, frankfurt, gateway
+make seed           # same corpus through the HTTP APIs
+make local-status   # health/pid view (local pids are absent for a Compose stack)
+make down
+```
+
+The gateway container has no office database, source volume, private key or fixture
+mount. Each office mounts only its own runtime/key directories and its office-specific
+replay/cache assets; public-key pins and configuration are read-only. Raw source
+documents are uploaded by the host-side seeding tools and are not baked into the image.
+Runtime databases/keys live under `./runtime` on the host. Office ports bind to
+`127.0.0.1` only. This remains a same-machine simulation, not geographic isolation.
+
+## Reset, backup and installation
+
+```bash
+make reset-demo     # refuses while healthy services hold the databases
+```
+
+Reset deletes only the configured demo tenant’s SQLite/source runtime directories and
+staged files; it preserves keys, fixtures and exported evidence. To move or reinstall:
+
+1. Install Python 3.11/make/Docker on the target.
+2. Copy the repository (without `.venv`, `runtime`, `evidence`, `.env`).
+3. Run `make setup`; then copy the original `runtime/keys/` and
+   `runtime/trusted_keys.json` if previously exported bundles must still verify.
+4. Run `make test`, `make demo-replay` or `make up`.
+
+Changing signing keys is a new trust domain: old bundles will correctly fail
+verification unless the old public keys remain pinned.
+
+## Trust boundaries and design decisions
+
+- Money is integer minor units (USD cents); retention years are normalized decimal
+  strings; canonical signed JSON forbids floats.
+- Signatures live outside signed payloads. Verification uses pinned public keys, never
+  a key supplied by the response being checked.
+- A valid signature proves integrity and origin, not source truth or extraction
+  correctness; a reviewer still owns those judgments.
+- Restricted evidence is filtered before comparison, so its values cannot influence an
+  answer even indirectly.
+- Federation exports carry allowlisted enums/numbers/opaque references only. Remote
+  clause text is never fabricated, so local clause inclusion stays `not_checked`.
+- Replay/cache data is synthetic and explicitly labelled. Hosted-model calls are never
+  made from replay/cached modes.
+
+## Known limitations / external prerequisites
+
+- **Live extraction has not been executed here**: no `OPENROUTER_API_KEY` / model was
+  available. The adapter is covered by fake-transport tests; `make demo-live` fails
+  visibly instead of substituting fixtures. The exact model, route, latency and usage
+  of a genuine live call remain to be recorded by the operator.
+- The identity map and bearer tokens are a demo mechanism, not production SSO/OIDC.
+- Storage is single-node SQLite (WAL) per office; it is not a horizontally scaled
+  deployment. The worker is one per service process by design.
+- The parser supports text-based PDFs and saved Slack events; scanned PDFs/OCR and
+  arbitrary chat exports are out of scope.
+- The gateway and office comparison logic support the two proposal subjects and their
+  scoped semantics only; unsupported currencies/conditions are rejected or reviewed.
+- Buyer interviews, NRB participation, venue logistics and backup-laptop rehearsals are
+  team tasks and are not claimed here.

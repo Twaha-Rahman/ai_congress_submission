@@ -1,0 +1,54 @@
+{
+  "content_sha256": "8f21dfac8a17dbcab4374121213737e0f117f484f63a89a594606031ce19a56d",
+  "model_metadata": {
+    "attempts": 1,
+    "latency_ms": 0,
+    "model": "synthetic-fixture-v1",
+    "provider": "synthetic-replay-fixture",
+    "route": "offline-replay"
+  },
+  "prompt_version": "extract-v1",
+  "proposal": {
+    "notes": null,
+    "rules": [
+      {
+        "ambiguous": false,
+        "ambiguous_reason": null,
+        "conditions": [],
+        "evidence": {
+          "end_char": null,
+          "page": 1,
+          "quote": "A business loan in USD with an amount greater than USD 50,000 requires at least two collateral sign-offs.",
+          "section": null,
+          "start_char": null
+        },
+        "rule": {
+          "kind": "required_minimum",
+          "unit": "approvals",
+          "value": 2
+        },
+        "scope": {
+          "amount_minor": {
+            "lower": 5000000,
+            "lower_inclusive": false,
+            "upper": null,
+            "upper_inclusive": false
+          },
+          "currency": "USD",
+          "kind": "loan",
+          "loan_type": "business",
+          "origin_office": "DHAKA"
+        },
+        "subject": "loan_approval",
+        "unsupported_conditions": []
+      }
+    ],
+    "schema_version": "1",
+    "source_language": "en",
+    "unsupported_cases": []
+  },
+  "region": "FRANKFURT",
+  "schema_version": "1",
+  "source_identity": "eval_fra_collateral_min_two",
+  "version_label": "v1"
+}

@@ -1,0 +1,51 @@
+{
+  "cache_key": "a0db1ca26fd27197ee022d3c0c0b01afe889693c4c3f9bf9c1241cd3d872b2d2",
+  "created_at": "2026-10-19T18:26:36.256291Z",
+  "model_metadata": {
+    "attempts": 1,
+    "latency_ms": 0,
+    "model": "synthetic-fixture-v1",
+    "note": "generated from replay proposals; not a live model result",
+    "provider": "synthetic-cache",
+    "route": "offline-replay",
+    "status_code": null,
+    "usage": {}
+  },
+  "prompt_version": "extract-v1",
+  "proposal": {
+    "notes": "Frankfurt requirement; comparison happens at Frankfurt after import.",
+    "rules": [
+      {
+        "ambiguous": false,
+        "ambiguous_reason": null,
+        "conditions": [],
+        "evidence": {
+          "end_char": null,
+          "page": 1,
+          "quote": "These records must be retained for at least seven years from loan closure.",
+          "section": null,
+          "start_char": null
+        },
+        "rule": {
+          "kind": "required_minimum",
+          "unit": "years",
+          "value": "7"
+        },
+        "scope": {
+          "kind": "record",
+          "origin_office": "DHAKA",
+          "processing_office": "FRANKFURT",
+          "product": "MTF_CROSS_OFFICE",
+          "record_class": "loan_records",
+          "starting_event": "loan_closure"
+        },
+        "subject": "record_retention",
+        "unsupported_conditions": []
+      }
+    ],
+    "schema_version": "1",
+    "source_language": "en",
+    "unsupported_cases": []
+  },
+  "schema_version": "1"
+}

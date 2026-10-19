@@ -1,0 +1,128 @@
+# Meridian demo stack: two logically isolated office nodes plus a gateway.
+# The gateway has no access to office source volumes and no database of its own.
+#
+# Source directories and databases are bind-mounted from ./runtime so that a local
+# (non-Docker) run and a Compose run share the same fixture-first workflow.
+
+x-office-common: &office-common
+  build:
+    context: .
+    dockerfile: Dockerfile
+  # Match the host account so bind-mounted databases, source copies and relay logs
+  # stay owned by the developer rather than root. `make setup` records the ids.
+  user: "${MERIDIAN_UID:-1000}:${MERIDIAN_GID:-1000}"
+  environment:
+    TENANT_ID: ${TENANT_ID:-meridian_demo}
+    TRUSTED_KEYS_PATH: /app/runtime/trusted_keys.json
+    LLM_BASE_URL: ${LLM_BASE_URL:-https://openrouter.ai/api/v1}
+    LLM_MODEL: ${LLM_MODEL:-}
+    LLM_TIMEOUT_SECONDS: ${LLM_TIMEOUT_SECONDS:-30}
+    LLM_MAX_ATTEMPTS: ${LLM_MAX_ATTEMPTS:-2}
+    LLM_JOB_MODEL_BUDGET_SECONDS: ${LLM_JOB_MODEL_BUDGET_SECONDS:-65}
+  healthcheck:
+    test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).status==200 else 1)"]
+    interval: 5s
+    timeout: 5s
+    retries: 12
+    start_period: 5s
+
+services:
+  dhaka:
+    <<: *office-common
+    command: ["python", "-m", "meridian.office_api.main"]
+    environment:
+      TENANT_ID: ${TENANT_ID:-meridian_demo}
+      REGION: DHAKA
+      DB_PATH: /app/runtime/dhaka/meridian.db
+      SOURCE_DIR: /app/runtime/dhaka/sources
+      KEY_DIR: /app/runtime/keys/dhaka
+      TRUSTED_KEYS_PATH: /app/runtime/trusted_keys.json
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://openrouter.ai/api/v1}
+      LLM_MODEL: ${LLM_MODEL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-${DHAKA_LLM_API_KEY:-}}
+      LLM_TIMEOUT_SECONDS: ${LLM_TIMEOUT_SECONDS:-30}
+      LLM_MAX_ATTEMPTS: ${LLM_MAX_ATTEMPTS:-2}
+      LLM_JOB_MODEL_BUDGET_SECONDS: ${LLM_JOB_MODEL_BUDGET_SECONDS:-65}
+      DEMO_TOKEN_DHAKA_UPLOADER: ${DEMO_TOKEN_DHAKA_UPLOADER:-}
+      DEMO_TOKEN_DHAKA_REVIEWER: ${DEMO_TOKEN_DHAKA_REVIEWER:-}
+      DEMO_TOKEN_DHAKA_READER: ${DEMO_TOKEN_DHAKA_READER:-}
+      DEMO_TOKEN_DHAKA_SERVICE: ${DEMO_TOKEN_DHAKA_SERVICE:-}
+      FIXTURES_DIR: /app/fixtures
+    volumes:
+      # Only Dhaka's own mutable state, key, replay proposals and cache are visible.
+      # Frankfurt's database/key and the raw document corpus are absent.
+      - ./runtime/trusted_keys.json:/app/runtime/trusted_keys.json:ro
+      - ./runtime/dhaka:/app/runtime/dhaka
+      - ./runtime/keys/dhaka:/app/runtime/keys/dhaka
+      - ./fixtures/replay/dhaka:/app/fixtures/replay/dhaka:ro
+      - ./fixtures/cache/dhaka:/app/fixtures/cache/dhaka
+      - ./config:/app/config:ro
+    ports:
+      - "127.0.0.1:8081:8000"
+
+  frankfurt:
+    <<: *office-common
+    command: ["python", "-m", "meridian.office_api.main"]
+    environment:
+      TENANT_ID: ${TENANT_ID:-meridian_demo}
+      REGION: FRANKFURT
+      DB_PATH: /app/runtime/frankfurt/meridian.db
+      SOURCE_DIR: /app/runtime/frankfurt/sources
+      KEY_DIR: /app/runtime/keys/frankfurt
+      TRUSTED_KEYS_PATH: /app/runtime/trusted_keys.json
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://openrouter.ai/api/v1}
+      LLM_MODEL: ${LLM_MODEL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-${FRANKFURT_LLM_API_KEY:-}}
+      LLM_TIMEOUT_SECONDS: ${LLM_TIMEOUT_SECONDS:-30}
+      LLM_MAX_ATTEMPTS: ${LLM_MAX_ATTEMPTS:-2}
+      LLM_JOB_MODEL_BUDGET_SECONDS: ${LLM_JOB_MODEL_BUDGET_SECONDS:-65}
+      DEMO_TOKEN_FRANKFURT_UPLOADER: ${DEMO_TOKEN_FRANKFURT_UPLOADER:-}
+      DEMO_TOKEN_FRANKFURT_REVIEWER: ${DEMO_TOKEN_FRANKFURT_REVIEWER:-}
+      DEMO_TOKEN_FRANKFURT_READER: ${DEMO_TOKEN_FRANKFURT_READER:-}
+      DEMO_TOKEN_FRANKFURT_SERVICE: ${DEMO_TOKEN_FRANKFURT_SERVICE:-}
+      FIXTURES_DIR: /app/fixtures
+    volumes:
+      # Only Frankfurt's own mutable state, key, replay proposals and cache are visible.
+      # Dhaka's database/key and the raw document corpus are absent.
+      - ./runtime/trusted_keys.json:/app/runtime/trusted_keys.json:ro
+      - ./runtime/frankfurt:/app/runtime/frankfurt
+      - ./runtime/keys/frankfurt:/app/runtime/keys/frankfurt
+      - ./fixtures/replay/frankfurt:/app/fixtures/replay/frankfurt:ro
+      - ./fixtures/cache/frankfurt:/app/fixtures/cache/frankfurt
+      - ./config:/app/config:ro
+    ports:
+      - "127.0.0.1:8082:8000"
+
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["python", "-m", "meridian.gateway_api.main"]
+    user: "${MERIDIAN_UID:-1000}:${MERIDIAN_GID:-1000}"
+    environment:
+      TENANT_ID: ${TENANT_ID:-meridian_demo}
+      DHAKA_BASE_URL: http://dhaka:8000
+      FRANKFURT_BASE_URL: http://frankfurt:8000
+      GATEWAY_RUNTIME_DIR: /app/runtime/gateway
+      TRUSTED_KEYS_PATH: /app/runtime/trusted_keys.json
+      DEMO_TOKEN_GATEWAY_SERVICE: ${DEMO_TOKEN_GATEWAY_SERVICE:-}
+      DEMO_TOKEN_DHAKA_SERVICE: ${DEMO_TOKEN_DHAKA_SERVICE:-}
+      DEMO_TOKEN_FRANKFURT_SERVICE: ${DEMO_TOKEN_FRANKFURT_SERVICE:-}
+      DEMO_TOKEN_DHAKA_READER: ${DEMO_TOKEN_DHAKA_READER:-}
+      DEMO_TOKEN_DHAKA_UPLOADER: ${DEMO_TOKEN_DHAKA_UPLOADER:-}
+      DEMO_TOKEN_DHAKA_REVIEWER: ${DEMO_TOKEN_DHAKA_REVIEWER:-}
+      DEMO_TOKEN_FRANKFURT_READER: ${DEMO_TOKEN_FRANKFURT_READER:-}
+    volumes:
+      # NOTE: no office source directory, office database, office key, or fixture
+      # corpus is mounted here. Only trusted public pins, the gateway's own relay
+      # log directory and the shared identity configuration are visible.
+      - ./runtime/trusted_keys.json:/app/runtime/trusted_keys.json:ro
+      - ./runtime/gateway:/app/runtime/gateway
+      - ./config:/app/config:ro
+    ports:
+      - "127.0.0.1:8080:8000"
+    depends_on:
+      dhaka:
+        condition: service_healthy
+      frankfurt:
+        condition: service_healthy

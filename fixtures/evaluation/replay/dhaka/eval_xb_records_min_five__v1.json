@@ -1,0 +1,50 @@
+{
+  "content_sha256": "db47855b315c3a6afa5562f63570671a8905984b73aa9d9859ca8ad4ad335644",
+  "model_metadata": {
+    "attempts": 1,
+    "latency_ms": 0,
+    "model": "synthetic-fixture-v1",
+    "provider": "synthetic-replay-fixture",
+    "route": "offline-replay"
+  },
+  "prompt_version": "extract-v1",
+  "proposal": {
+    "notes": null,
+    "rules": [
+      {
+        "ambiguous": false,
+        "ambiguous_reason": null,
+        "conditions": [],
+        "evidence": {
+          "end_char": null,
+          "page": 1,
+          "quote": "These records must be retained for at least five years from loan closure.",
+          "section": null,
+          "start_char": null
+        },
+        "rule": {
+          "kind": "required_minimum",
+          "unit": "years",
+          "value": "5"
+        },
+        "scope": {
+          "kind": "record",
+          "origin_office": "DHAKA",
+          "processing_office": "FRANKFURT",
+          "product": "MTF_CROSS_OFFICE",
+          "record_class": "loan_records",
+          "starting_event": "loan_closure"
+        },
+        "subject": "record_retention",
+        "unsupported_conditions": []
+      }
+    ],
+    "schema_version": "1",
+    "source_language": "en",
+    "unsupported_cases": []
+  },
+  "region": "DHAKA",
+  "schema_version": "1",
+  "source_identity": "eval_xb_records_min_five",
+  "version_label": "v1"
+}

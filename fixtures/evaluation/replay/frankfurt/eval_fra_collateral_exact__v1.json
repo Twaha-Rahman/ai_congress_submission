@@ -1,0 +1,54 @@
+{
+  "content_sha256": "1fb5076897c5b5c6488932366e2358aa7d01f1e86d00abc02b812560b6447b35",
+  "model_metadata": {
+    "attempts": 1,
+    "latency_ms": 0,
+    "model": "synthetic-fixture-v1",
+    "provider": "synthetic-replay-fixture",
+    "route": "offline-replay"
+  },
+  "prompt_version": "extract-v1",
+  "proposal": {
+    "notes": null,
+    "rules": [
+      {
+        "ambiguous": false,
+        "ambiguous_reason": null,
+        "conditions": [],
+        "evidence": {
+          "end_char": null,
+          "page": 1,
+          "quote": "A business loan in USD with an amount of USD 100,000 or less requires exactly one collateral sign-off.",
+          "section": null,
+          "start_char": null
+        },
+        "rule": {
+          "kind": "exactly_required",
+          "unit": "approvals",
+          "value": 1
+        },
+        "scope": {
+          "amount_minor": {
+            "lower": 0,
+            "lower_inclusive": false,
+            "upper": 10000000,
+            "upper_inclusive": true
+          },
+          "currency": "USD",
+          "kind": "loan",
+          "loan_type": "business",
+          "origin_office": "DHAKA"
+        },
+        "subject": "loan_approval",
+        "unsupported_conditions": []
+      }
+    ],
+    "schema_version": "1",
+    "source_language": "en",
+    "unsupported_cases": []
+  },
+  "region": "FRANKFURT",
+  "schema_version": "1",
+  "source_identity": "eval_fra_collateral_exact",
+  "version_label": "v1"
+}

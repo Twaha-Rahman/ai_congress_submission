@@ -1,0 +1,14 @@
+{
+  "channel": {
+    "id": "C_DHA_CREDIT",
+    "name": "dhaka-credit-policy"
+  },
+  "event": {
+    "type": "message",
+    "event_id": "Ev_DEMO_STALE_GUIDANCE",
+    "ts": "2026-03-03T09:15:00Z",
+    "user": "U_DHA_CREDIT_OPS",
+    "user_name": "Dhaka Credit Operations",
+    "text": "For our USD business loans up to 50k, one approval is sufficient. You do not need a second sign-off."
+  }
+}

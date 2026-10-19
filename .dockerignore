@@ -1,0 +1,15 @@
+.git
+.gitignore
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+runtime
+evidence
+fixtures
+.env
+tests
+docs
+*.egg-info
+build
+dist

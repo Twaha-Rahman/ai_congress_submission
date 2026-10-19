@@ -1,0 +1,124 @@
+{
+  "schema_version": "1",
+  "description": "Static demo identity map. Token values are read from environment variables at runtime; no secret is stored in this file.",
+  "principals": [
+    {
+      "principal_id": "dhaka_uploader",
+      "display_name": "Dhaka policy owner (demo)",
+      "tenant_id": "meridian_demo",
+      "office": "DHAKA",
+      "role": "uploader",
+      "permissions": [
+        "ingest",
+        "read_local",
+        "read_restricted",
+        "query_local"
+      ],
+      "token_env": "DEMO_TOKEN_DHAKA_UPLOADER"
+    },
+    {
+      "principal_id": "dhaka_reviewer",
+      "display_name": "Dhaka compliance reviewer (demo)",
+      "tenant_id": "meridian_demo",
+      "office": "DHAKA",
+      "role": "reviewer",
+      "permissions": [
+        "read_local",
+        "read_restricted",
+        "query_local",
+        "review",
+        "audit_read"
+      ],
+      "token_env": "DEMO_TOKEN_DHAKA_REVIEWER"
+    },
+    {
+      "principal_id": "dhaka_reader",
+      "display_name": "Dhaka analyst (demo)",
+      "tenant_id": "meridian_demo",
+      "office": "DHAKA",
+      "role": "reader",
+      "permissions": [
+        "read_local",
+        "query_local"
+      ],
+      "token_env": "DEMO_TOKEN_DHAKA_READER"
+    },
+    {
+      "principal_id": "frankfurt_uploader",
+      "display_name": "Frankfurt policy owner (demo)",
+      "tenant_id": "meridian_demo",
+      "office": "FRANKFURT",
+      "role": "uploader",
+      "permissions": [
+        "ingest",
+        "read_local",
+        "read_restricted",
+        "query_local"
+      ],
+      "token_env": "DEMO_TOKEN_FRANKFURT_UPLOADER"
+    },
+    {
+      "principal_id": "frankfurt_reviewer",
+      "display_name": "Frankfurt compliance reviewer (demo)",
+      "tenant_id": "meridian_demo",
+      "office": "FRANKFURT",
+      "role": "reviewer",
+      "permissions": [
+        "read_local",
+        "read_restricted",
+        "query_local",
+        "review",
+        "audit_read"
+      ],
+      "token_env": "DEMO_TOKEN_FRANKFURT_REVIEWER"
+    },
+    {
+      "principal_id": "frankfurt_reader",
+      "display_name": "Frankfurt analyst (demo)",
+      "tenant_id": "meridian_demo",
+      "office": "FRANKFURT",
+      "role": "reader",
+      "permissions": [
+        "read_local",
+        "query_local"
+      ],
+      "token_env": "DEMO_TOKEN_FRANKFURT_READER"
+    },
+    {
+      "principal_id": "dhaka_service",
+      "display_name": "Dhaka inter-office service (demo)",
+      "tenant_id": "meridian_demo",
+      "office": "DHAKA",
+      "role": "office_service",
+      "permissions": [
+        "federation_serve",
+        "internal_egress_read"
+      ],
+      "token_env": "DEMO_TOKEN_DHAKA_SERVICE"
+    },
+    {
+      "principal_id": "frankfurt_service",
+      "display_name": "Frankfurt inter-office service (demo)",
+      "tenant_id": "meridian_demo",
+      "office": "FRANKFURT",
+      "role": "office_service",
+      "permissions": [
+        "federation_serve",
+        "internal_egress_read"
+      ],
+      "token_env": "DEMO_TOKEN_FRANKFURT_SERVICE"
+    },
+    {
+      "principal_id": "gateway_service",
+      "display_name": "Gateway orchestration service (demo)",
+      "tenant_id": "meridian_demo",
+      "office": "GATEWAY",
+      "role": "gateway_service",
+      "permissions": [
+        "federation_orchestrate",
+        "audit_read"
+      ],
+      "token_env": "DEMO_TOKEN_GATEWAY_SERVICE"
+    }
+  ]
+}

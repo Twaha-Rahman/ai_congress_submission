@@ -9,3 +9,7 @@ __pycache__/
 *.egg-info/
 build/
 dist/
+# local frontend dependencies and configuration
+node_modules/
+.env.local
+*.tsbuildinfo

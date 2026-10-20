@@ -516,7 +516,7 @@ def ingest_prepared(
 
     clause_lookup = {clause.clause_id: clause for clause in clauses}
     review_detail: list[tuple[str, str]] = []
-    for review in validation.reviews:
+    for review_index, review in enumerate(validation.reviews):
         review_detail.append((review.reason_code, review.detail))
         record = _review_claim(
             store=store,
@@ -526,6 +526,7 @@ def ingest_prepared(
             signer=signer,
             extraction=provenance,
             clause_lookup=clause_lookup,
+            index=len(accepted_records) + review_index,
         )
         if record is not None:
             review_records.append(record)
@@ -773,6 +774,7 @@ def _review_claim(
     signer: Signer,
     extraction: ExtractionProvenance,
     clause_lookup: dict[str, ClauseRow],
+    index: int,
 ) -> ClaimRevisionRecord | None:
     """Persist a signed ``needs_review`` claim when evidence is resolvable."""
 
@@ -803,7 +805,9 @@ def _review_claim(
         manifest=manifest,
         source=source,
         rule=rule,
-        index=900 + int(sha256_hex(review.reason_code.encode("utf-8"))[:6], 16) % 100,
+        # Each review proposal needs its own slot, including multiple statements
+        # with the same reason and passage. Accepted slots precede review slots.
+        index=index,
         signer=signer,
         extraction=extraction,
         status=ClaimStatus.NEEDS_REVIEW,

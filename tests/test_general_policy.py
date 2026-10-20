@@ -452,3 +452,43 @@ def test_failed_general_extraction_does_not_hide_its_job_behind_a_missing_source
     worker._finalise(job, outcome)
     stored = dhaka.store.get_job(job.job_id)
     assert stored.status == "failed" and stored.source_id is None
+
+
+def test_multiple_review_claims_in_one_passage_have_distinct_signed_ids(dhaka, monkeypatch):
+    statements = [
+        "Employees must submit travel claims within 30 days.",
+        "Overseas staff may use the deadline in Appendix C.",
+        "Remote staff may use the allowance in Appendix D.",
+    ]
+    source_manifest = manifest("review_identity_regression")
+    source = prepared("\n".join(statements), source_manifest)
+    assert len(source.parsed.clauses) == 1
+    rules = []
+    for i, statement in enumerate(statements):
+        data = proposal(statement, source_manifest.scope.model_dump()).rules[0].model_dump(mode="json")
+        if i:
+            data.update(ambiguous=True, ambiguous_reason="The referenced appendix was not supplied.")
+        rules.append(data)
+    output = ExtractionProposal.model_validate({"rules": rules})
+    monkeypatch.setattr(dhaka.service, "extract", lambda request: ProviderResult(
+        mode=Mode.REPLAY, provider="offline-regression", proposal=output))
+    result = ingest_prepared(dhaka.store, source, mode=Mode.REPLAY, service=dhaka.service,
+                             signer=dhaka.signer, now=NOW)
+    assert result.ok, result.error_detail
+    claims = dhaka.store.claims_for_source(result.source_id)
+    assert len(claims) == 3
+    assert len({c.payload.revision_id for c in claims}) == 3
+    assert len({c.payload.claim_id for c in claims}) == 3
+    assert len({c.payload.source_clause_id for c in claims}) == 1
+    assert sorted(c.payload.status.value for c in claims) == ["accepted", "needs_review", "needs_review"]
+    assert {c.payload.evidence.quote for c in claims} == set(statements)
+    from meridian.integrity.canonical import canonical_json_bytes
+    from meridian.integrity.signing import verify_signature
+    for claim in claims:
+        assert verify_signature(canonical_json_bytes(claim.payload), claim.signature, dhaka.signer.public_key_hex)
+    with dhaka.store.db.reader() as conn:
+        assert conn.execute("SELECT COUNT(*) FROM claim_reviews WHERE source_id=? AND reason_code='ambiguous_proposal'", (result.source_id,)).fetchone()[0] == 2
+    duplicate = ingest_prepared(dhaka.store, source, mode=Mode.REPLAY, service=dhaka.service,
+                                signer=dhaka.signer, now=NOW)
+    assert duplicate.duplicate and duplicate.source_id == result.source_id
+    assert len(dhaka.store.claims_for_source(result.source_id)) == 3

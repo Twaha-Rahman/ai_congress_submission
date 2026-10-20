@@ -164,7 +164,7 @@ export function orderFindings(
   const rank = { high: 0, review: 1, info: 2 };
   const states = { open: 0, acknowledged: 1, resolved: 2, dismissed: 3 };
   const newest = (a: Finding, b: Finding) =>
-    b.created_at.localeCompare(a.created_at);
+    Date.parse(b.created_at) - Date.parse(a.created_at);
   const id = (a: Finding, b: Finding) =>
     findingTag(a).localeCompare(findingTag(b)) ||
     a.finding_id.localeCompare(b.finding_id);

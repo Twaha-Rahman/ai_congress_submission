@@ -1890,6 +1890,16 @@ textarea {
     font-size: 11px;
   }
 }
+@media (max-width: 420px) {
+  .review-actions .action-shortcut {
+    display: none;
+  }
+  .review-actions .button {
+    gap: 5px;
+    padding: 9px 8px;
+    font-size: 11px;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

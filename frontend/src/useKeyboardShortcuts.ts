@@ -36,6 +36,18 @@ export function useKeyboardShortcuts(
         document.querySelector("dialog[open]")
       )
         return;
+      // Function-key help remains available when a filter or search has focus.
+      if (
+        event.key === "F1" &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey &&
+        actions.help
+      ) {
+        event.preventDefault();
+        actions.help();
+        return;
+      }
       const element = event.target instanceof Element ? event.target : null;
       if (
         element?.closest(

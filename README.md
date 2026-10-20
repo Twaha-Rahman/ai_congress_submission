@@ -33,6 +33,13 @@ are stored in the URL. `DESIGN.md` is the installed Claude design reference;
 [FRONTEND_GUIDELINES.md](FRONTEND_GUIDELINES.md) records the Meridian adaptations
 and a review checklist for this first slice.
 
+Search by text, full finding ID, or the displayed tag (for example `#2B6375FB`).
+The queue's Sort control supports severity, newest, oldest, review status and ID;
+the chosen order also survives a reload. Click **Shortcuts**, or press `?` / `F1`,
+for the keyboard guide and the option to disable single-key shortcuts. `/` focuses
+search, `J` / `K` move through findings, and `A` / `R` / `D` open review forms.
+`Ctrl+Enter` / `⌘+Enter` submits a review after you enter a reason.
+
 The frontend server reads the root `.env` and keeps bearer tokens on the server.
 It runs as the configured demo reviewer by default. To inspect read-only access:
 

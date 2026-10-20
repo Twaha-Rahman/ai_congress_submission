@@ -43,8 +43,24 @@ Tokens live in `frontend/src/styles.css`; use variables when extending component
   quotes. At 760px and below, show either the queue or selected finding, with an
   explicit back action. Never require horizontal page scrolling.
 - Keep the queue scrollable while the investigation is open. Preserve search,
-  office, status, type, severity and selected finding in the URL; browser history
+  office, status, type, severity, sort order and selected finding in the URL; browser history
   must continue to work.
+- Keep the page heading to “Findings.” Avoid promotional sidebar copy, explanatory
+  taglines and duplicate footer slogans in the workspace.
+- Office and filter controls use `Select.tsx`, a shared select-only combobox with
+  styled trigger and option surfaces. Keep the native keyboard conventions:
+  arrows/Home/End move the active option, typing finds a label, Enter/Space selects,
+  Escape cancels, and Tab closes without trapping focus. Checkmarks mark the selected
+  option; active focus and selection remain distinct. Popups stay inside the visible
+  content width and flip above the trigger when space below is limited.
+- The queue sort control supports severity, newest, oldest, review status and finding
+  ID. Default severity order breaks ties by newest first, then a stable identifier.
+  Sorting preserves an explicitly selected finding and never mutates backend data.
+- Show the short finding tag prominently in the detail header and in queue rows.
+  Tags use `#` plus the final eight ID characters in uppercase. Search accepts tags
+  with or without `#`, full IDs, partial IDs and ordinary evidence text, regardless
+  of case. Clicking the header tag filters to it and focuses search. Short-tag
+  collisions may return multiple findings; the full ID remains in snapshot details.
 - Use named, real icons from Lucide. Icon-only actions need accessible labels.
   Unknown values must say they are unavailable instead of inventing metadata.
 - `components.tsx`: buttons via shared CSS, severity/review badges, empty/loading/error
@@ -97,6 +113,17 @@ identifiers. Do not pretend an exact PDF highlight or cryptographic check was ru
   close, and prevent background scrolling. Tab panels support arrow/Home/End keys.
 - Provide visible focus indicators, a skip link, labels on all controls, text with
   semantic colors, status/error announcements, and reduced-motion support.
+- Keyboard shortcuts are discoverable through the header button, `?`, or `F1`.
+  Single-key shortcuts can be disabled in that panel; save only this boolean
+  preference in local storage. Pause them while typing, during composition, in
+  dropdowns and in open dialogs. Preserve browser/assistive modifier combinations.
+  `F1` can also open help from a focused search/filter control.
+- Shortcuts: `/` search, `J`/`K` next/previous finding, `A` acknowledge, `R` resolve,
+  `D` dismiss, `E` evidence, `T` chronology, `H` review history, `S` sort, `O` office,
+  and `Shift+R` refresh. Navigation moves keyboard focus to the selected item.
+  Review shortcuts open a reason form; they never save a decision immediately.
+  In that form, `Ctrl+Enter` or `⌘+Enter` submits only when the reason is nonblank
+  and a save is not already in progress. Escape dismisses the form without saving.
 - The local bridge uses server-configured demo credentials and loopback hostnames.
   Browser code must never import server modules, receive bearer tokens, or carry
   credentials in Vite variables, source URLs, local storage or source control.
@@ -128,3 +155,10 @@ or the evidence arrangement here before implementing the Sources slice.
   finding, reader restrictions, modal dismissal/focus restoration, and desktop/mobile
   layout. No hosted model calls are needed to operate this workspace.
 - The physical projector has not been tested; that remains a team rehearsal check.
+
+The controls refinement was additionally checked for tag searches, actual queue
+ordering, dropdown type-ahead and arrow navigation, shortcut suppression during
+typing, the persistent disable preference, mobile popup bounds, and keyboard review
+submission against a separately configured QA database. Confirm the QA service's
+`/health` reports the intended database before testing writes; office-specific
+`DHAKA_DB_PATH` / `FRANKFURT_DB_PATH` settings override generic `DB_PATH` settings.

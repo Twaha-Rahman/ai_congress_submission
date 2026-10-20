@@ -85,3 +85,19 @@ test("ties are deterministic, including findings sharing the short tag", () => {
   assert.deepEqual(orderFindings([b, a], "newest"), [a, b]);
   assert.equal(orderFindings([b, a], "id")[0], a);
 });
+
+test("date sorting handles optional fractional seconds and equivalent timezone offsets", () => {
+  const second = finding("ffffffff", "2026-01-01T00:00:00Z", "info");
+  const fraction = finding("00000000", "2026-01-01T00:00:00.500Z", "info");
+  const later = finding("11111111", "2026-01-01T01:00:01+01:00", "info");
+  assert.deepEqual(orderFindings([fraction, second, later], "newest"), [
+    later,
+    fraction,
+    second,
+  ]);
+  assert.deepEqual(orderFindings([fraction, later, second], "oldest"), [
+    second,
+    fraction,
+    later,
+  ]);
+});

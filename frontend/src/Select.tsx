@@ -66,14 +66,15 @@ export default function Select({
     if (!open) return;
     function place() {
       const rect = trigger.current!.getBoundingClientRect();
-      const width = Math.min(Math.max(rect.width, 190), window.innerWidth - 16);
+      const viewportWidth = document.documentElement.clientWidth;
+      const width = Math.min(Math.max(rect.width, 190), viewportWidth - 16);
       const desired = Math.min(options.length * 40 + 10, 290);
       const below = window.innerHeight - rect.bottom - 12;
       const above = rect.top - 12;
       const flip = below < desired && above > below;
       const height = Math.min(desired, flip ? above : below);
       setPosition({
-        left: Math.max(8, Math.min(rect.left, window.innerWidth - width - 8)),
+        left: Math.max(8, Math.min(rect.left, viewportWidth - width - 8)),
         top: flip ? rect.top - height - 6 : rect.bottom + 6,
         width,
         maxHeight: Math.max(40, height),

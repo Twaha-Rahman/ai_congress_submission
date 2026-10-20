@@ -70,7 +70,7 @@ See [OpenRouter's structured-output routing documentation](https://openrouter.ai
 Select `mode=live` on ingestion to process your own new documents. `cached` and
 `replay` stay explicit and never fall back to paid model calls. General extraction
 uses prompt version `general-extract-v3`; semantic comparison uses
-`general-compare-v2`. General comparison cache/replay records are separate from
+`general-compare-v3`. General comparison cache/replay records are separate from
 extraction records, under the office's `comparisons/` subdirectory.
 
 Every source included in a hosted comparison must allow hosted processing. A

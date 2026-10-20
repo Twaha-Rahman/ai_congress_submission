@@ -35,6 +35,7 @@ from ..contracts.common import (
     Mode,
     ReviewAction,
     ReviewState,
+    Subject,
     canonical_datetime,
     utc_now,
 )
@@ -403,6 +404,19 @@ def create_app(settings: OfficeSettings | None = None) -> FastAPI:
         if not _source_readable(principal, source):
             raise ApiError(ErrorCode.NOT_FOUND, "no such source")
         return {"source": _source_dict(source)}
+
+    @app.post("/v1/sources/{source_id}/comparisons", status_code=202)
+    def recheck_source(source_id: str, mode: str | None = None,
+                       principal=Depends(authenticate)) -> dict[str, Any]:
+        _require_office_scope(principal, Permission.INGEST)
+        source = store.get_source(source_id)
+        if not _source_readable(principal, source):
+            raise ApiError(ErrorCode.NOT_FOUND, "no such source")
+        if source.subject != Subject.GENERAL_POLICY.value:
+            raise ApiError(ErrorCode.INVALID_INPUT, "comparison retry requires a general-policy source")
+        job = store.create_job(kind="policy_comparison", mode=_resolve_mode(runtime.settings, mode),
+            request={"source_id": source_id, "manifest": source.manifest.model_dump(mode="json")})
+        return {"job": _job_dict(job)}
 
     @app.get("/v1/sources/{source_id}/content")
     def get_source_content(source_id: str, principal=Depends(authenticate)):

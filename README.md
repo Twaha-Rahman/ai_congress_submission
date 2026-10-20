@@ -10,6 +10,14 @@ The repository also contains the synthetic demo corpus, replay proposals, evalua
 labels, command-line demos and an offline test suite. The first frontend slice is a
 Claude-inspired findings workspace with evidence comparison and persisted reviews.
 
+For your own policy subjects, use `subject: "general_policy"`. This path retrieves
+relevant statements, checks source quotations, and publishes model-assisted conflict
+candidates for human review. See the [general policy demo guide](docs/general_policy_demo.md)
+for manifests, PDF/Slack API examples, comparison retries, limits and model evaluation.
+The existing numeric checks remain available; general-policy Q&A and cross-office
+text comparison are not implemented. Browser uploads and a live Slack listener are
+still separate frontend/integration work.
+
 ## Findings workspace
 
 Requires Node **22.13+** (or a newer supported Node release), in addition to the
@@ -370,7 +378,10 @@ verification unless the old public keys remain pinned.
   deployment. The worker is one per service process by design.
 - The parser supports text-based PDFs and saved Slack events; scanned PDFs/OCR and
   arbitrary chat exports are out of scope.
-- The gateway and office comparison logic support the two proposal subjects and their
-  scoped semantics only; unsupported currencies/conditions are rejected or reviewed.
+- Numeric answers and gateway comparisons support loan approval and record retention
+  with their scoped semantics; unsupported numeric currencies/conditions are rejected
+  or reviewed. Office-local general-policy findings use model-assisted comparison
+  and require human interpretation; they do not provide arbitrary-topic Q&A or
+  cross-office text comparison.
 - Buyer interviews, NRB participation, venue logistics and backup-laptop rehearsals are
   team tasks and are not claimed here.

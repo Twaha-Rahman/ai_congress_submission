@@ -166,6 +166,18 @@ class OfficeWorker:
             write_cache=self.write_cache,
             egress_sink=recorder.sink,
         )
+        if job.kind == "policy_comparison":
+            from ..rules.general import recompare_policy_source
+
+            try:
+                outcome = recompare_policy_source(self.store, job.request["source_id"],
+                    service=service, signer=self.signer, mode=Mode(job.mode), request_id=job.job_id)
+            except Exception as exc:  # keep the durable worker alive
+                outcome = IngestionOutcome(error_code=ErrorCode.INTERNAL_ERROR.value,
+                                           error_detail=f"{type(exc).__name__}: {exc}"[:400])
+            recorder.flush(self.store)
+            self._finalise(job, outcome)
+            return outcome
         try:
             prepared, request_id = self._prepare(job)
         except (UnsupportedDocument, ManifestSourceMismatch, VersionPayloadMismatch) as exc:
@@ -237,6 +249,9 @@ class OfficeWorker:
         return JobStatus.FAILED
 
     def _finalise(self, job: JobRow, outcome: IngestionOutcome) -> None:
+        # Failed extraction never commits its staged source. Keep authorization
+        # tied to the job's trusted manifest rather than an unresolvable source ID.
+        persisted_source_id = outcome.source_id if outcome.source_id and self.store.get_source(outcome.source_id) else None
         if outcome.error_code is not None:
             status = self._failure_status(job, outcome.error_code)
             self.store.update_job(
@@ -244,7 +259,7 @@ class OfficeWorker:
                 status=status,
                 error_code=outcome.error_code,
                 review_reason=outcome.error_detail,
-                source_id=outcome.source_id,
+                source_id=persisted_source_id,
                 stage_modes=outcome.stage_modes,
                 finished=status is JobStatus.FAILED,
             )
@@ -265,7 +280,7 @@ class OfficeWorker:
         self.store.update_job(
             job.job_id,
             status=status,
-            source_id=outcome.source_id,
+            source_id=persisted_source_id,
             stage_modes=outcome.stage_modes,
             review_reason=(
                 "; ".join(

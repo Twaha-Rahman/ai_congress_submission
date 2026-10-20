@@ -111,13 +111,16 @@ def comparison_request(
             context = list(new_clauses)
             permission = manifest.permissions.hosted_model
             source_type = manifest.source_type.value
+            declared_conditions = manifest.declared_conditions
         else:
             context = store.clauses_for_source(r.source_id)
             permission = source.hosted_model
             source_type = source.source_type
+            declared_conditions = source.manifest.declared_conditions
         hosted_allowed = hosted_allowed and permission
         metadata[side]["source_type"] = source_type
         metadata[side]["hosted_model_allowed"] = permission
+        metadata[side]["declared_conditions"] = declared_conditions
         if r.source_id in seen_sources:
             continue
         seen_sources.add(r.source_id)
@@ -208,7 +211,7 @@ class PolicyBatch:
 def prepare_policy_comparisons(
     store: OfficeStore, *, new_revisions: Sequence[ClaimRevision],
     new_clauses: Sequence[ClauseRow], manifest: SourceManifest,
-    service: ModelStageService, mode: Mode, request_id: str,
+    service: ModelStageService, mode: Mode, request_id: str, recheck: bool = False,
 ) -> PolicyBatch:
     batch = PolicyBatch()
     new_views = [ClaimView(r) for r in new_revisions if r.subject is Subject.GENERAL_POLICY]
@@ -216,6 +219,11 @@ def prepare_policy_comparisons(
         return batch
     existing = store.claim_views(subject=Subject.GENERAL_POLICY.value, include_remote=False, limit=None)
     views = [v for v in existing if v.is_current and not v.carried_forward] + new_views
+    views = list({v.revision_id: v for v in views}.values())
+    if manifest.source_type is SourceType.SLACK and not any(
+        v.revision.authority is Authority.POLICY for v in views
+    ):
+        batch.reviews.append(("policy_reference_missing", "No accepted general policy is available to check this message against."))
     existing_pairs = {
         tuple(sorted(record.payload.claim_revision_ids))
         for record in store.list_findings(limit=100000)
@@ -231,7 +239,7 @@ def prepare_policy_comparisons(
         for right in ranked[:service.settings.policy_comparison_top_k]:
             a, b = sorted([left, right], key=lambda v: v.revision_id)
             key = (a.revision_id, b.revision_id)
-            if key not in existing_pairs:
+            if recheck or key not in existing_pairs:
                 pairs[key] = (a, b)
     if len(pairs) > service.settings.policy_comparison_max_pairs:
         batch.reviews.append(("policy_comparison_limit", "The source exceeded the comparison-pair limit; coverage is incomplete."))
@@ -257,8 +265,8 @@ def prepare_policy_comparisons(
     return batch
 
 
-def publish_policy_batch(connection, store, batch, *, signer, now) -> list[str]:
-    from .publish import publish_comparison
+def publish_policy_batch(connection, store, batch, *, signer, now, recheck=False) -> list[str]:
+    from .publish import publish_comparison, finding_key
 
     views = {v.revision_id: v for v in store.claim_views(
         subject=Subject.GENERAL_POLICY.value, limit=None, connection=connection,
@@ -271,14 +279,22 @@ def publish_policy_batch(connection, store, batch, *, signer, now) -> list[str]:
         gate = _gate(views[a], views[b])
         if gate.finding_type in {FindingType.NOT_COMPARABLE, FindingType.SUPERSESSION}:
             comparison = gate
+        if recheck:
+            current_key = finding_key(comparison.finding_type, a, b)
+            for old in store.list_findings(connection=connection, limit=100000):
+                if (set(old.payload.claim_revision_ids) == {a, b}
+                        and old.payload.finding_key != current_key
+                        and old.payload.detail.get("assessment") != "historical"):
+                    retire_policy_assessment(connection, store, old, signer=signer, now=now,
+                        explanation="A newer comparison supersedes this assessment. Inspect the latest findings and job result.")
         snapshot = publish_comparison(connection, store, comparison, signer=signer,
-                                      now=now, existing_keys=keys)
+                                      now=now, existing_keys=keys, force_snapshot=recheck)
         if snapshot:
             published.append(comparison.finding_type.value)
     return published
 
 
-def retire_policy_assessment(connection, store, record: FindingRecord, *, signer, now):
+def retire_policy_assessment(connection, store, record: FindingRecord, *, signer, now, explanation=None):
     """Invalidate an old assessment without deleting its evidence or reviewer audit."""
     from .publish import publish_comparison
 
@@ -289,9 +305,46 @@ def retire_policy_assessment(connection, store, record: FindingRecord, *, signer
         left_revision_id=p.claim_revision_ids[0], right_revision_id=p.claim_revision_ids[1],
         subject=p.subject, affected_scope=p.affected_scope,
         affected_valid_interval=p.affected_valid_interval, authority_basis=p.authority_basis,
-        detail={**p.detail, "assessment": "historical", "explanation": (
+        detail={**p.detail, "assessment": "historical", "explanation": explanation or (
             "A cited policy revision has been replaced. This assessment is historical; inspect the replacement policy."
         )}, alert=False,
     )
     publish_comparison(connection, store, result, signer=signer, now=now,
                        existing_keys=store.finding_keys(connection=connection), force_snapshot=True)
+
+
+def recompare_policy_source(store, source_id, *, service, signer, mode, request_id):
+    """Explicit recovery after provider failure, without re-uploading immutable data."""
+    from ..ingestion.pipeline import IngestionOutcome
+    from ..contracts.common import ErrorCode, utc_now
+    from ..storage.store import new_id
+
+    source = store.get_source(source_id)
+    if source is None or source.subject != Subject.GENERAL_POLICY.value:
+        return IngestionOutcome(error_code=ErrorCode.INVALID_INPUT.value,
+                                error_detail="comparison retry requires an existing general-policy source")
+    current = [v.revision for v in store.claim_views(subject=Subject.GENERAL_POLICY.value, limit=None)
+               if v.revision.source_id == source_id and v.is_current and not v.carried_forward]
+    batch = prepare_policy_comparisons(store, new_revisions=current,
+        new_clauses=store.clauses_for_source(source_id), manifest=source.manifest,
+        service=service, mode=mode, request_id=request_id, recheck=True)
+    if not current:
+        batch.reviews.append(("policy_no_current_claims", "This source has no current accepted statements to compare."))
+    now = utc_now()
+    with store.db.transaction() as connection:
+        findings = publish_policy_batch(connection, store, batch, signer=signer, now=now, recheck=True)
+        for code, detail in batch.reviews:
+            store.insert_claim_review(connection=connection, source_id=source_id,
+                reason_code=code, detail={"detail": detail}, subject=source.subject, created_at=now)
+        for request, result in batch.calls:
+            store.record_model_call(connection, call_id=new_id("call"), job_id=None,
+                source_id=source_id, mode=result.mode.value, provider=result.provider,
+                route=result.route, model=result.model, prompt_version=request.prompt_version,
+                schema_version=request.schema_version, attempts=result.attempts,
+                latency_ms=result.latency_ms, usage=result.usage,
+                status="succeeded" if result.ok else "failed",
+                error_code=result.error_code.value if result.error_code else None,
+                cache_key=result.cache_key, raw_output_sha256=result.raw_output_sha256)
+    return IngestionOutcome(source_id=source_id, claim_revision_ids=[r.revision_id for r in current],
+        finding_types=findings, review_reasons=[code for code, _ in batch.reviews],
+        stage_modes={"policy_comparison": mode.value})

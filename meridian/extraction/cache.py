@@ -46,6 +46,8 @@ def compute_cache_key(
         "subject": request.subject.value,
         "authority": request.authority,
     }
+    if request.subject.value == "general_policy":
+        payload["manifest_scope_sha256"] = sha256_hex(request.manifest_scope_summary.encode("utf-8"))
     return sha256_hex(canonical_json_bytes(payload))
 
 

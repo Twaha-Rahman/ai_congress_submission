@@ -7,6 +7,7 @@ responses are controlled fixtures, so passing them is not a model accuracy score
 from dataclasses import replace
 from datetime import datetime, timezone
 import json
+import re
 
 import httpx
 import pymupdf
@@ -97,8 +98,8 @@ def model_service(office, *, relationship="conflict", comparison_changes=None,
             if comparison_error:
                 return httpx.Response(comparison_error, json={"error": "unavailable"})
             lines = user.splitlines()
-            left = lines[lines.index(next(s for s in lines if s.startswith("[left_primary |"))) + 1]
-            right = lines[lines.index(next(s for s in lines if s.startswith("[right_primary |"))) + 1]
+            left = re.search(r"(?ms)^\[left_primary [^\n]*\]\n(.*?)(?=\n\n\[)", user).group(1)
+            right = re.search(r"(?ms)^\[right_primary [^\n]*\]\n(.*?)(?=\n\n\[)", user).group(1)
             output = verdict(left, right, relationship, **(comparison_changes or {})).model_dump(mode="json")
         else:
             start = next(i for i, line in enumerate(user.splitlines()) if line.startswith("[") and " | page " in line)
@@ -159,6 +160,9 @@ def test_travel_pdf_and_slack_produce_signed_review_candidate(dhaka):
     assert finding.payload.detail["requires_human_review"] == "true"
     assert {e.quote for e in finding.payload.evidence} == {POLICY, MESSAGE}
     assert finding.signature and finding.payload.evidence[0].manifest_root
+    from meridian.integrity.canonical import canonical_json_bytes
+    from meridian.integrity.signing import verify_signature
+    assert verify_signature(canonical_json_bytes(finding.payload), finding.signature, dhaka.signer.public_key_hex)
     assert all(r.payload.scope.kind == "policy" for r in dhaka.store.claim_rows())
     message_claim = dhaka.store.claims_for_source(second.source_id)[0].payload
     assert message_claim.valid_from == NOW
@@ -238,14 +242,18 @@ def test_proven_disjoint_applicability_avoids_model_comparison(dhaka, boundary):
 def test_comparison_cannot_send_a_non_shareable_policy_to_hosted_model(dhaka):
     # Extract with an explicitly approved local endpoint first, then switch to hosted.
     service, calls = model_service(dhaka)
-    service.settings = replace(service.settings, llm_base_url="http://127.0.0.1:9000/v1", llm_local_endpoint_approved=True)
-    first = ingest(dhaka, POLICY, manifest(permissions={"office_export": False, "hosted_model": False}), service=service)
+    events = []
+    service.egress_sink = events.append
+    local = ModelStageService(replace(service.settings, llm_base_url="http://127.0.0.1:9000/v1",
+        llm_local_endpoint_approved=True), transport=service.live._transport)
+    first = ingest(dhaka, POLICY, manifest(permissions={"office_export": False, "hosted_model": False}), service=local)
     assert first.ok
-    service.settings = replace(service.settings, llm_base_url="https://openrouter.ai/api/v1", llm_local_endpoint_approved=False)
     second = ingest(dhaka, MESSAGE, manifest("team_message", source_type="slack"), service=service)
     assert second.ok
     assert len(calls) == 2  # policy extraction + message extraction, no comparison egress
     assert dhaka.store.list_findings()[0].payload.detail["error_code"] == "egress_denied"
+    blocked = next(e for e in events if e["payload_type"] == "policy_comparison")
+    assert blocked["outcome"] == "blocked" and blocked["raw_source_bytes"] == 0
 
 
 @pytest.mark.parametrize("change", ["quote", "field", "scope"])
@@ -363,3 +371,84 @@ def test_general_findings_are_readable_through_existing_ui_api(dhaka, monkeypatc
     assert finding["subject"] == "general_policy" and finding["alert"] is False
     detail = next(r.endpoint for r in app.routes if getattr(r, "path", None) == "/v1/findings/{finding_id}")
     assert detail(finding["finding_id"], principal=reader)["finding"]["payload"]["affected_scope"]["kind"] == "policy"
+    recheck = next(r.endpoint for r in app.routes if getattr(r, "path", None) == "/v1/sources/{source_id}/comparisons")
+    uploader = Principal(principal_id="uploader", tenant_id="meridian_demo", office="DHAKA",
+        role=Role.UPLOADER, display_name="Uploader", permissions=frozenset({Permission.READ_LOCAL, Permission.INGEST}))
+    source_id = finding["evidence"][0]["source_id"]
+    queued = recheck(source_id, mode="replay", principal=uploader)
+    assert queued["job"]["kind"] == "policy_comparison"
+    assert dhaka.store.get_job(queued["job"]["job_id"]).request["source_id"] == source_id
+
+
+def test_explicit_retry_recovers_a_failed_comparison_without_reupload(dhaka):
+    from meridian.rules.general import recompare_policy_source
+    failed_service, _ = model_service(dhaka, comparison_error=503)
+    _, outcome = pair(dhaka, service=failed_service)
+    old = dhaka.store.list_findings()[0]
+    healthy, calls = model_service(dhaka)
+    retried = recompare_policy_source(dhaka.store, outcome.source_id, service=healthy,
+        signer=dhaka.signer, mode=Mode.LIVE, request_id="recheck")
+    assert retried.ok and retried.review_reasons == []
+    assert len(calls) == 1  # no repeated extraction
+    findings = dhaka.store.list_findings()
+    assert any(f.payload.explanation_code.value == "semantic_conflict" for f in findings)
+    assert dhaka.store.get_finding(old.payload.finding_id).payload.detail["assessment"] == "historical"
+
+
+def test_retry_can_withdraw_a_candidate_when_model_finds_an_exception(dhaka):
+    from meridian.rules.general import recompare_policy_source
+    service, _ = model_service(dhaka)
+    _, outcome = pair(dhaka, service=service)
+    old = dhaka.store.list_findings()[0]
+    consistent, _ = model_service(dhaka, relationship="consistent")
+    retried = recompare_policy_source(dhaka.store, outcome.source_id, service=consistent,
+        signer=dhaka.signer, mode=Mode.LIVE, request_id="recheck")
+    assert retried.ok
+    reloaded = dhaka.store.get_finding(old.payload.finding_id)
+    assert reloaded.payload.detail["assessment"] == "historical" and reloaded.payload.severity.value == "info"
+
+
+def test_retry_worker_uses_durable_job_without_staged_upload(dhaka):
+    from meridian.ingestion.worker import OfficeWorker
+    service, _ = model_service(dhaka)
+    _, outcome = pair(dhaka, service=service)
+    job = dhaka.store.create_job(kind="policy_comparison", mode=Mode.LIVE,
+        request={"source_id": outcome.source_id})
+    worker = OfficeWorker(store=dhaka.store, settings=service.settings, signer=dhaka.signer,
+                          transport=service.live._transport)
+    result = worker.process_job(job)
+    assert result.ok and dhaka.store.get_job(job.job_id).status == "succeeded"
+
+
+def test_message_without_a_policy_reports_missing_reference(dhaka):
+    service, _ = model_service(dhaka)
+    outcome = ingest(dhaka, MESSAGE, manifest("team_message", source_type="slack"), service=service)
+    assert "policy_reference_missing" in outcome.review_reasons
+
+
+def test_general_policy_evaluation_corpus_runs_the_real_pipeline_offline(tmp_path):
+    from scripts.evaluate_general_policy import CORPUS, evaluate_case
+    for case in json.loads(CORPUS.read_text())["cases"]:
+        result = evaluate_case(case, tmp_path / case["id"])
+        assert result["passed"], result
+
+
+def test_wrapped_deadlines_are_not_parsed_as_section_headings():
+    from meridian.ingestion.pdf import parse_pdf_bytes
+    text = "Employees must submit overseas travel expenses within\n60 days."
+    document = parse_pdf_bytes(pdf(text))
+    assert len(document.clauses) == 1
+    assert document.clauses[0].section is None
+    assert "within\n60 days." in document.clauses[0].text
+
+
+def test_failed_general_extraction_does_not_hide_its_job_behind_a_missing_source(dhaka):
+    from meridian.ingestion.pipeline import IngestionOutcome
+    from meridian.ingestion.worker import OfficeWorker
+    job = dhaka.store.create_job(kind="pdf", mode=Mode.LIVE,
+        request={"manifest": manifest().model_dump(mode="json")})
+    outcome = IngestionOutcome(source_id="not_committed", error_code="missing_credentials")
+    worker = OfficeWorker(store=dhaka.store, settings=dhaka.settings, signer=dhaka.signer)
+    worker._finalise(job, outcome)
+    stored = dhaka.store.get_job(job.job_id)
+    assert stored.status == "failed" and stored.source_id is None

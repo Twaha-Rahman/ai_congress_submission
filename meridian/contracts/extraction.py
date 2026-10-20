@@ -8,6 +8,8 @@ influencing trusted metadata.
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import Field, model_validator
 
 from .common import (
@@ -103,7 +105,7 @@ class PolicyComparisonProposal(StrictModel):
     but cannot be substituted as uncited primary evidence.
     """
 
-    relationship: str = Field(pattern="^(conflict|consistent|unrelated|insufficient_context)$")
+    relationship: Literal["conflict", "consistent", "unrelated", "insufficient_context"]
     explanation: str = Field(min_length=1, max_length=3000)
     left_quote: str = Field(min_length=1, max_length=12000)
     right_quote: str = Field(min_length=1, max_length=12000)

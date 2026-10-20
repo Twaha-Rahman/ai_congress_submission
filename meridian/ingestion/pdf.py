@@ -48,6 +48,14 @@ class ParsedDocument:
 
 
 _HEADING = re.compile(r"^(?P<section>\d+(?:\.\d+)*)\s+(?P<title>[\w(].*)$")
+# Numbered prose is common in wrapped policy sentences ("60 days", "2 approvals").
+# It must not start a new section merely because it begins at the left margin.
+_NUMBERED_PROSE = re.compile(
+    r"^(?:(?:calendar|business|working|annual)\s+)?"
+    r"(?:days?|weeks?|months?|years?|hours?|minutes?|seconds?|characters?|"
+    r"approvals?|sign[- ]?offs?|percent|USD|EUR|GBP|BDT|dollars?)\b",
+    re.IGNORECASE,
+)
 _MIN_TEXT_CHARS = 40
 
 
@@ -119,7 +127,7 @@ def parse_pdf_bytes(data: bytes, *, parser_version: str = PARSER_VERSION) -> Par
                         current_lines.append("")
                     continue
                 heading = _HEADING.match(stripped)
-                if heading and len(stripped) <= 96:
+                if heading and len(stripped) <= 96 and not _NUMBERED_PROSE.match(heading.group("title")):
                     flush()
                     current_page = page_number
                     current_section = heading.group("section")

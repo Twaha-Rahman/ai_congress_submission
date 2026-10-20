@@ -91,6 +91,8 @@ class SourceManifest(StrictModel):
             # Free-text scopes cannot safely establish subset/partial replacement.
             if self.supersedes.replaced_scope != self.scope:
                 raise ValueError("general policy replacements require the same explicit scope")
+            if self.effective_from != self.supersedes.effective_from:
+                raise ValueError("general policy replacement dates must match effective_from")
         if (
             self.effective_from is not None
             and self.effective_to is not None

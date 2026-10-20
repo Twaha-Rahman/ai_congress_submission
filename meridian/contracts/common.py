@@ -22,7 +22,7 @@ from pydantic import (
 )
 
 SCHEMA_VERSION = "1"
-PARSER_VERSION = "pymupdf-clause-v1"
+PARSER_VERSION = "pymupdf-clause-v2"
 PROMPT_VERSION = "extract-v1"
 VALIDATOR_VERSION = "validate-v1"
 CANONICAL_ENCODING_VERSION = "canon-1"
@@ -493,7 +493,7 @@ class PolicyScope(StrictModel):
 
     kind: Literal["policy"] = "policy"
     description: str = Field(min_length=1, max_length=1000)
-    attributes: dict[str, str] = Field(default_factory=dict, max_length=20)
+    attributes: dict[str, str] = Field(default_factory=dict)
 
     @field_validator("description")
     @classmethod

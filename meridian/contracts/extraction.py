@@ -98,6 +98,18 @@ class ExtractionProposal(StrictModel):
         return self
 
 
+class GeneralPolicyProposedRule(ProposedRule):
+    """Constrain hosted structured output to this ingestion subject's types."""
+
+    subject: Literal[Subject.GENERAL_POLICY] = Subject.GENERAL_POLICY
+    scope: PolicyScope
+    rule: PolicyRule
+
+
+class GeneralPolicyExtractionProposal(ExtractionProposal):
+    rules: list[GeneralPolicyProposedRule]
+
+
 class PolicyComparisonProposal(StrictModel):
     """Semantic relationship only; the backend assigns severity, IDs and authority.
 

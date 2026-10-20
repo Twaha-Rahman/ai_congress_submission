@@ -62,3 +62,14 @@ def test_reasoning_configuration_and_cache_identity(dhaka, monkeypatch):
     assert len({s.cache_key_for(request()) for s in (plain, disabled, low)}) == 3
     with pytest.raises(ValueError, match="LLM_REASONING_EFFORT"):
         ModelStageService(replace(dhaka.settings, llm_reasoning_effort="typo"))
+
+
+def test_general_policy_schema_cannot_request_numeric_rule_or_scope():
+    provider = OpenRouterExtractionProvider(base_url="https://openrouter.test", model="test", api_key="test")
+    schema = provider.build_body(request())["response_format"]["json_schema"]["schema"]
+    defs = schema["$defs"]
+    rule = defs["GeneralPolicyProposedRule"]["properties"]
+    assert rule["subject"]["const"] == "general_policy"
+    assert rule["scope"] == {"$ref": "#/$defs/PolicyScope"}
+    assert rule["rule"] == {"$ref": "#/$defs/PolicyRule"}
+    assert "AmountScope" not in defs and "RecordScope" not in defs

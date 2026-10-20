@@ -4,7 +4,7 @@ The existing adapter owns transport, routing, retries and strict response parsin
 These prompts never give the model tools or authority over source metadata.
 """
 
-from ..contracts.extraction import PolicyComparisonProposal
+from ..contracts.extraction import GeneralPolicyExtractionProposal, PolicyComparisonProposal
 from .openrouter import OpenRouterExtractionProvider, strict_json_schema
 
 POLICY_EXTRACTION_VERSION = "general-extract-v1"
@@ -86,7 +86,7 @@ def _body(provider, request, *, system, schema_model, name):
 
 def policy_extraction_body(provider, request):
     return _body(provider, request, system=EXTRACTION_SYSTEM,
-                 schema_model=provider.proposal_model, name="general_policy_extraction")
+                 schema_model=GeneralPolicyExtractionProposal, name="general_policy_extraction")
 
 
 class PolicyComparisonProvider(OpenRouterExtractionProvider):

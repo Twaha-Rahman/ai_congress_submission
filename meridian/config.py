@@ -190,13 +190,13 @@ class OfficeSettings:
             llm_api_key=_get(f"{prefix}LLM_API_KEY", "LLM_API_KEY"),
             llm_provider_prefs=_get(f"{prefix}LLM_PROVIDER_PREFS", "LLM_PROVIDER_PREFS"),
             llm_timeout_seconds=_get_float(
-                f"{prefix}LLM_TIMEOUT_SECONDS", "LLM_TIMEOUT_SECONDS", default=30.0
+                f"{prefix}LLM_TIMEOUT_SECONDS", "LLM_TIMEOUT_SECONDS", default=300.0
             ),
             llm_max_attempts=_get_int(f"{prefix}LLM_MAX_ATTEMPTS", "LLM_MAX_ATTEMPTS", default=2),
             llm_job_model_budget_seconds=_get_float(
                 f"{prefix}LLM_JOB_MODEL_BUDGET_SECONDS",
                 "LLM_JOB_MODEL_BUDGET_SECONDS",
-                default=65.0,
+                default=300.0,
             ),
             llm_temperature=_get_float(
                 f"{prefix}LLM_TEMPERATURE", "LLM_TEMPERATURE", default=0.0

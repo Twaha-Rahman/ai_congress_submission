@@ -209,7 +209,8 @@ hardcoded. Important variables:
 |---|---|
 | `LLM_MODEL`, `LLM_API_KEY`, `LLM_BASE_URL` | shared hosted-model route |
 | `DHAKA_LLM_*`, `FRANKFURT_LLM_*` | per-office overrides |
-| `LLM_TEMPERATURE`, `LLM_TIMEOUT_SECONDS`, `LLM_MAX_ATTEMPTS` | live-call behavior |
+| `LLM_TEMPERATURE`, `LLM_TIMEOUT_SECONDS`, `LLM_MAX_ATTEMPTS` | live-call behavior; request timeout defaults to 300 seconds |
+| `LLM_JOB_MODEL_BUDGET_SECONDS` | total model budget per extraction/comparison stage attempt, including request retries; defaults to 300 seconds |
 | `DHAKA_DB_PATH`, `FRANKFURT_DB_PATH` | office SQLite paths |
 | `TRUSTED_KEYS_PATH` | pinned public-key registry |
 | `DEMO_TOKEN_*` | bearer tokens for the static principal map |

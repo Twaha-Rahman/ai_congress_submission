@@ -53,7 +53,6 @@
 .selected-upload-version { font-size: 10px; color: var(--muted); margin-top: 3px; }
 .selected-upload-description { font-size: 12px; color: var(--body); line-height: 1.75; margin-top: 14px; }
 .upload-result-actions { display: flex; flex-wrap: wrap; gap: 9px 12px; margin-top: 14px; }
-.upload-result-actions .button { font-size: 11px; min-height: 34px; }
 .upload-result-actions .text-button { font-size: 11px; }
 .job-technical { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 11px; }
 .job-technical summary, .library-source-metadata summary { cursor: pointer; color: var(--muted); font-size: 11px; }
@@ -173,6 +172,7 @@
 .upload-status-body { overflow-y: auto; min-height: 0; overscroll-behavior: contain; padding: 24px; }
 .upload-status-title h3 { font-size: 18px; line-height: 1.45; overflow-wrap: anywhere; }
 .upload-status-title > div { display: flex; gap: 9px; align-items: center; margin-top: 11px; }
+.upload-status-title .source-version, .upload-status-title .job-badge { min-height: 24px; padding: 3px 7px; line-height: 16px; align-items: center; }
 .job-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; padding: 20px 0; margin-top: 16px; border-bottom: 1px solid var(--line); }
 .job-metrics > div { display: flex; align-items: flex-start; gap: 9px; color: var(--muted); }
 .job-metrics svg { margin-top: 2px; flex-shrink: 0; }
@@ -194,4 +194,8 @@
 .job-progress-unavailable { padding: 16px; border-radius: 7px; background: var(--surface); border: 1px solid var(--line); color: var(--muted); font-size: 12px; line-height: 1.65; }
 .job-technical > p { font-size: 11px; margin-top: 12px; color: var(--muted); line-height: 1.6; }
 .upload-status-dialog .dialog-footer { margin-top: auto; }
-@media (max-width: 480px) { .upload-status-body { padding: 20px 18px; } }
+.upload-status-footer { flex-wrap: wrap; }
+@media (max-width: 480px) {
+  .upload-status-body { padding: 20px 18px; }
+  .upload-status-dialog .upload-status-footer { flex-direction: column; align-items: stretch; }
+}

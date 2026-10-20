@@ -48,7 +48,6 @@ export default function UploadStatus({ job, canRetry, retrying, onRetry, onInspe
       <p className="selected-upload-description">{jobDescription(job)}</p>
       <div className="upload-result-actions">
         {job.source_id && <><button className="text-button" onClick={onFindings}>View findings<ArrowRight size={14} /></button><button className="text-button" onClick={onInspect}>Inspect source</button></>}
-        {canRetry && <button className="button secondary" disabled={retrying} onClick={onRetry}><RefreshCw size={14} className={retrying ? "spin" : ""} />Retry comparison</button>}
       </div>
       <details className="job-technical"><summary>Processing details</summary><dl>
         <dt>Job</dt><dd>{job.job_id}</dd><dt>Mode</dt><dd>{job.mode}</dd>
@@ -57,6 +56,9 @@ export default function UploadStatus({ job, canRetry, retrying, onRetry, onInspe
         {job.error_code && <><dt>Error</dt><dd>{job.error_code}</dd></>}
       </dl>{!!progress?.previous_attempts?.length && <p>Stage timings above are for the latest attempt. Total elapsed includes earlier attempts.</p>}</details>
     </div>
-    {onUpload && <footer className="dialog-footer"><button className="button secondary" onClick={onUpload}><ArrowUpFromLine size={15} />Upload another PDF</button></footer>}
+    {(canRetry || onUpload) && <footer className="dialog-footer upload-status-footer">
+      {onUpload && <button className="button secondary" onClick={onUpload}><ArrowUpFromLine size={15} />Upload another PDF</button>}
+      {canRetry && <button className="button primary" disabled={retrying} onClick={onRetry}><RefreshCw size={15} className={retrying ? "spin" : ""} />{retrying ? "Retrying comparison…" : "Retry comparison"}</button>}
+    </footer>}
   </>;
 }

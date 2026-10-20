@@ -80,8 +80,10 @@ Tokens live in `frontend/src/styles.css`; use variables when extending component
   failures with an alert icon, tooltip and live announcement. Share URLs contain both
   tag and full ID. Tag-only links resolve against authorized results; ambiguous or
   inaccessible tags must not silently open a different finding.
-- Highlight literal, case-insensitive search matches in queue titles, types, amount
-  scopes and tags, and in the investigation's matching fields and evidence quotes.
+- Highlight literal, case-insensitive search matches only in review queue titles,
+  types, amount scopes, tags and matching excerpts. Keep the detailed investigation
+  and source dialogs free of search highlighting. Source-viewer citation highlights
+  remain separate from search matches.
   Use the shared `Highlight.tsx` component and theme-aware amber tokens. Preserve
   source text verbatim and render it as React text, never injected HTML. When a
   result matches only an evidence quote or full identifier, show a short matching

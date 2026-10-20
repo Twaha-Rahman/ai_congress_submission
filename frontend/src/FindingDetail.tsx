@@ -41,13 +41,11 @@ import {
   typeLabels,
 } from "./presentation";
 import { Loading, Modal, ReviewBadge, SeverityBadge } from "./components";
-import Highlight from "./Highlight";
 import type { DetailTab } from "./viewState";
 const SourcePreview = lazy(() => import("./SourcePreview"));
 
 interface Props {
   finding: Finding;
-  search: string;
   sources: Source[];
   claims: Claim[];
   reviews: ReviewEvent[];
@@ -72,7 +70,6 @@ interface Props {
 
 export default function FindingDetail({
   finding,
-  search,
   sources,
   claims,
   reviews,
@@ -137,7 +134,7 @@ export default function FindingDetail({
     >
       <div className="finding-kicker">
         <span>
-          <Highlight text={typeLabels[finding.finding_type]} query={search} />
+          {typeLabels[finding.finding_type]}
         </span>
         <div className="finding-tag-group">
           <button
@@ -165,7 +162,7 @@ export default function FindingDetail({
                 <Copy size={14} />
               )}
             </span>
-            <Highlight text={findingTag(finding)} query={search} identifier />
+            {findingTag(finding)}
           </button>
           <span role="status" className="sr-only">
             {copyStatus === "copied"
@@ -178,7 +175,7 @@ export default function FindingDetail({
       </div>
       <div className="detail-heading">
         <h2 id="finding-title" tabIndex={-1}>
-          <Highlight text={findingTitle(finding)} query={search} />
+          {findingTitle(finding)}
         </h2>
         <div className="badge-row">
           <SeverityBadge severity={finding.severity} />
@@ -204,7 +201,7 @@ export default function FindingDetail({
         <div>
           <span className="eyebrow">Affected scope</span>
           <strong>
-            <Highlight text={scopeLabel(finding.affected_scope)} query={search} />
+            {scopeLabel(finding.affected_scope)}
           </strong>
           <p>{scopeContext(finding.affected_scope)}</p>
         </div>
@@ -283,7 +280,6 @@ export default function FindingDetail({
                 <EvidenceCard
                   key={`${evidence.clause_id}-${index}`}
                   evidence={evidence}
-                  search={search}
                   source={sourceMap.get(evidence.source_id)}
                   claim={claimMap.get(evidence.claim_revision_id)}
                   onInspect={() =>
@@ -435,7 +431,7 @@ export default function FindingDetail({
         <dl>
           <dt>Finding</dt>
           <dd>
-            <Highlight text={finding.finding_id} query={search} identifier />
+            {finding.finding_id}
           </dd>
           <dt>Snapshot</dt>
           <dd>{finding.snapshot_id}</dd>
@@ -541,7 +537,7 @@ export default function FindingDetail({
             ) : (
               <>
                 <blockquote className="source-quote">
-                  <Highlight text={sourceEvidence.quote} query={search} />
+                  {sourceEvidence.quote}
                 </blockquote>
                 <dl className="source-facts">
                   <dt>Location</dt>
@@ -621,14 +617,12 @@ export default function FindingDetail({
 
 function EvidenceCard({
   evidence,
-  search,
   source,
   claim,
   onInspect,
   onViewOriginal,
 }: {
   evidence: Evidence;
-  search: string;
   source?: Source;
   claim?: Claim;
   onInspect: () => void;
@@ -671,7 +665,7 @@ function EvidenceCard({
       </header>
       <div className="rule-summary">{ruleSummary(claim)}</div>
       <blockquote>
-        <Highlight text={evidence.quote} query={search} />
+        {evidence.quote}
       </blockquote>
       <div className="evidence-card-bottom">
         <span>

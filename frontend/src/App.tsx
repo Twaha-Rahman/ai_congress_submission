@@ -844,7 +844,6 @@ export default function App() {
                     <FindingDetail
                       key={`${view.office}-${selectedId}`}
                       finding={current.finding}
-                      search={view.search}
                       reviews={current.reviews}
                       sources={data.sources}
                       claims={data.claims}

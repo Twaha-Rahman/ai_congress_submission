@@ -12,6 +12,20 @@ import {
 import type { Finding, ReviewState } from "./types";
 import { humanize } from "./presentation";
 
+export function ShortcutHint({
+  children,
+  className = "",
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <kbd className={`shortcut-hint ${className}`} aria-hidden="true">
+      {children}
+    </kbd>
+  );
+}
+
 export function SeverityBadge({ severity }: { severity: Finding["severity"] }) {
   const Icon = severity === "high" ? AlertCircle : Info;
   return (

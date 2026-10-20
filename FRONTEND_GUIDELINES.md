@@ -156,6 +156,12 @@ The viewer, worker, fonts, character maps and WebAssembly resources are self-hos
   Queue cards use an inset focus outline so scrolling and J/K navigation never
   clip the ring at the list's edges.
 - Keyboard shortcuts are discoverable through the header button, `?`, or `F1`.
+  Desktop controls show compact, muted keycaps: `/` in search, changing to `Esc`
+  while the input is focused; `S` for sort; `O` for office; `E`/`T`/`H` beside the
+  detail tabs; and `A`/`R`/`D` on review actions. Show `J`/`K` once beside the queue
+  result count. Use the shared `ShortcutHint` component; hide these hints on mobile
+  and when single-key shortcuts are disabled. Keep accessible control labels free
+  of decorative keycap text and expose shortcuts through `aria-keyshortcuts`.
   Hide the header keyboard button at mobile widths; do not replace it with an
   unexplained keyboard icon. Physical-keyboard shortcuts remain available.
   Single-key shortcuts can be disabled in that panel; save only this boolean

@@ -40,7 +40,13 @@ import {
   sourceTitle,
   typeLabels,
 } from "./presentation";
-import { Loading, Modal, ReviewBadge, SeverityBadge } from "./components";
+import {
+  Loading,
+  Modal,
+  ReviewBadge,
+  SeverityBadge,
+  ShortcutHint,
+} from "./components";
 import type { DetailTab } from "./viewState";
 const SourcePreview = lazy(() => import("./SourcePreview"));
 
@@ -253,6 +259,11 @@ export default function FindingDetail({
           >
             <Icon size={15} />
             <span>{label}</span>
+            {shortcutsEnabled && (
+              <ShortcutHint>
+                {{ evidence: "E", timeline: "T", reviews: "H" }[key]}
+              </ShortcutHint>
+            )}
             {key === "reviews" && reviews.length > 0 && (
               <span className="tab-count" aria-hidden="true">
                 {reviews.length}
@@ -375,11 +386,7 @@ export default function FindingDetail({
               aria-keyshortcuts={shortcutsEnabled ? "D" : undefined}
             >
               Dismiss{" "}
-              {shortcutsEnabled && (
-                <span className="action-shortcut" aria-hidden="true">
-                  D
-                </span>
-              )}
+              {shortcutsEnabled && <ShortcutHint>D</ShortcutHint>}
             </button>
             <button
               className="button secondary"
@@ -388,11 +395,7 @@ export default function FindingDetail({
               aria-keyshortcuts={shortcutsEnabled ? "R" : undefined}
             >
               Resolve{" "}
-              {shortcutsEnabled && (
-                <span className="action-shortcut" aria-hidden="true">
-                  R
-                </span>
-              )}
+              {shortcutsEnabled && <ShortcutHint>R</ShortcutHint>}
             </button>
             <button
               className="button primary"
@@ -402,11 +405,7 @@ export default function FindingDetail({
             >
               <Check size={16} />
               Acknowledge{" "}
-              {shortcutsEnabled && (
-                <span className="action-shortcut" aria-hidden="true">
-                  A
-                </span>
-              )}
+              {shortcutsEnabled && <ShortcutHint>A</ShortcutHint>}
             </button>
           </div>
         ) : (

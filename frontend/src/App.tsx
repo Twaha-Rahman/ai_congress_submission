@@ -25,6 +25,7 @@ import {
   Loading,
   Modal,
   ReviewBadge,
+  ShortcutHint,
 } from "./components";
 import FindingDetail from "./FindingDetail";
 import Highlight, { QueueMatchContext } from "./Highlight";
@@ -471,6 +472,7 @@ export default function App() {
                 label="Office"
                 icon={<Globe2 size={16} />}
                 triggerRef={officeRef}
+                shortcut={shortcutsEnabled ? "O" : undefined}
                 value={view.office}
                 onChange={(value) => {
                   navigate({
@@ -597,6 +599,7 @@ export default function App() {
                     </h2>
                     <Select
                       label="Sort"
+                      shortcut={shortcutsEnabled ? "S" : undefined}
                       compact
                       triggerRef={sortRef}
                       icon={<ArrowDownWideNarrow size={15} />}
@@ -640,6 +643,12 @@ export default function App() {
                           target.scrollIntoView({ block: "nearest" });
                       }}
                     />
+                    {shortcutsEnabled && (
+                      <span className="search-shortcuts" aria-hidden="true">
+                        <ShortcutHint className="search-idle">/</ShortcutHint>
+                        <ShortcutHint className="search-editing">Esc</ShortcutHint>
+                      </span>
+                    )}
                     {view.search && (
                       <button
                         className="icon-button"
@@ -703,6 +712,17 @@ export default function App() {
                       {visible.length}{" "}
                       {visible.length === 1 ? "finding" : "findings"}
                     </span>
+                    {shortcutsEnabled && (
+                      <span
+                        className="queue-navigation"
+                        aria-hidden="true"
+                        title="J: next finding · K: previous finding"
+                      >
+                        <ShortcutHint>J</ShortcutHint>
+                        <ShortcutHint>K</ShortcutHint>
+                        <span>navigate</span>
+                      </span>
+                    )}
                     {filtered && (
                       <button className="text-button" onClick={clearFilters}>
                         Clear filters

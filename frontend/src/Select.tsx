@@ -10,6 +10,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { Check, ChevronDown } from "lucide-react";
+import { ShortcutHint } from "./components";
 
 export interface SelectOption {
   value: string;
@@ -25,6 +26,7 @@ export default function Select({
   icon,
   compact = false,
   triggerRef,
+  shortcut,
 }: {
   label: string;
   value: string;
@@ -33,6 +35,7 @@ export default function Select({
   icon?: ReactNode;
   compact?: boolean;
   triggerRef?: RefObject<HTMLButtonElement | null>;
+  shortcut?: string;
 }) {
   const id = useId();
   const internalRef = useRef<HTMLButtonElement>(null);
@@ -193,16 +196,18 @@ export default function Select({
         className={`select-trigger ${compact ? "select-compact" : ""}`}
         role="combobox"
         aria-label={label}
+        aria-keyshortcuts={shortcut}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={open ? `${id}-list` : undefined}
         aria-activedescendant={open ? `${id}-${active}` : undefined}
-        title={`${label}: ${options[selected]?.label}`}
+        title={`${label}: ${options[selected]?.label}${shortcut ? ` (${shortcut})` : ""}`}
         onClick={() => (open ? setOpen(false) : show())}
         onKeyDown={keyDown}
       >
         {icon}
         <span>{compact ? label : options[selected]?.label}</span>
+        {shortcut && <ShortcutHint>{shortcut}</ShortcutHint>}
         <ChevronDown
           size={14}
           className={open ? "select-chevron expanded" : "select-chevron"}

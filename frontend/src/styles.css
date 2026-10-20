@@ -573,6 +573,22 @@ textarea::placeholder {
   width: 20px;
   min-width: 20px;
 }
+.search-shortcuts {
+  display: inline-flex;
+  justify-content: center;
+  min-width: 30px;
+  flex-shrink: 0;
+}
+.search-shortcuts .shortcut-hint {
+  min-width: 30px;
+}
+.search-shortcuts .search-editing,
+.search-input:has(input:focus) .search-idle {
+  display: none;
+}
+.search-input:has(input:focus) .search-editing {
+  display: inline-flex;
+}
 .queue-filters {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -669,6 +685,16 @@ textarea::placeholder {
   min-height: 44px;
   color: var(--muted);
   font-size: 10px;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.queue-navigation {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.queue-navigation > span {
+  margin-left: 2px;
 }
 .queue-results .text-button {
   font-size: 10px;
@@ -1056,15 +1082,23 @@ kbd {
   font-size: 10px;
   color: var(--muted);
 }
-.action-shortcut {
-  display: inline-block;
-  margin-left: 2px;
-  opacity: 0.85;
-  font-size: 9px;
-  border: 1px solid currentColor;
-  border-radius: 3px;
-  padding: 0 3px;
-  line-height: 1.5;
+.shortcut-hint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: 19px;
+  min-height: 19px;
+  padding: 2px 4px;
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1;
+  color: var(--muted);
+}
+.button.primary .shortcut-hint {
+  background: transparent;
+  color: inherit;
+  border-color: currentColor;
 }
 .detail-heading h2 {
   font-size: 34px;
@@ -1843,6 +1877,11 @@ textarea {
   }
 }
 @media (max-width: 760px) {
+  .shortcut-hint,
+  .search-shortcuts,
+  .queue-navigation {
+    display: none;
+  }
   .shortcuts-button {
     display: none;
   }
@@ -2145,9 +2184,6 @@ textarea {
 }
 @media (max-width: 420px) {
   .breadcrumb > strong {
-    display: none;
-  }
-  .review-actions .action-shortcut {
     display: none;
   }
   .review-actions .button {

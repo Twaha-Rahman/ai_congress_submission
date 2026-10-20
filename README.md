@@ -215,6 +215,7 @@ hardcoded. Important variables:
 | `LLM_TEMPERATURE`, `LLM_TIMEOUT_SECONDS`, `LLM_MAX_ATTEMPTS` | live-call behavior; request timeout defaults to 600 seconds |
 | `LLM_JOB_MODEL_BUDGET_SECONDS` | total model budget per extraction/comparison stage attempt, including request retries; defaults to 600 seconds |
 | `LLM_REASONING_EFFORT` | optional reasoning override for extraction and comparison; empty (the default) uses model defaults |
+| `LLM_RESPONSE_FORMAT` | `json_schema` (default) for provider-enforced structured output, or `json_object` with the schema supplied in the prompt and enforced by the backend; office overrides supported |
 | `DHAKA_LLM_PROVIDER_PREFS`, `FRANKFURT_LLM_PROVIDER_PREFS` | provider allowlist, preference order and supported-parameter requirements |
 | `DHAKA_DB_PATH`, `FRANKFURT_DB_PATH` | office SQLite paths |
 | `TRUSTED_KEYS_PATH` | pinned public-key registry |
@@ -230,6 +231,10 @@ model stages. Both extraction and comparison use a 600-second request timeout an
 a separate 600-second total budget per stage attempt. Automatic job retries can
 make total processing take longer. Explicit reasoning overrides produce separate
 cache keys. Office-prefixed reasoning settings override the shared value.
+The live demo uses `LLM_RESPONSE_FORMAT=json_object` so DeepSeek can serve requests;
+its endpoint does not currently advertise strict structured-output support.
+The full response schema and evidence checks are still enforced by the backend.
+Output modes have separate cache identities; failures never silently switch modes.
 Restart the offices after changing model settings.
 
 See `.env.example` for the full template. Do not commit `.env`, `runtime/` or

@@ -56,6 +56,17 @@ a 600-second request timeout and a 600-second total model budget per stage attem
 These performance settings need evaluation with your actual documents; a faster
 extraction does not establish conflict-detection accuracy.
 
+`LLM_RESPONSE_FORMAT` defaults to `json_schema`, asking the provider to enforce the
+output schema. The live demo sets `json_object`: the same schema is included in the
+system prompt and the backend still validates the complete result before accepting
+any claim or comparison. This permits the DeepSeek endpoint, which currently
+advertises JSON mode but not strict structured outputs. Cloudflare advertises both.
+With `require_parameters=true` and `json_schema`, this allowlist therefore currently
+routes to Cloudflare. JSON mode is explicit configuration, not a silent fallback;
+malformed output remains an error and output modes use separate cache identities.
+Endpoint support can change; check the model's endpoint metadata when rehearsing.
+See [OpenRouter's structured-output routing documentation](https://openrouter.ai/docs/guides/features/structured-outputs).
+
 Select `mode=live` on ingestion to process your own new documents. `cached` and
 `replay` stay explicit and never fall back to paid model calls. General extraction
 uses prompt version `general-extract-v3`; semantic comparison uses

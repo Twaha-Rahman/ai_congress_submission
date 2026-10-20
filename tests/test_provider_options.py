@@ -73,3 +73,28 @@ def test_general_policy_schema_cannot_request_numeric_rule_or_scope():
     assert rule["scope"] == {"$ref": "#/$defs/PolicyScope"}
     assert rule["evidence"] == {"$ref": "#/$defs/EvidenceQuote"}
     assert "AmountScope" not in defs and "RecordScope" not in defs
+
+
+def test_explicit_json_mode_supplies_schema_and_keeps_routing_and_validation(dhaka, monkeypatch):
+    import json
+    monkeypatch.setenv("LLM_RESPONSE_FORMAT", "json_object")
+    monkeypatch.setenv("FRANKFURT_LLM_RESPONSE_FORMAT", "json_schema")
+    assert OfficeSettings.from_env("DHAKA").llm_response_format == "json_object"
+    assert OfficeSettings.from_env("FRANKFURT").llm_response_format == "json_schema"
+    json_mode = ModelStageService(replace(dhaka.settings, llm_response_format="json_object",
+        llm_provider_prefs="only=deepseek,cloudflare,order=deepseek,cloudflare,require_parameters=true"))
+    strict = ModelStageService(dhaka.settings)
+    assert json_mode.cache_key_for(request()) != strict.cache_key_for(request())
+    for provider, req in [(json_mode.live, request()),
+                          (json_mode.live, replace(request(), subject=Subject.LOAN_APPROVAL)),
+                          (json_mode.comparison_live, request())]:
+        body = provider.build_body(req)
+        assert body["response_format"] == {"type": "json_object"}
+        assert "additionalProperties" in body["messages"][0]["content"]
+        assert body["provider"]["only"] == ["deepseek", "cloudflare"]
+        assert "reasoning" not in body
+        parsed = provider._parse_response(json.dumps({"choices": [{"message": {
+            "content": json.dumps({"invented": "fields"})}}]}).encode())
+        assert parsed[-1][0].value == "schema_violation"
+    with pytest.raises(ValueError, match="LLM_RESPONSE_FORMAT"):
+        ModelStageService(replace(dhaka.settings, llm_response_format="typo"))

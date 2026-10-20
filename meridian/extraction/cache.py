@@ -27,6 +27,7 @@ def compute_cache_key(
     provider_preferences: str | None,
     parser_version: str,
     reasoning_effort: str | None = None,
+    response_format: str = "json_schema",
 ) -> str:
     """Cache key over tenant/region, input hashes, parser/model/prompt/schema versions."""
 
@@ -51,6 +52,8 @@ def compute_cache_key(
         payload["manifest_scope_sha256"] = sha256_hex(request.manifest_scope_summary.encode("utf-8"))
     if reasoning_effort is not None:
         payload["reasoning_effort"] = reasoning_effort
+    if response_format != "json_schema":
+        payload["response_format"] = response_format
     return sha256_hex(canonical_json_bytes(payload))
 
 

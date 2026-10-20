@@ -98,7 +98,7 @@ def _body(provider, request, *, system, schema_model, name):
     if routing:
         body["provider"] = routing
     body.update(provider._generation_options())
-    return body
+    return provider._response_options(body)
 
 
 def policy_extraction_body(provider, request):

@@ -123,6 +123,7 @@ class OfficeSettings:
     policy_comparison_top_k: int = 6
     policy_comparison_max_pairs: int = 24
     llm_reasoning_effort: str | None = None
+    llm_response_format: str = "json_schema"
 
     @property
     def cache_dir(self) -> Path:
@@ -203,6 +204,7 @@ class OfficeSettings:
                 f"{prefix}LLM_TEMPERATURE", "LLM_TEMPERATURE", default=0.0
             ),
             llm_reasoning_effort=_get(f"{prefix}LLM_REASONING_EFFORT", "LLM_REASONING_EFFORT"),
+            llm_response_format=_get(f"{prefix}LLM_RESPONSE_FORMAT", "LLM_RESPONSE_FORMAT", default="json_schema") or "json_schema",
             trusted_keys_path=Path(
                 _get("TRUSTED_KEYS_PATH", default="runtime/trusted_keys.json") or ""
             ),

@@ -94,6 +94,7 @@ class OpenRouterExtractionProvider:
         temperature: float = 0.0,
         provider_preferences: str | None = None,
         reasoning_effort: str | None = None,
+        response_format: str = "json_schema",
         transport: httpx.BaseTransport | None = None,
         sleep: Callable[[float], None] = time.sleep,
     ) -> None:
@@ -108,6 +109,9 @@ class OpenRouterExtractionProvider:
         if reasoning_effort not in {None, "none", "minimal", "low", "medium", "high", "xhigh", "max"}:
             raise ValueError("unsupported LLM_REASONING_EFFORT")
         self.reasoning_effort = reasoning_effort
+        if response_format not in {"json_schema", "json_object"}:
+            raise ValueError("unsupported LLM_RESPONSE_FORMAT")
+        self.response_format = response_format
         self._transport = transport
         self._sleep = sleep
 
@@ -145,6 +149,16 @@ class OpenRouterExtractionProvider:
         if self.reasoning_effort is None:
             return {}
         return {"reasoning": {"effort": self.reasoning_effort}}
+
+    def _response_options(self, body: dict) -> dict:
+        if self.response_format == "json_object":
+            schema = body["response_format"]["json_schema"]["schema"]
+            body["messages"][0]["content"] += (
+                "\nReturn a JSON object conforming to this output schema:\n"
+                + json.dumps(schema, separators=(",", ":"))
+            )
+            body["response_format"] = {"type": "json_object"}
+        return body
 
     def build_body(self, request: ExtractionRequest) -> dict:
         if request.subject.value == "general_policy":
@@ -189,7 +203,7 @@ class OpenRouterExtractionProvider:
         if routing:
             body["provider"] = routing
         body.update(self._generation_options())
-        return body
+        return self._response_options(body)
 
     # ------------------------------------------------------------------- public
     def extract(self, request: ExtractionRequest) -> ProviderResult:

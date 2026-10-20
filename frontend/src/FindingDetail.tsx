@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import {
   ArrowDownToLine,
   ArrowRight,
@@ -15,6 +15,7 @@ import {
   Scale,
   Shield,
   SquareArrowOutUpRight,
+  Copy,
 } from "lucide-react";
 import type {
   Claim,
@@ -38,9 +39,10 @@ import {
   sourceTitle,
   typeLabels,
 } from "./presentation";
-import { Modal, ReviewBadge, SeverityBadge } from "./components";
+import { Loading, Modal, ReviewBadge, SeverityBadge } from "./components";
+import type { DetailTab } from "./viewState";
+const SourcePreview = lazy(() => import("./SourcePreview"));
 
-type Tab = "evidence" | "timeline" | "reviews";
 interface Props {
   finding: Finding;
   sources: Source[];
@@ -50,8 +52,19 @@ interface Props {
   session: Session | null;
   busy: boolean;
   onReview: (action: ReviewAction) => void;
-  onSearchTag: (tag: string) => void;
   shortcutsEnabled: boolean;
+  tab: DetailTab;
+  onTabChange: (tab: DetailTab) => void;
+  sourceClause: string;
+  sourceMode: "details" | "original";
+  sourcePage: number;
+  sourceZoom: number;
+  onSourceChange: (
+    clause: string,
+    mode?: "details" | "original",
+    page?: number,
+    zoom?: number,
+  ) => void;
 }
 
 export default function FindingDetail({
@@ -63,11 +76,34 @@ export default function FindingDetail({
   session,
   busy,
   onReview,
-  onSearchTag,
   shortcutsEnabled,
+  tab,
+  onTabChange,
+  sourceClause,
+  sourceMode,
+  sourcePage,
+  sourceZoom,
+  onSourceChange,
 }: Props) {
-  const [tab, setTab] = useState<Tab>("evidence");
-  const [sourceEvidence, setSourceEvidence] = useState<Evidence | null>(null);
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">(
+    "idle",
+  );
+  useEffect(() => {
+    if (copyStatus === "idle") return;
+    const timer = window.setTimeout(() => setCopyStatus("idle"), 3500);
+    return () => window.clearTimeout(timer);
+  }, [copyStatus]);
+  async function copyTag() {
+    try {
+      await navigator.clipboard.writeText(findingTag(finding));
+      setCopyStatus("copied");
+    } catch {
+      setCopyStatus("failed");
+    }
+  }
+  const sourceEvidence = finding.evidence.find(
+    (e) => e.clause_id === sourceClause,
+  );
   const sourceMap = new Map(sources.map((s) => [s.source_id, s]));
   const claimMap = new Map(claims.map((c) => [c.revision_id, c]));
   const sortedEvidence = [...finding.evidence].sort((a, b) => {
@@ -95,14 +131,24 @@ export default function FindingDetail({
     >
       <div className="finding-kicker">
         <span>{typeLabels[finding.finding_type]}</span>
-        <button
-          className="finding-tag"
-          title={`Search ${findingTag(finding)}`}
-          aria-label={`Search finding ${findingTag(finding)}`}
-          onClick={() => onSearchTag(findingTag(finding))}
-        >
-          {findingTag(finding)}
-        </button>
+        <div className="finding-tag-group">
+          <button
+            className="finding-tag"
+            title={`Copy ${findingTag(finding)}`}
+            aria-label={`Copy finding tag ${findingTag(finding)}`}
+            onClick={copyTag}
+          >
+            {copyStatus === "copied" ? <Check size={14} /> : <Copy size={14} />}
+            {findingTag(finding)}
+          </button>
+          <span role="status" className="tag-copy-status">
+            {copyStatus === "copied"
+              ? "Tag copied"
+              : copyStatus === "failed"
+                ? "Couldn’t copy. Select the tag and copy manually."
+                : ""}
+          </span>
+        </div>
       </div>
       <div className="detail-heading">
         <h2 id="finding-title" tabIndex={-1}>
@@ -175,10 +221,10 @@ export default function FindingDetail({
               else if (event.key === "End") next = all.length - 1;
               else return;
               event.preventDefault();
-              setTab(all[next][0]);
+              onTabChange(all[next][0]);
               document.getElementById(`tab-${all[next][0]}`)?.focus();
             }}
-            onClick={() => setTab(key)}
+            onClick={() => onTabChange(key)}
           >
             <Icon size={15} />
             <span>{label}</span>
@@ -211,7 +257,16 @@ export default function FindingDetail({
                   evidence={evidence}
                   source={sourceMap.get(evidence.source_id)}
                   claim={claimMap.get(evidence.claim_revision_id)}
-                  onInspect={() => setSourceEvidence(evidence)}
+                  onInspect={() =>
+                    onSourceChange(evidence.clause_id, "details", evidence.page)
+                  }
+                  onViewOriginal={() =>
+                    onSourceChange(
+                      evidence.clause_id,
+                      "original",
+                      evidence.page,
+                    )
+                  }
                 />
               ))}
               {!sortedEvidence.length && (
@@ -368,11 +423,22 @@ export default function FindingDetail({
         </p>
       </details>
 
+      {sourceClause && !sourceEvidence && (
+        <div className="notice warning" role="alert">
+          <Info size={17} />
+          <span>
+            This source reference is unavailable for the selected finding.
+          </span>
+          <button className="text-button" onClick={() => onSourceChange("")}>
+            Close
+          </button>
+        </div>
+      )}
       {sourceEvidence && (
         <Modal
           title="Source evidence"
-          className="source-dialog"
-          onClose={() => setSourceEvidence(null)}
+          className={`source-dialog ${sourceMode === "original" ? "source-preview-dialog" : ""}`}
+          onClose={() => onSourceChange("")}
         >
           <div className="dialog-body">
             <span className="eyebrow">Original passage</span>
@@ -395,63 +461,113 @@ export default function FindingDetail({
                 </span>
               )}
             </div>
-            <blockquote className="source-quote">
-              {sourceEvidence.quote}
-            </blockquote>
-            <dl className="source-facts">
-              <dt>Location</dt>
-              <dd>
-                {selectedSource?.source_type === "slack"
-                  ? "Saved Slack event"
-                  : `Page ${sourceEvidence.page}`}
-                {sourceEvidence.section
-                  ? ` · Section ${sourceEvidence.section}`
-                  : ""}
-              </dd>
-              <dt>Published</dt>
-              <dd>{date(selectedSource?.publication_time, true)}</dd>
-              <dt>Effective from</dt>
-              <dd>{date(selectedSource?.effective_from)}</dd>
-              <dt>Known to Meridian</dt>
-              <dd>{date(selectedSource?.ingested_at, true)}</dd>
-              <dt>Extraction mode</dt>
-              <dd>
-                {claimMap.get(sourceEvidence.claim_revision_id)
-                  ?.extraction_mode || "Unknown"}
-              </dd>
-            </dl>
-            <div className="notice">
-              <Info size={17} />
-              <span>
-                This is the preserved evidence quote. File integrity
-                verification is a separate check and has not been run in this
-                workspace.
-              </span>
+            <div className="source-view-toggle" aria-label="Source view">
+              <button
+                className="button secondary"
+                aria-pressed={sourceMode === "details"}
+                onClick={() =>
+                  onSourceChange(
+                    sourceClause,
+                    "details",
+                    sourcePage,
+                    sourceZoom,
+                  )
+                }
+              >
+                Evidence details
+              </button>
+              <button
+                className="button secondary"
+                aria-pressed={sourceMode === "original"}
+                onClick={() =>
+                  onSourceChange(
+                    sourceClause,
+                    "original",
+                    sourcePage,
+                    sourceZoom,
+                  )
+                }
+              >
+                View original
+              </button>
             </div>
-            <details className="technical-details">
-              <summary>
-                Evidence identifiers <ChevronRight size={14} />
-              </summary>
-              <dl>
-                <dt>Source</dt>
-                <dd>{sourceEvidence.source_id}</dd>
-                <dt>Claim revision</dt>
-                <dd>{sourceEvidence.claim_revision_id}</dd>
-                <dt>Clause</dt>
-                <dd>{sourceEvidence.clause_id}</dd>
-                <dt>Manifest root</dt>
-                <dd>{sourceEvidence.manifest_root}</dd>
-                <dt>Text range</dt>
-                <dd>
-                  {sourceEvidence.start_char}–{sourceEvidence.end_char}
-                </dd>
-              </dl>
-            </details>
+            {sourceMode === "original" ? (
+              <Suspense fallback={<Loading label="Opening original source…" />}>
+                <SourcePreview
+                  office={office}
+                  evidence={sourceEvidence}
+                  source={selectedSource}
+                  pageNumber={sourcePage}
+                  zoom={sourceZoom}
+                  onPageChange={(page) =>
+                    onSourceChange(sourceClause, "original", page, sourceZoom)
+                  }
+                  onZoomChange={(zoom) =>
+                    onSourceChange(sourceClause, "original", sourcePage, zoom)
+                  }
+                />
+              </Suspense>
+            ) : (
+              <>
+                <blockquote className="source-quote">
+                  {sourceEvidence.quote}
+                </blockquote>
+                <dl className="source-facts">
+                  <dt>Location</dt>
+                  <dd>
+                    {selectedSource?.source_type === "slack"
+                      ? "Saved Slack event"
+                      : `Page ${sourceEvidence.page}`}
+                    {sourceEvidence.section
+                      ? ` · Section ${sourceEvidence.section}`
+                      : ""}
+                  </dd>
+                  <dt>Published</dt>
+                  <dd>{date(selectedSource?.publication_time, true)}</dd>
+                  <dt>Effective from</dt>
+                  <dd>{date(selectedSource?.effective_from)}</dd>
+                  <dt>Known to Meridian</dt>
+                  <dd>{date(selectedSource?.ingested_at, true)}</dd>
+                  <dt>Extraction mode</dt>
+                  <dd>
+                    {claimMap.get(sourceEvidence.claim_revision_id)
+                      ?.extraction_mode || "Unknown"}
+                  </dd>
+                </dl>
+                <div className="notice">
+                  <Info size={17} />
+                  <span>
+                    This is the preserved evidence quote. File integrity
+                    verification is a separate check and has not been run in
+                    this workspace.
+                  </span>
+                </div>
+                <details className="technical-details">
+                  <summary>
+                    Evidence identifiers <ChevronRight size={14} />
+                  </summary>
+                  <dl>
+                    <dt>Source</dt>
+                    <dd>{sourceEvidence.source_id}</dd>
+                    <dt>Claim revision</dt>
+                    <dd>{sourceEvidence.claim_revision_id}</dd>
+                    <dt>Clause</dt>
+                    <dd>{sourceEvidence.clause_id}</dd>
+                    <dt>Manifest root</dt>
+                    <dd>{sourceEvidence.manifest_root}</dd>
+                    <dt>Text range</dt>
+                    <dd>
+                      {sourceEvidence.start_char}–{sourceEvidence.end_char}
+                    </dd>
+                  </dl>
+                </details>
+              </>
+            )}
           </div>
           <footer className="dialog-footer">
             <button
               className="button secondary"
-              onClick={() => setSourceEvidence(null)}
+              onClick={() => onSourceChange("")}
             >
               Close
             </button>
@@ -477,11 +593,13 @@ function EvidenceCard({
   source,
   claim,
   onInspect,
+  onViewOriginal,
 }: {
   evidence: Evidence;
   source?: Source;
   claim?: Claim;
   onInspect: () => void;
+  onViewOriginal: () => void;
 }) {
   const formal = source?.authority === "policy";
   const Icon = source?.source_type === "slack" ? MessageSquare : FileText;
@@ -535,6 +653,14 @@ function EvidenceCard({
           aria-label={`Inspect ${sourceTitle(source)} ${source?.version_label || ""}`}
         >
           Inspect source <ArrowRight size={14} />
+        </button>
+        <button
+          className="text-button"
+          onClick={onViewOriginal}
+          aria-label={`View original ${sourceTitle(source)} ${source?.version_label || ""}`}
+        >
+          <BookOpen size={14} />
+          View original
         </button>
       </div>
     </section>

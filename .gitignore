@@ -13,3 +13,4 @@ dist/
 node_modules/
 .env.local
 *.tsbuildinfo
+frontend/public/pdfjs/

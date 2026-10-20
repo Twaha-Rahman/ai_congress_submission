@@ -771,6 +771,10 @@ textarea::placeholder {
   margin-bottom: 12px;
 }
 .finding-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  user-select: all;
   font-family: ui-monospace, monospace;
   color: var(--primary);
   background: var(--surface);
@@ -781,6 +785,109 @@ textarea::placeholder {
   border-radius: 6px;
   padding: 6px 10px;
   white-space: nowrap;
+}
+.finding-tag-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+.tag-copy-status {
+  font-family: var(--sans);
+  font-size: 11px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--muted);
+  max-width: 230px;
+  text-align: right;
+}
+.tag-copy-status:empty {
+  display: none;
+}
+.refresh-button[aria-pressed="true"] {
+  background: var(--teal-surface);
+  color: var(--teal);
+  border-color: var(--teal);
+}
+.source-view-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+}
+.source-view-toggle [aria-pressed="true"] {
+  background: var(--card);
+  border-color: var(--primary);
+}
+.source-dialog.source-preview-dialog {
+  width: min(1060px, calc(100vw - 32px));
+}
+.pdf-toolbar,
+.pdf-toolbar > div {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.pdf-toolbar {
+  flex-wrap: wrap;
+  justify-content: space-between;
+  padding: 9px 0 4px;
+  margin-top: 10px;
+  font-size: 12px;
+}
+.source-location-note {
+  color: var(--muted);
+  font-size: 11px;
+  margin: 9px 0 12px;
+}
+.source-page-scroll {
+  max-height: 56dvh;
+  min-height: 200px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  position: relative;
+}
+.pdf-page {
+  position: relative;
+  margin: 0 auto;
+  background: white;
+}
+.pdf-page canvas {
+  display: block;
+}
+.pdf-passage-highlight {
+  position: absolute;
+  background: #efcb5b66;
+  outline: 1px solid #aa7f2455;
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+.pdf-page-text {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 13px;
+}
+.pdf-page-text summary {
+  cursor: pointer;
+}
+.pdf-page-text pre,
+.saved-source pre {
+  font:
+    12px/1.8 ui-monospace,
+    monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 10px 0;
+  color: var(--body);
+}
+.saved-source mark {
+  background: #efcb5b66;
+  color: inherit;
+  padding: 2px 0;
 }
 .finding-tag:active {
   background: var(--card);
@@ -1625,6 +1732,35 @@ textarea {
   }
 }
 @media (max-width: 760px) {
+  .shortcuts-button {
+    display: none;
+  }
+  .refresh-button {
+    position: relative;
+  }
+  .refresh-button[aria-pressed="true"]::after {
+    content: "";
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--teal);
+    position: absolute;
+    right: 5px;
+    bottom: 5px;
+  }
+  .evidence-card-bottom {
+    flex-wrap: wrap;
+  }
+  .pdf-toolbar {
+    gap: 5px 12px;
+  }
+  .pdf-toolbar > .text-button {
+    order: 3;
+    width: 100%;
+  }
+  .source-preview-dialog .dialog-body {
+    padding: 16px;
+  }
   .sidebar {
     display: none;
   }

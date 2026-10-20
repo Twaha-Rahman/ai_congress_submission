@@ -7,7 +7,7 @@ export const shortcutDescriptions = [
   { keys: "E / T / H", label: "Evidence / chronology / review history" },
   { keys: "S", label: "Open sort options" },
   { keys: "O", label: "Open office options" },
-  { keys: "Shift + R", label: "Refresh findings" },
+  { keys: "Shift + R", label: "Toggle auto-refresh" },
   { keys: "Ctrl / ⌘ + Enter", label: "Submit a review with a reason" },
   { keys: "Esc", label: "Close a dropdown or dialog" },
   { keys: "? / F1", label: "Show keyboard shortcuts" },

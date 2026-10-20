@@ -45,6 +45,14 @@ import {
   scopeLabel,
   typeLabels,
 } from "./presentation";
+import {
+  pinSelection,
+  readView,
+  selectedFinding,
+  viewSearch,
+  type DetailTab,
+  type View,
+} from "./viewState";
 import type {
   Claim,
   Finding,
@@ -56,31 +64,6 @@ import type {
   WorkspaceData,
 } from "./types";
 
-interface View {
-  office: Office;
-  finding: string;
-  search: string;
-  state: string;
-  type: string;
-  severity: string;
-  sort: FindingSort;
-}
-function readView(): View {
-  const p = new URLSearchParams(window.location.search);
-  const allowed = (key: string, values: string[]) =>
-    values.includes(p.get(key) || "") ? p.get(key)! : "all";
-  return {
-    office: p.get("office") === "frankfurt" ? "frankfurt" : "dhaka",
-    finding: p.get("finding") || "",
-    search: p.get("q") || "",
-    state: allowed("state", ["open", "acknowledged", "resolved", "dismissed"]),
-    type: allowed("type", Object.keys(typeLabels)),
-    severity: allowed("severity", ["high", "review", "info"]),
-    sort: sortOptions.some((option) => option.value === p.get("sort"))
-      ? (p.get("sort") as FindingSort)
-      : "severity",
-  };
-}
 type Detail = {
   office: Office;
   id: string;
@@ -89,7 +72,9 @@ type Detail = {
 };
 
 export default function App() {
-  const [view, setView] = useState<View>(readView);
+  const [view, setView] = useState<View>(() =>
+    readView(window.location.search),
+  );
   const [session, setSession] = useState<Session | null>(null);
   const [workspace, setWorkspace] = useState<
     (WorkspaceData & { office: Office }) | null
@@ -104,7 +89,6 @@ export default function App() {
   const [notice, setNotice] = useState("");
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [shortcutsEnabled, setShortcutsEnabled] = useShortcutPreference();
-  const [mobileDetail, setMobileDetail] = useState(!!view.finding);
   const searchRef = useRef<HTMLInputElement>(null);
   const sortRef = useRef<HTMLButtonElement>(null);
   const officeRef = useRef<HTMLButtonElement>(null);
@@ -112,22 +96,17 @@ export default function App() {
   const data = workspace?.office === view.office ? workspace : null;
 
   function navigate(patch: Partial<View>, replace = false) {
-    const next = { ...view, ...patch };
+    const next = { ...pinSelection(view, selectedRecord), ...patch };
     const url = new URL(window.location.href);
     url.pathname = "/findings";
-    url.search = "";
-    for (const [key, value] of Object.entries(next)) {
-      if (value && value !== "all")
-        url.searchParams.set(key === "search" ? "q" : key, value);
-    }
+    url.search = viewSearch(next);
     window.history[replace ? "replaceState" : "pushState"]({}, "", url);
     setView(next);
   }
   useEffect(() => {
     const handler = () => {
-      const next = readView();
+      const next = readView(window.location.search);
       setView(next);
-      setMobileDetail(!!next.finding);
       setNotice("");
       setReviewAction(null);
       setShowShortcuts(false);
@@ -189,7 +168,45 @@ export default function App() {
       view.sort,
     );
   }, [data, view.search, view.state, view.type, view.severity, view.sort]);
-  const selectedId = view.finding || visible[0]?.finding_id || "";
+  const selection = selectedFinding(view, data?.findings || [], visible);
+  const selectedId = selection.id;
+  const selectedRecord = data?.findings.find(
+    (f) => f.finding_id === selectedId,
+  );
+  // Pin the initial implicit selection too, before sort/polling can change the queue.
+  useEffect(() => {
+    if (
+      selectedRecord &&
+      (view.finding !== selectedId ||
+        view.tag !== findingTag(selectedRecord).slice(1))
+    )
+      navigate({}, true);
+  }, [selectedRecord, selectedId, view.finding, view.tag]);
+  useEffect(() => {
+    if (
+      !view.autoRefresh ||
+      loading ||
+      detailLoading ||
+      reviewAction ||
+      showShortcuts ||
+      view.source
+    )
+      return;
+    const timer = window.setInterval(() => {
+      const editing = document.activeElement?.closest(
+        "input, textarea, [contenteditable=true], [role=combobox]",
+      );
+      if (!document.hidden && !editing) setRevision((n) => n + 1);
+    }, 10000);
+    return () => window.clearInterval(timer);
+  }, [
+    view.autoRefresh,
+    loading,
+    detailLoading,
+    reviewAction,
+    showShortcuts,
+    view.source,
+  ]);
   useEffect(() => {
     if (!selectedId) {
       setDetail(null);
@@ -241,8 +258,15 @@ export default function App() {
   );
 
   function selectFinding(finding: Finding) {
-    navigate({ finding: finding.finding_id });
-    setMobileDetail(true);
+    navigate({
+      finding: finding.finding_id,
+      tag: findingTag(finding).slice(1),
+      pane: "detail",
+      source: "",
+      sourceMode: "details",
+      page: 1,
+      zoom: 100,
+    });
     setNotice("");
     if (window.matchMedia("(max-width: 760px)").matches)
       requestAnimationFrame(() =>
@@ -252,8 +276,19 @@ export default function App() {
       );
   }
   function filter(patch: Partial<View>) {
-    navigate({ ...patch, finding: "" }, true);
-    setMobileDetail(false);
+    navigate(
+      {
+        ...patch,
+        finding: "",
+        tag: "",
+        pane: "queue",
+        source: "",
+        sourceMode: "details",
+        tab: "evidence",
+        page: 1,
+      },
+      true,
+    );
   }
   function clearFilters() {
     filter({ search: "", state: "all", type: "all", severity: "all" });
@@ -261,9 +296,20 @@ export default function App() {
   function retry() {
     setRevision((n) => n + 1);
   }
+  function toggleAutoRefresh() {
+    navigate({ autoRefresh: !view.autoRefresh }, true);
+    if (
+      !view.autoRefresh &&
+      !loading &&
+      !reviewAction &&
+      !showShortcuts &&
+      !view.source
+    )
+      retry();
+  }
 
   function focusSearch() {
-    setMobileDetail(false);
+    navigate({ pane: "queue" }, true);
     requestAnimationFrame(() => {
       searchRef.current?.focus();
       searchRef.current?.select();
@@ -298,13 +344,13 @@ export default function App() {
       !detailLoading &&
       !current.finding.superseded_by_snapshot_id
     ) {
-      setMobileDetail(true);
+      navigate({ pane: "detail" }, true);
       setReviewAction(action);
     }
   }
-  function switchTab(tab: string) {
+  function switchTab(tab: DetailTab) {
     if (!current || detailError || error) return;
-    setMobileDetail(true);
+    navigate({ pane: "detail", tab }, true);
     requestAnimationFrame(() => {
       const button = document.getElementById(`tab-${tab}`);
       button?.click();
@@ -312,7 +358,7 @@ export default function App() {
     });
   }
   function openSelect(ref: typeof sortRef) {
-    setMobileDetail(false);
+    navigate({ pane: "queue" }, true);
     requestAnimationFrame(() => {
       ref.current?.focus();
       if (ref.current?.getAttribute("aria-expanded") === "false")
@@ -331,9 +377,7 @@ export default function App() {
     reviews: () => switchTab("reviews"),
     sort: () => openSelect(sortRef),
     office: () => openSelect(officeRef),
-    refresh: () => {
-      if (!loading) retry();
-    },
+    refresh: toggleAutoRefresh,
     help: () => setShowShortcuts(true),
   });
 
@@ -350,12 +394,15 @@ export default function App() {
             event.preventDefault();
             navigate({
               finding: "",
+              tag: "",
+              source: "",
+              tab: "evidence",
+              pane: "queue",
               search: "",
               state: "all",
               type: "all",
               severity: "all",
             });
-            setMobileDetail(false);
           }}
         >
           <img src="/meridian.svg" width="34" height="34" alt="" />
@@ -378,8 +425,7 @@ export default function App() {
             aria-current="page"
             onClick={(event) => {
               event.preventDefault();
-              navigate({ finding: "" });
-              setMobileDetail(false);
+              navigate({ pane: "queue" });
             }}
           >
             <LayoutList size={18} />
@@ -419,8 +465,12 @@ export default function App() {
                   navigate({
                     office: value as Office,
                     finding: "",
+                    tag: "",
+                    source: "",
+                    tab: "evidence",
+                    pane: "queue",
+                    page: 1,
                   });
-                  setMobileDetail(false);
                   setNotice("");
                 }}
                 options={[
@@ -455,12 +505,18 @@ export default function App() {
               </button>
               <button
                 className="button secondary refresh-button"
-                onClick={retry}
-                disabled={loading}
+                onClick={toggleAutoRefresh}
+                aria-label="Auto-refresh"
+                aria-pressed={view.autoRefresh}
+                title={
+                  view.autoRefresh
+                    ? "Auto-refresh every 10 seconds; pauses while editing or inspecting sources"
+                    : "Enable auto-refresh every 10 seconds"
+                }
                 aria-keyshortcuts={shortcutsEnabled ? "Shift+R" : undefined}
               >
                 <RefreshCw size={15} className={loading ? "spin" : ""} />
-                {loading ? "Refreshing" : "Refresh"}
+                Auto-refresh {view.autoRefresh ? "on" : "off"}
               </button>
             </div>
           </div>
@@ -511,7 +567,7 @@ export default function App() {
               </section>
 
               <div
-                className={`investigation-layout ${mobileDetail ? "show-detail" : ""}`}
+                className={`investigation-layout ${view.pane === "detail" ? "show-detail" : ""}`}
               >
                 <section className="queue" aria-label="Findings queue">
                   <div className="queue-heading">
@@ -679,8 +735,7 @@ export default function App() {
                   <button
                     className="text-button back-to-list"
                     onClick={() => {
-                      navigate({ finding: "" });
-                      setMobileDetail(false);
+                      navigate({ pane: "queue" });
                     }}
                   >
                     <ArrowLeft size={16} />
@@ -696,13 +751,35 @@ export default function App() {
                         </span>
                         <button
                           className="text-button"
-                          onClick={() => navigate({ finding: "" }, true)}
+                          onClick={() =>
+                            navigate(
+                              {
+                                finding: "",
+                                tag: "",
+                                source: "",
+                                pane: "queue",
+                              },
+                              true,
+                            )
+                          }
                         >
                           View results
                         </button>
                       </div>
                     )}
-                  {detailError ? (
+                  {data && (selection.ambiguous || selection.missingTag) ? (
+                    <EmptyState
+                      title={
+                        selection.ambiguous
+                          ? "This tag matches more than one finding"
+                          : "Finding unavailable"
+                      }
+                    >
+                      {selection.ambiguous
+                        ? "Select the finding from the queue. Its full identifier will be included in the link."
+                        : "This finding tag is unavailable in this office or your current access scope."}
+                    </EmptyState>
+                  ) : detailError ? (
                     <ErrorState
                       title="Finding unavailable"
                       error={detailError}
@@ -722,15 +799,23 @@ export default function App() {
                       busy={loading || detailLoading}
                       onReview={setReviewAction}
                       shortcutsEnabled={shortcutsEnabled}
-                      onSearchTag={(tag) => {
-                        filter({
-                          search: tag,
-                          state: "all",
-                          type: "all",
-                          severity: "all",
-                        });
-                        requestAnimationFrame(() => searchRef.current?.focus());
-                      }}
+                      tab={view.tab}
+                      onTabChange={(tab) => navigate({ tab }, true)}
+                      sourceClause={view.source}
+                      sourceMode={view.sourceMode}
+                      sourcePage={view.page}
+                      sourceZoom={view.zoom}
+                      onSourceChange={(
+                        source,
+                        sourceMode = "details",
+                        page = 1,
+                        zoom = 100,
+                      ) =>
+                        navigate(
+                          { source, sourceMode, page, zoom, pane: "detail" },
+                          true,
+                        )
+                      }
                     />
                   ) : (
                     <EmptyState

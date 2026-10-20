@@ -14,6 +14,7 @@ const types = {
   ".css": "text/css",
   ".svg": "image/svg+xml",
   ".woff2": "font/woff2",
+  ".wasm": "application/wasm",
 };
 const server = createServer(async (req, res) => {
   if (req.url?.startsWith("/api/")) return api(req, res);

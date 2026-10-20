@@ -151,6 +151,18 @@ def _find_quote(span: EvidenceSpan, clauses: list[ValidatorClause]) -> list[tupl
     return matches
 
 
+def _section_hint_matches(hint: str, clause: ValidatorClause) -> bool:
+    if hint == clause.section:
+        return True
+    # Some providers copy the complete heading instead of its numeric label.
+    # Accept only an exact, source-backed heading with the parser's identifier.
+    # Never guess a section from a prefix or accept an invented heading title.
+    heading = clause.text.splitlines()[0].strip() if clause.text else ""
+    return bool(clause.section and hint.strip() == heading and re.match(
+        re.escape(clause.section) + r"\s", heading,
+    ))
+
+
 def _numbers_in(text: str) -> list[Decimal]:
     from ..contracts.common import find_number_tokens
 
@@ -574,7 +586,7 @@ def validate_proposal(
         if len(matches) > 1:
             hints = [(clause, offset) for clause, offset in matches
                      if (rule.evidence.page is None or clause.page == rule.evidence.page)
-                     and (rule.evidence.section is None or clause.section == rule.evidence.section)]
+                     and (rule.evidence.section is None or _section_hint_matches(rule.evidence.section, clause))]
             if len(hints) == 1:
                 matches = hints
             else:
@@ -606,7 +618,7 @@ def validate_proposal(
             )
             continue
         if rule.evidence.section is not None and clause.section is not None:
-            if rule.evidence.section != clause.section:
+            if not _section_hint_matches(rule.evidence.section, clause):
                 reviews.append(
                     ReviewItem(
                         reason_code="evidence_locator_mismatch",

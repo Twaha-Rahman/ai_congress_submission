@@ -284,6 +284,30 @@ def test_repeated_quote_resolves_page_hint_without_losing_offsets():
     assert result.accepted[0].evidence.clause_id == "c2"
 
 
+@pytest.mark.parametrize("hint,accepted", [("2 Security", True), ("2 Invented title", False), ("3 Security", False)])
+def test_section_hint_may_copy_the_exact_source_heading(hint, accepted):
+    p = proposal(POLICY)
+    p.rules[0].evidence.section = hint
+    result = validate_proposal(p, manifest=manifest(), manifest_root="root", clauses=[
+        ValidatorClause("c2", 1, "2", "2 Security\n" + POLICY, "leaf2"),
+    ])
+    assert bool(result.accepted) == accepted
+    if accepted:
+        assert result.accepted[0].evidence.section == "2"
+    else:
+        assert result.reviews[0].reason_code == "evidence_locator_mismatch"
+
+
+def test_exact_section_heading_disambiguates_repeated_quotes():
+    p = proposal(POLICY)
+    p.rules[0].evidence.section = "2 Security"
+    result = validate_proposal(p, manifest=manifest(), manifest_root="root", clauses=[
+        ValidatorClause("c1", 1, "1", "1 Travel\n" + POLICY, "leaf1"),
+        ValidatorClause("c2", 1, "2", "2 Security\n" + POLICY, "leaf2"),
+    ])
+    assert result.accepted[0].evidence.clause_id == "c2"
+
+
 def test_compact_hosted_policy_text_preserves_qualifications_and_rejects_inventions(dhaka):
     text = "Contractors must obtain approval before travel, except during an evacuation."
 

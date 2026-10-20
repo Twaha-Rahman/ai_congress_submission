@@ -20,7 +20,9 @@ exhaustive coverage of every policy.
    text. Invented text and scope changes are rejected or held for review. Character
    offsets are calculated by the backend from exact quote matches. The hosted
    schema does not ask the model to count characters, and any legacy model offsets
-   are ignored; quote and page/section checks still apply.
+   are ignored; quote and page/section checks still apply. A section hint may be
+   its parser label or the exact full heading copied from the clause; invented
+   titles and incorrect locations are still held for review.
 4. For each accepted new statement, local lexical retrieval ranks relevant current
    general statements. Policy-family equality is not required: team chat can be
    checked against several policy families. Statements within the same PDF can

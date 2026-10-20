@@ -554,18 +554,30 @@ export default function App() {
             <>
               <section className="summary-strip" aria-label="Findings overview">
                 <div className="summary-metric metric-attention">
-                  <span className="summary-icon attention">
-                    <AlertCircle size={18} />
+                  <span className="summary-value">
+                    <span className="summary-icon attention" aria-hidden="true">
+                      <AlertCircle size={16} />
+                    </span>
+                    <strong>{needsAttention}</strong>
                   </span>
-                  <strong>{needsAttention}</strong>
                   <span>need attention</span>
                 </div>
                 <div className="summary-metric">
-                  <strong>{data.findings.length}</strong>
+                  <span className="summary-value">
+                    <span className="summary-icon" aria-hidden="true">
+                      <LayoutList size={16} />
+                    </span>
+                    <strong>{data.findings.length}</strong>
+                  </span>
                   <span>total findings</span>
                 </div>
                 <div className="summary-metric metric-reviewed">
-                  <strong>{reviewed}</strong>
+                  <span className="summary-value">
+                    <span className="summary-icon" aria-hidden="true">
+                      <CircleCheck size={16} />
+                    </span>
+                    <strong>{reviewed}</strong>
+                  </span>
                   <span>reviewed</span>
                 </div>
                 <span className="summary-office">

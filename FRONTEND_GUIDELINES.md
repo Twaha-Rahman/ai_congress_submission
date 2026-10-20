@@ -55,7 +55,8 @@ Tokens live in `frontend/src/styles.css`; use variables when extending component
   Notices, shortcut preferences, and unsaved review text stay out of shared URLs.
 - Keep the page heading to “Findings.” Avoid promotional sidebar copy, explanatory
   taglines and duplicate footer slogans in the workspace.
-- Summary counts use compact bordered surfaces, 24px numbers and readable labels.
+- Summary counts use compact 44px bordered surfaces, 21px numbers and readable labels.
+  Pair each count with a 16px icon: alert, findings list, and reviewed check.
   Emphasize attention in coral and reviewed in teal. On mobile, use three equal
   columns. Severity/review badges use 12px semibold labels, semantic fills and
   visible borders; keep queue variants compact without losing their status color.

@@ -427,9 +427,9 @@ svg {
 .summary-metric {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-height: 54px;
-  padding: 10px 14px;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 11px;
   background: var(--surface);
   border: 1px solid var(--neutral-line);
   border-radius: 8px;
@@ -445,12 +445,13 @@ svg {
   background: var(--teal-surface);
   border-color: var(--teal-line);
 }
-.metric-reviewed strong {
+.metric-reviewed strong,
+.metric-reviewed .summary-icon {
   color: var(--teal);
 }
 .summary-strip strong {
   font-weight: 600;
-  font-size: 24px;
+  font-size: 21px;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
@@ -461,7 +462,12 @@ svg {
 }
 .summary-icon {
   display: flex;
-  margin-right: 2px;
+  color: var(--muted);
+}
+.summary-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 .attention {
   color: var(--warning-ink);
@@ -1921,20 +1927,17 @@ textarea {
     margin-bottom: 23px;
   }
   .summary-strip strong {
-    font-size: 24px;
+    font-size: 21px;
   }
   .summary-metric {
     min-width: 0;
     flex: 1;
     flex-direction: column;
-    gap: 5px;
-    padding: 10px 5px;
+    gap: 4px;
+    padding: 8px 5px;
   }
   .summary-metric > span:last-child {
     font-size: 10.5px;
-  }
-  .summary-icon {
-    display: none;
   }
   .investigation-layout {
     display: block;

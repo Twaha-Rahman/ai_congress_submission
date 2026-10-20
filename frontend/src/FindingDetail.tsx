@@ -57,7 +57,6 @@ interface Props {
   reviews: ReviewEvent[];
   office: Office;
   session: Session | null;
-  busy: boolean;
   onReview: (action: ReviewAction) => void;
   shortcutsEnabled: boolean;
   tab: DetailTab;
@@ -81,7 +80,6 @@ export default function FindingDetail({
   reviews,
   office,
   session,
-  busy,
   onReview,
   shortcutsEnabled,
   tab,
@@ -136,7 +134,6 @@ export default function FindingDetail({
     <article
       className="finding-detail"
       aria-labelledby="finding-title"
-      aria-busy={busy}
     >
       <div className="finding-kicker">
         <span>
@@ -388,7 +385,7 @@ export default function FindingDetail({
           <div className="review-actions">
             <button
               className="button secondary"
-              disabled={busy || !!finding.superseded_by_snapshot_id}
+              disabled={!!finding.superseded_by_snapshot_id}
               onClick={() => onReview("dismiss")}
               aria-keyshortcuts={shortcutsEnabled ? "D" : undefined}
             >
@@ -397,7 +394,7 @@ export default function FindingDetail({
             </button>
             <button
               className="button secondary"
-              disabled={busy || !!finding.superseded_by_snapshot_id}
+              disabled={!!finding.superseded_by_snapshot_id}
               onClick={() => onReview("resolve")}
               aria-keyshortcuts={shortcutsEnabled ? "R" : undefined}
             >
@@ -406,7 +403,7 @@ export default function FindingDetail({
             </button>
             <button
               className="button primary"
-              disabled={busy || !!finding.superseded_by_snapshot_id}
+              disabled={!!finding.superseded_by_snapshot_id}
               onClick={() => onReview("acknowledge")}
               aria-keyshortcuts={shortcutsEnabled ? "A" : undefined}
             >

@@ -377,13 +377,13 @@ export default function App() {
     });
   }
   function reviewWithShortcut(action: ReviewAction) {
+    // Background reads do not block reviewing the displayed snapshot.
+    // The review API checks its expected snapshot before saving a decision.
     if (
       current &&
       !detailError &&
       !error &&
       session?.canReview &&
-      !loading &&
-      !detailLoading &&
       !current.finding.superseded_by_snapshot_id
     ) {
       navigate({ pane: "detail" }, true);
@@ -912,7 +912,6 @@ export default function App() {
                       claims={data.claims}
                       office={view.office}
                       session={session}
-                      busy={loading || detailLoading}
                       onReview={setReviewAction}
                       shortcutsEnabled={shortcutsEnabled}
                       tab={view.tab}

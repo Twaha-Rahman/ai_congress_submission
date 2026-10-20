@@ -30,6 +30,10 @@ export interface View {
   uploadJob: string;
   forSource: string;
   verifyKind: "source" | "finding" | "answer" | "bundle";
+  verifyTab: "check" | "trace";
+  verifyScope: "focused" | "related";
+  verifyPane: "browse" | "detail";
+  verifyGroup: string;
   verifyId: string;
   verifyNode: string;
   verifyPassage: string;
@@ -79,6 +83,10 @@ export function readView(search: string): View {
     uploadJob: p.get("job") || "",
     forSource: p.get("forSource") || "",
     verifyKind: allowed("verify", ["source", "finding", "answer", "bundle"], "source") as View["verifyKind"],
+    verifyTab: allowed("task", ["check", "trace"], p.get("verify") === "finding" ? "trace" : "check") as View["verifyTab"],
+    verifyScope: p.get("scope") === "related" ? "related" : "focused",
+    verifyPane: p.get("tracePane") === "detail" ? "detail" : "browse",
+    verifyGroup: allowed("group", ["Conclusions", "Statements", "Passages", "Sources"], ""),
     verifyId: p.get("target") || "",
     verifyNode: p.get("node") || "",
     verifyPassage: p.get("passage") || "",
@@ -112,6 +120,10 @@ export function viewSearch(view: View) {
   if (view.uploadJob) p.set("job", view.uploadJob);
   if (view.forSource) p.set("forSource", view.forSource);
   if (view.verifyKind !== "source") p.set("verify", view.verifyKind);
+  p.set("task", view.verifyTab);
+  if (view.verifyScope !== "focused") p.set("scope", view.verifyScope);
+  if (view.verifyPane !== "browse") p.set("tracePane", view.verifyPane);
+  if (view.verifyGroup) p.set("group", view.verifyGroup);
   if (view.verifyId) p.set("target", view.verifyId);
   if (view.verifyNode) p.set("node", view.verifyNode);
   if (view.verifyPassage) p.set("passage", view.verifyPassage);

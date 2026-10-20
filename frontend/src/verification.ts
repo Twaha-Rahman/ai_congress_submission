@@ -15,6 +15,59 @@ export const checkStatusLabels: Record<CheckStatus, string> = { passed: "Passed"
 export function checkCounts(report: VerificationReport) {
   return report.checks.reduce((counts, check) => { counts[check.status]++; return counts; }, { passed: 0, failed: 0, not_checked: 0 });
 }
+/** Summaries describe only returned checks; they never certify policy correctness. */
+export function checkSummary(report: VerificationReport) {
+  const counts = checkCounts(report);
+  const status = (name: string) => report.checks.find(check => check.check === name)?.status;
+  if (report.target_type === "source" && status("source_file_hash") === "failed" &&
+      ["content_normalized_text", "clause_text_match", "merkle_root_match"].every(name => status(name) === "passed"))
+    return { tone: "failed", title: "File bytes differ; extracted text and passages match.",
+      next: "Confirm that you selected the intended copy. Use the stored original if you need an exact file match; matching text alone does not establish file identity." };
+  if (counts.failed) return { tone: "failed", title: `${counts.failed === 1 ? "One integrity check failed" : `${counts.failed} integrity checks failed`}${counts.not_checked ? "; some checks could not run" : ""}.`,
+    next: "Review the failed checks below. Confirm the intended file or bundle and obtain the original export before relying on its integrity." };
+  const undisclosed = report.checks.some(check => Number(check.detail?.skipped_not_disclosed || check.detail?.not_supplied || 0) > 0);
+  const missingSourceChecks = report.target_type === "source" && ["source_file_hash", "content_normalized_text", "clause_text_match", "merkle_root_match"].some(name => !status(name));
+  if (counts.not_checked || undisclosed || (counts.passed > 0 && missingSourceChecks)) return { tone: "not_checked", title: counts.passed ? "The completed checks passed; verification is incomplete." : "No checks passed; verification is incomplete.",
+    next: "Review the unchecked, missing or undisclosed evidence below. Obtain the missing evidence or keys and run the checks again." };
+  if (!counts.passed) return { tone: "not_checked", title: "No integrity checks were returned.", next: "Run verification again or inspect the exported report before relying on this result." };
+  return { tone: "passed", title: report.target_type === "source" ? "The copy matches the stored source in all returned checks." : "All returned integrity checks passed.",
+    next: report.target_type === "source" ? "File, text and passage results are listed below. These checks do not verify manifest or finding signatures." : "Review the individual checks for their scope. This result does not establish that the answer or policy interpretation is correct." };
+}
+
+/** Follow evidence dependencies, without walking back into unrelated conclusions. */
+export function focusedLineage(graph: LineageGraph): LineageGraph {
+  const ids = new Set([graph.root_id]);
+  const root = graph.nodes.find(node => node.node_id === graph.root_id);
+  const dependencyTypes = new Set(["CITES", "FINDS_BETWEEN", "EXTRACTED_FROM", "IN_VERSION"]);
+  // A source starts from its own statements/passages, not every finding in the
+  // connected component or other versions reached through a document identity.
+  if (root && ["source", "version", "document"].includes(root.node_type)) {
+    for (const edge of graph.edges) {
+      if (edge.to_node_id === root.node_id && edge.edge_type === "IN_VERSION") ids.add(edge.from_node_id);
+    }
+    if (root.node_type === "document") {
+      for (const edge of graph.edges) {
+        if (ids.has(edge.to_node_id) && edge.edge_type === "IN_VERSION") ids.add(edge.from_node_id);
+      }
+    }
+  }
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const edge of graph.edges) {
+      if (dependencyTypes.has(edge.edge_type) && ids.has(edge.from_node_id) && !ids.has(edge.to_node_id)) {
+        ids.add(edge.to_node_id); changed = true;
+      }
+    }
+  }
+  return { ...graph, nodes: graph.nodes.filter(node => ids.has(node.node_id)),
+    edges: graph.edges.filter(edge => ids.has(edge.from_node_id) && ids.has(edge.to_node_id)) };
+}
+export function lineageNodes(graph: LineageGraph, search: string) {
+  const query = search.trim().toLowerCase();
+  return lineageGroups.flatMap(group => graph.nodes.filter(node => group.types.includes(node.node_type)))
+    .filter(node => !query || `${lineageNodeTitle(node)} ${node.node_id} ${Object.values(node.attributes).join(" ")}`.toLowerCase().includes(query));
+}
 export function evidenceFileError(file: Pick<File, "size">) {
   if (!file.size) return "Choose a nonempty evidence file.";
   if (file.size > MAX_EVIDENCE_BYTES) return "Choose evidence up to 20 MB.";

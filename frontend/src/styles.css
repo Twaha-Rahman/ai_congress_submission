@@ -841,6 +841,7 @@ textarea::placeholder {
   margin: 9px 0 12px;
 }
 .source-page-scroll {
+  scrollbar-gutter: stable;
   max-height: 56dvh;
   min-height: 200px;
   overflow: auto;

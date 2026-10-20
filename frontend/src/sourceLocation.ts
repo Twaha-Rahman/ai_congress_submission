@@ -17,7 +17,11 @@ export function locatePassage(items: { str: string }[], quote: string) {
     return { indices: [] as number[], ambiguous: true };
   return {
     indices: ranges.flatMap((range, i) =>
-      range.end > start && range.start < start + target.length ? [i] : [],
+      range.end > range.start &&
+      range.end > start &&
+      range.start < start + target.length
+        ? [i]
+        : [],
     ),
     ambiguous: false,
   };

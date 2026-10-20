@@ -11,6 +11,7 @@ const root = fileURLToPath(new URL("../dist", import.meta.url));
 const types = {
   ".html": "text/html",
   ".js": "text/javascript",
+  ".mjs": "text/javascript",
   ".css": "text/css",
   ".svg": "image/svg+xml",
   ".woff2": "font/woff2",

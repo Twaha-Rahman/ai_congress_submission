@@ -42,9 +42,11 @@ Tokens live in `frontend/src/styles.css`; use variables when extending component
 - Medium widths: reduce navigation, then stack evidence cards rather than shrinking
   quotes. At 760px and below, show either the queue or selected finding, with an
   explicit back action. Never require horizontal page scrolling.
-- Keep the queue scrollable while the investigation is open. Preserve search,
-  office, status, type, severity, sort order and selected finding in the URL; browser history
-  must continue to work.
+- Keep the queue scrollable while the investigation is open. `viewState.ts` owns
+  URL parsing and serialization: office, full finding ID and tag, search, status,
+  type, severity, sort, active tab, mobile queue/detail pane, auto-refresh and open
+  source clause/mode/page/zoom. Browser history and reload must restore this state.
+  Notices, shortcut preferences, and unsaved review text stay out of shared URLs.
 - Keep the page heading to “Findings.” Avoid promotional sidebar copy, explanatory
   taglines and duplicate footer slogans in the workspace.
 - Office and filter controls use `Select.tsx`, a shared select-only combobox with
@@ -55,12 +57,15 @@ Tokens live in `frontend/src/styles.css`; use variables when extending component
   content width and flip above the trigger when space below is limited.
 - The queue sort control supports severity, newest, oldest, review status and finding
   ID. Default severity order breaks ties by newest first, then a stable identifier.
-  Sorting preserves an explicitly selected finding and never mutates backend data.
+  Pin even the initially displayed finding in the URL. Sorting and auto-refresh
+  preserve that selection and never mutate backend data.
 - Show the short finding tag prominently in the detail header and in queue rows.
   Tags use `#` plus the final eight ID characters in uppercase. Search accepts tags
   with or without `#`, full IDs, partial IDs and ordinary evidence text, regardless
-  of case. Clicking the header tag filters to it and focuses search. Short-tag
-  collisions may return multiple findings; the full ID remains in snapshot details.
+  of case. Clicking the header tag copies it and announces success without changing
+  search or selection. Report clipboard failures honestly. Share URLs contain both
+  tag and full ID. Tag-only links resolve against authorized results; ambiguous or
+  inaccessible tags must not silently open a different finding.
 - Use named, real icons from Lucide. Icon-only actions need accessible labels.
   Unknown values must say they are unavailable instead of inventing metadata.
 - `components.tsx`: buttons via shared CSS, severity/review badges, empty/loading/error
@@ -95,8 +100,15 @@ stale-guidance example is **above $25,000, up to $50,000**. Do not shorten it to
 ambiguous “$25k–$50k” or include exactly $25,000.
 
 Source quotations stay verbatim. Clearly identify their version and location. The
-source inspector shows metadata, an original download, and optional technical
-identifiers. Do not pretend an exact PDF highlight or cryptographic check was run.
+source inspector offers metadata, a browser viewer, an original download, and
+optional technical identifiers. `SourcePreview.tsx` loads the authorized original
+through the existing bridge. PDF.js renders the cited page locally and highlights
+text runs containing a unique quote, allowing for whitespace and ligatures. The
+caption says “Highlighted lines contain the cited passage”; this is a location aid,
+not an integrity check. Missing/repeated matches receive an explicit message, not
+an invented highlight. Provide page controls, zoom, return-to-citation and readable
+page text. Saved Slack JSON is rendered as text with the matching passage marked.
+The viewer, worker, fonts, character maps and WebAssembly resources are self-hosted.
 
 ## Interaction and access
 
@@ -114,19 +126,25 @@ identifiers. Do not pretend an exact PDF highlight or cryptographic check was ru
 - Provide visible focus indicators, a skip link, labels on all controls, text with
   semantic colors, status/error announcements, and reduced-motion support.
 - Keyboard shortcuts are discoverable through the header button, `?`, or `F1`.
+  Hide the header keyboard button at mobile widths; do not replace it with an
+  unexplained keyboard icon. Physical-keyboard shortcuts remain available.
   Single-key shortcuts can be disabled in that panel; save only this boolean
   preference in local storage. Pause them while typing, during composition, in
   dropdowns and in open dialogs. Preserve browser/assistive modifier combinations.
   `F1` can also open help from a focused search/filter control.
 - Shortcuts: `/` search, `J`/`K` next/previous finding, `A` acknowledge, `R` resolve,
   `D` dismiss, `E` evidence, `T` chronology, `H` review history, `S` sort, `O` office,
-  and `Shift+R` refresh. Navigation moves keyboard focus to the selected item.
+  and `Shift+R` toggles auto-refresh. Navigation moves keyboard focus to the selected item.
   Review shortcuts open a reason form; they never save a decision immediately.
   In that form, `Ctrl+Enter` or `⌘+Enter` submits only when the reason is nonblank
   and a save is not already in progress. Escape dismisses the form without saving.
 - The local bridge uses server-configured demo credentials and loopback hostnames.
   Browser code must never import server modules, receive bearer tokens, or carry
   credentials in Vite variables, source URLs, local storage or source control.
+- Auto-refresh is a pressed-state toggle, initially off, with a 10-second polling
+  cadence. Keep it stoppable while requests are pending. Pause in hidden tabs,
+  during editing, while a dropdown is open, and while source/review/help dialogs
+  are open. Preserve the selected finding, tab and filters throughout polling.
 
 ## Review this slice before expanding
 
@@ -162,3 +180,11 @@ typing, the persistent disable preference, mobile popup bounds, and keyboard rev
 submission against a separately configured QA database. Confirm the QA service's
 `/health` reports the intended database before testing writes; office-specific
 `DHAKA_DB_PATH` / `FRANKFURT_DB_PATH` settings override generic `DB_PATH` settings.
+
+The sharing/source-viewer refinement passed all 21 frontend tests and the production
+build. Browser checks covered clipboard confirmation, stable selection after sort,
+shared filters/tabs/source location and zoom, tag-only and unknown-tag links,
+10-second auto-refresh and stopping polling, and mobile layouts without horizontal
+overflow. Original PDF and saved Slack previews were checked in the built server,
+including the locally served PDF worker and citation highlights. These checks used
+read-only requests against the existing demo data.

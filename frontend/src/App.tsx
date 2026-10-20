@@ -71,10 +71,18 @@ type Detail = {
   reviews: ReviewEvent[];
 };
 
+function readBrowserView() {
+  const result = readView(window.location.search);
+  if (
+    !new URLSearchParams(window.location.search).has("pane") &&
+    window.matchMedia("(min-width: 761px)").matches
+  )
+    result.pane = "detail";
+  return result;
+}
+
 export default function App() {
-  const [view, setView] = useState<View>(() =>
-    readView(window.location.search),
-  );
+  const [view, setView] = useState<View>(readBrowserView);
   const [session, setSession] = useState<Session | null>(null);
   const [workspace, setWorkspace] = useState<
     (WorkspaceData & { office: Office }) | null
@@ -105,7 +113,7 @@ export default function App() {
   }
   useEffect(() => {
     const handler = () => {
-      const next = readView(window.location.search);
+      const next = readBrowserView();
       setView(next);
       setNotice("");
       setReviewAction(null);
@@ -194,7 +202,7 @@ export default function App() {
       return;
     const timer = window.setInterval(() => {
       const editing = document.activeElement?.closest(
-        "input, textarea, [contenteditable=true], [role=combobox]",
+        "input, textarea, [contenteditable=true], [role=combobox][aria-expanded=true]",
       );
       if (!document.hidden && !editing) setRevision((n) => n + 1);
     }, 10000);

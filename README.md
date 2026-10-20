@@ -12,7 +12,7 @@ Claude-inspired findings workspace with evidence comparison and persisted review
 
 ## Findings workspace
 
-Requires Node **22.12+** (or a newer supported Node release), in addition to the
+Requires Node **22.13+** (or a newer supported Node release), in addition to the
 backend prerequisites below. Run from the repository root:
 
 ```bash
@@ -27,7 +27,7 @@ Open **http://127.0.0.1:5173/findings**. If there are no findings yet, use
 not run that command during an investigation you want to preserve.
 
 The workspace includes office selection, search and filters, exact evidence quotes,
-source downloads, effective/knowledge chronology, and acknowledge/resolve/dismiss
+inline PDF/Slack source inspection, source downloads, effective/knowledge chronology, and acknowledge/resolve/dismiss
 decisions with required reasons and durable history. Finding selection and filters
 are stored in the URL. `DESIGN.md` is the installed Claude design reference;
 [FRONTEND_GUIDELINES.md](FRONTEND_GUIDELINES.md) records the Meridian adaptations
@@ -35,10 +35,24 @@ and a review checklist for this first slice.
 
 Search by text, full finding ID, or the displayed tag (for example `#2B6375FB`).
 The queue's Sort control supports severity, newest, oldest, review status and ID;
-the chosen order also survives a reload. Click **Shortcuts**, or press `?` / `F1`,
+sorting preserves the finding already being viewed. Clicking a tag copies it to the
+clipboard and confirms success; it does not change search. The address bar includes
+the selected tag and full finding ID, filters, sort, tab, mobile pane, auto-refresh,
+and any open source's location and zoom. Share that URL to restore the same view
+against the same office data, subject to the recipient's access. Tag-only links
+also work, for example `/findings?office=dhaka&tag=2B6375FB`.
+
+The **Auto-refresh** toggle reloads data every 10 seconds, preserves selection, and
+pauses in hidden tabs, while editing, and while a dialog/source is open.
+**View original** opens a local PDF renderer at the cited page with matching lines
+highlighted, or the saved Slack source at its quoted message. PDF pages, zoom, and
+the source view are also restored from shared URLs. Downloads remain available.
+
+On desktop, click **Shortcuts**, or press `?` / `F1`,
 for the keyboard guide and the option to disable single-key shortcuts. `/` focuses
 search, `J` / `K` move through findings, and `A` / `R` / `D` open review forms.
 `Ctrl+Enter` / `⌘+Enter` submits a review after you enter a reason.
+`Shift+R` toggles auto-refresh. The shortcuts button is hidden in the mobile layout.
 
 The frontend server reads the root `.env` and keeps bearer tokens on the server.
 It runs as the configured demo reviewer by default. To inspect read-only access:
@@ -56,10 +70,12 @@ For a built version, run `make frontend-build`, then `npm start --prefix fronten
 The built server also listens on loopback port 5173; stop the dev server first.
 `UI_PORT` changes the built server port, and `DHAKA_BASE_URL` / `FRANKFURT_BASE_URL`
 change office connections. Restart the frontend server after changing these values.
-Fonts are bundled locally, so viewing the built UI makes no font/CDN/model requests.
+Fonts and PDF.js resources are bundled locally, so the built UI makes no CDN/model
+requests. `predev`/`prebuild` copy PDF resources from the locked package into the
+ignored `frontend/public/pdfjs/` directory; no additional download is needed onsite.
 
 ```bash
-npm test --prefix frontend     # bridge security and amount-boundary presentation
+npm test --prefix frontend     # bridge security, presentation, URL state, source location
 make test                     # backend suite, including durable review history
 ```
 

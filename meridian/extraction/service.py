@@ -39,10 +39,12 @@ class ModelStageService:
         sleep: Callable[[float], None] | None = None,
         write_cache: bool = False,
         egress_sink: EgressSink | None = None,
+        progress_sink: Callable[..., None] | None = None,
     ) -> None:
         self.settings = settings
         self.write_cache = write_cache
         self.egress_sink = egress_sink
+        self.progress_sink = progress_sink
         self.replay = ReplayExtractionProvider(settings.replay_dir)
         self.cache = CachedExtractionProvider(settings.cache_dir)
         kwargs: dict = {}
@@ -81,6 +83,10 @@ class ModelStageService:
         )
 
     # ------------------------------------------------------------------- helpers
+    def report_progress(self, stage: str, **details) -> None:
+        if self.progress_sink is not None:
+            self.progress_sink(stage, **details)
+
     def cache_key_for(self, request: ExtractionRequest) -> str:
         return compute_cache_key(
             request,

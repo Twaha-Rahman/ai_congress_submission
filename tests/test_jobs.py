@@ -45,6 +45,27 @@ def test_restart_requeues_a_running_job_and_keeps_the_attempt(
     assert recovered.finished_at is None
 
 
+def test_restart_keeps_interrupted_stage_history_separate_from_new_attempt(dhaka):
+    from meridian.ingestion.progress import JobProgress
+    job = dhaka.store.create_job(kind="pdf", mode=Mode.REPLAY, request={})
+    claimed = dhaka.store.claim_next_job()
+    progress = JobProgress(dhaka.store, claimed)
+    progress("extraction")
+    restarted = _restart(dhaka)
+    restarted.requeue_unfinished_jobs()
+    recovered = restarted.get_job(job.job_id)
+    assert recovered.progress["current_stage"] is None
+    assert recovered.progress["stages"][-1]["status"] == "interrupted"
+    assert recovered.progress["stages"][-1]["elapsed_ms"] is None
+    second = restarted.claim_next_job()
+    tracker = JobProgress(restarted, second)
+    tracker("reading")
+    stored = restarted.get_job(job.job_id).progress
+    assert stored["attempt"] == 2
+    assert stored["previous_attempts"][0]["attempt"] == 1
+    assert [stage["key"] for stage in stored["stages"]] == ["reading"]
+
+
 def test_restart_fails_an_interrupted_job_that_exhausted_attempts(
     dhaka: OfficeHarness,
 ) -> None:

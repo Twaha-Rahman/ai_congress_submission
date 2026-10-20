@@ -379,4 +379,8 @@ CREATE TABLE IF NOT EXISTS remote_snapshot_claims (
 ALTER TABLE claim_reviews ADD COLUMN resolved_at TEXT;
 """,
     ),
+    (
+        5,
+        "ALTER TABLE jobs ADD COLUMN progress_json TEXT NOT NULL DEFAULT '{}';",
+    ),
 ]

@@ -132,6 +132,7 @@ class JobRow:
     started_at: datetime | None
     finished_at: datetime | None
     updated_at: datetime
+    progress: dict
 
 
 class OfficeStore:
@@ -422,6 +423,7 @@ class OfficeStore:
             started_at=_parse_dt(row["started_at"]),
             finished_at=_parse_dt(row["finished_at"]),
             updated_at=_parse_dt(row["updated_at"]),
+            progress=json.loads(row["progress_json"]),
         )
 
     def claim_next_job(self) -> JobRow | None:
@@ -452,6 +454,7 @@ class OfficeStore:
         review_reason: str | None = None,
         source_id: str | None = None,
         stage_modes: dict | None = None,
+        progress: dict | None = None,
         finished: bool = False,
     ) -> None:
         now = _iso(utc_now())
@@ -479,6 +482,9 @@ class OfficeStore:
         if stage_modes is not None:
             sets.append("stage_modes_json = ?")
             params.append(canonical_json_text(stage_modes))
+        if progress is not None:
+            sets.append("progress_json = ?")
+            params.append(canonical_json_text(progress))
         if finished and status not in {JobStatus.QUEUED, JobStatus.RUNNING}:
             sets.append("finished_at = ?")
             params.append(now)
@@ -495,12 +501,20 @@ class OfficeStore:
         now = _iso(utc_now())
         with self.db.transaction() as connection:
             rows = connection.execute(
-                "SELECT job_id, attempts, max_attempts FROM jobs "
+                "SELECT job_id, attempts, max_attempts, progress_json FROM jobs "
                 "WHERE tenant_id = ? AND region = ? AND status = ?",
                 (self.tenant_id, self.region, JobStatus.RUNNING.value),
             ).fetchall()
             requeued = 0
             for row in rows:
+                progress = json.loads(row["progress_json"])
+                if progress.get("current_stage"):
+                    for stage in progress.get("stages", []):
+                        if stage.get("status") == "running":
+                            stage["status"] = "interrupted"
+                    progress["current_stage"] = None
+                    connection.execute("UPDATE jobs SET progress_json = ? WHERE job_id = ?",
+                                       (canonical_json_text(progress), row["job_id"]))
                 if row["attempts"] >= row["max_attempts"]:
                     connection.execute(
                         "UPDATE jobs SET status = ?, error_code = ?, finished_at = ?, updated_at = ? "

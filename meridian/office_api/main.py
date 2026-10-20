@@ -157,6 +157,7 @@ def _job_dict(job: JobRow) -> dict[str, Any]:
         "status": job.status,
         "mode": job.mode,
         "stage_modes": job.stage_modes,
+        "progress": job.progress,
         "attempts": job.attempts,
         "max_attempts": job.max_attempts,
         "error_code": job.error_code,

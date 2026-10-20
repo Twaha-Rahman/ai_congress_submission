@@ -500,6 +500,42 @@ def test_retry_worker_uses_durable_job_without_staged_upload(dhaka):
     assert result.ok and dhaka.store.get_job(job.job_id).status == "succeeded"
 
 
+def test_worker_reports_live_stage_and_pair_progress_before_model_returns(dhaka):
+    from meridian.ingestion.worker import OfficeWorker
+    from meridian.office_api.main import _job_dict
+    service, _ = model_service(dhaka)
+    ingest(dhaka, POLICY, manifest(), service=service)
+    source_manifest = manifest("another_policy")
+    staged = dhaka.base / "progress.pdf"
+    staged.write_bytes(pdf(MESSAGE))
+    queued = dhaka.store.create_job(kind="pdf", mode=Mode.LIVE, request={
+        "manifest": source_manifest.model_dump(mode="json"), "file_ref": str(staged)})
+    observed = []
+
+    def transport(request):
+        stage = ("comparison" if json.loads(request.content)["response_format"]["json_schema"]["name"] == "policy_comparison" else "extraction")
+        # A separate reader sees committed telemetry while the model is pending.
+        job = _job_dict(dhaka.store.get_job(queued.job_id))
+        assert job["status"] == "running"
+        assert job["progress"]["current_stage"] == stage
+        if stage == "comparison":
+            assert job["progress"]["stages"][-1]["completed"] == 0
+            assert job["progress"]["stages"][-1]["total"] == 1
+        observed.append(stage)
+        return service.live._transport.handle_request(request)
+
+    worker = OfficeWorker(store=dhaka.store, settings=service.settings,
+        signer=dhaka.signer, transport=httpx.MockTransport(transport))
+    assert worker.process_once()
+    final = dhaka.store.get_job(queued.job_id)
+    assert final.status == "succeeded"
+    assert observed == ["extraction", "comparison"]
+    assert final.progress["current_stage"] is None
+    assert [s["key"] for s in final.progress["stages"]] == ["reading", "extraction", "validation", "comparison", "publication"]
+    assert all(s["status"] == "completed" and isinstance(s["elapsed_ms"], int) for s in final.progress["stages"])
+    assert final.progress["stages"][3]["completed"] == 1
+
+
 def test_message_without_a_policy_reports_missing_reference(dhaka):
     service, _ = model_service(dhaka)
     outcome = ingest(dhaka, MESSAGE, manifest("team_message", source_type="slack"), service=service)

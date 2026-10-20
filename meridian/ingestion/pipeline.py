@@ -468,6 +468,7 @@ def ingest_prepared(
         request_id=request_id or new_id("req"),
         hosted_model_allowed=manifest.permissions.hosted_model,
     )
+    service.report_progress("extraction")
     result = service.extract(request)
     outcome.provider = result.provider
     outcome.model = result.model
@@ -476,6 +477,7 @@ def ingest_prepared(
         outcome.error_detail = result.error_detail
         return outcome
 
+    service.report_progress("validation")
     validation = validate_proposal(
         result.proposal,
         manifest=manifest,
@@ -570,6 +572,7 @@ def ingest_prepared(
         return outcome
 
     # ------------------------------------------------------ transactional commit
+    service.report_progress("publication")
     with store.db.transaction() as connection:
         store.insert_source(connection, source=source)
         store.insert_clauses(connection, clauses)

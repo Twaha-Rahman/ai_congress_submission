@@ -32,6 +32,7 @@ from ..extraction.service import ModelStageService
 from ..integrity.signing import Signer
 from ..storage.store import JobRow, OfficeStore, new_id
 from .pdf import UnsupportedDocument
+from .progress import JobProgress
 from .pipeline import (
     IngestionOutcome,
     ManifestSourceMismatch,
@@ -159,14 +160,24 @@ class OfficeWorker:
         return True
 
     def process_job(self, job: JobRow) -> IngestionOutcome | None:
+        progress = JobProgress(self.store, job)
+        try:
+            return self._process_job(job, progress)
+        finally:
+            final_job = self.store.get_job(job.job_id)
+            progress.finish(final_job.status if final_job else "failed")
+
+    def _process_job(self, job: JobRow, progress: JobProgress) -> IngestionOutcome | None:
         recorder = EgressRecorder(region=self.settings.region, tenant_id=self.settings.tenant_id)
         service = ModelStageService(
             self.settings,
             transport=self.transport,
             write_cache=self.write_cache,
             egress_sink=recorder.sink,
+            progress_sink=progress,
         )
         if job.kind == "policy_comparison":
+            progress("comparison")
             from ..rules.general import recompare_policy_source
 
             try:
@@ -178,6 +189,7 @@ class OfficeWorker:
             recorder.flush(self.store)
             self._finalise(job, outcome)
             return outcome
+        progress("reading")
         try:
             prepared, request_id = self._prepare(job)
         except (UnsupportedDocument, ManifestSourceMismatch, VersionPayloadMismatch) as exc:

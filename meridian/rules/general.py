@@ -275,8 +275,10 @@ def prepare_policy_comparisons(
                 pairs[key] = (a, b)
     if len(pairs) > service.settings.policy_comparison_max_pairs:
         batch.reviews.append(("policy_comparison_limit", "The source exceeded the comparison-pair limit; coverage is incomplete."))
+    selected = rank_pairs(pairs, views)[:service.settings.policy_comparison_max_pairs]
+    service.report_progress("comparison", completed=0, total=len(selected))
     deadline = time.monotonic() + service.settings.llm_job_model_budget_seconds
-    for key, (left, right) in rank_pairs(pairs, views)[:service.settings.policy_comparison_max_pairs]:
+    for key, (left, right) in selected:
         request = comparison_request(left, right, store=store, manifest=manifest,
                                      new_clauses=new_clauses, mode=mode, request_id=request_id)
         if request is None:
@@ -288,6 +290,7 @@ def prepare_policy_comparisons(
             break
         result = service.compare_policy(replace(request, model_budget_seconds=remaining))
         batch.calls.append((request, result))
+        service.report_progress("comparison", completed=len(batch.calls), total=len(selected))
         comparison = classify_policy(left, right, result)
         batch.comparisons[key] = comparison
         if comparison.finding_type is FindingType.NEEDS_REVIEW:
@@ -362,6 +365,7 @@ def recompare_policy_source(store, source_id, *, service, signer, mode, request_
         service=service, mode=mode, request_id=request_id, recheck=True)
     if not current:
         batch.reviews.append(("policy_no_current_claims", "This source has no current accepted statements to compare."))
+    service.report_progress("publication")
     now = utc_now()
     with store.db.transaction() as connection:
         findings = publish_policy_batch(connection, store, batch, signer=signer, now=now, recheck=True)

@@ -41,9 +41,10 @@ manifest, browser bundle or shared URL.
 
 The demo configuration restricts providers to DeepSeek and Cloudflare with
 `only=deepseek,cloudflare,order=deepseek,cloudflare,require_parameters=true`, and sets
-`LLM_REASONING_EFFORT=none`. Both extraction and comparison receive the explicit
-reasoning setting. Use `low` if your rehearsal needs some reasoning; leave empty to
-use the provider/model default. Changing reasoning also changes cache identity.
+`LLM_REASONING_EFFORT=` (empty). Both extraction and comparison omit the reasoning
+parameter and use the provider/model default. An explicit value such as `low`
+overrides it; changing that override also changes cache identity. Both stages use
+a 600-second request timeout and a 600-second total model budget per stage attempt.
 These performance settings need evaluation with your actual documents; a faster
 extraction does not establish conflict-detection accuracy.
 

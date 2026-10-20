@@ -39,6 +39,14 @@ corresponding `DHAKA_`/`FRANKFURT_` overrides. Use the exact model ID offered by
 provider. Restart the office services after changes. No credentials belong in a
 manifest, browser bundle or shared URL.
 
+The demo configuration restricts providers to DeepSeek and Cloudflare with
+`only=deepseek,cloudflare,order=deepseek,cloudflare,require_parameters=true`, and sets
+`LLM_REASONING_EFFORT=none`. Both extraction and comparison receive the explicit
+reasoning setting. Use `low` if your rehearsal needs some reasoning; leave empty to
+use the provider/model default. Changing reasoning also changes cache identity.
+These performance settings need evaluation with your actual documents; a faster
+extraction does not establish conflict-detection accuracy.
+
 Select `mode=live` on ingestion to process your own new documents. `cached` and
 `replay` stay explicit and never fall back to paid model calls. General extraction
 uses prompt version `general-extract-v1`; semantic comparison uses

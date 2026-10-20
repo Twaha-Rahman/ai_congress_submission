@@ -15,6 +15,7 @@ Design notes
 from __future__ import annotations
 
 import json
+import re
 import time
 from typing import Callable
 
@@ -92,6 +93,7 @@ class OpenRouterExtractionProvider:
         job_budget_seconds: float = 65.0,
         temperature: float = 0.0,
         provider_preferences: str | None = None,
+        reasoning_effort: str | None = None,
         transport: httpx.BaseTransport | None = None,
         sleep: Callable[[float], None] = time.sleep,
     ) -> None:
@@ -103,6 +105,9 @@ class OpenRouterExtractionProvider:
         self.job_budget_seconds = job_budget_seconds
         self.temperature = temperature
         self.provider_preferences = provider_preferences
+        if reasoning_effort not in {None, "none", "minimal", "low", "medium", "high", "xhigh", "max"}:
+            raise ValueError("unsupported LLM_REASONING_EFFORT")
+        self.reasoning_effort = reasoning_effort
         self._transport = transport
         self._sleep = sleep
 
@@ -117,7 +122,9 @@ class OpenRouterExtractionProvider:
         if not self.provider_preferences:
             return None
         routing: dict[str, object] = {}
-        for token in self.provider_preferences.split(","):
+        # A comma followed by another key starts an option; other commas are
+        # provider-list separators. Preserve the original pipe list syntax too.
+        for token in re.split(r",(?=\s*[A-Za-z_][A-Za-z_0-9]*\s*=)", self.provider_preferences):
             token = token.strip()
             if not token or "=" not in token:
                 continue
@@ -126,13 +133,18 @@ class OpenRouterExtractionProvider:
             value = value.strip()
             if not value:
                 continue
-            if key in {"order", "only", "ignore"}:
-                routing[key] = [item.strip() for item in value.split("|") if item.strip()]
+            if key in {"order", "only", "ignore", "quantizations"}:
+                routing[key] = [item.strip() for item in re.split(r"[,|]", value) if item.strip()]
             elif key in {"allow_fallbacks", "require_parameters", "data_collection_deny"}:
                 routing[key] = value.lower() in {"1", "true", "yes"}
             else:
                 routing[key] = value
         return routing or None
+
+    def _generation_options(self) -> dict:
+        if self.reasoning_effort is None:
+            return {}
+        return {"reasoning": {"effort": self.reasoning_effort}}
 
     def build_body(self, request: ExtractionRequest) -> dict:
         if request.subject.value == "general_policy":
@@ -173,6 +185,7 @@ class OpenRouterExtractionProvider:
         routing = self._provider_routing()
         if routing:
             body["provider"] = routing
+        body.update(self._generation_options())
         return body
 
     # ------------------------------------------------------------------- public

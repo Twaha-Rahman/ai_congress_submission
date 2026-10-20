@@ -59,6 +59,7 @@ class ModelStageService:
             job_budget_seconds=settings.llm_job_model_budget_seconds,
             temperature=settings.llm_temperature,
             provider_preferences=settings.llm_provider_prefs,
+            reasoning_effort=settings.llm_reasoning_effort,
             **kwargs,
         )
         self.comparison_live = PolicyComparisonProvider(
@@ -67,7 +68,8 @@ class ModelStageService:
             max_attempts=settings.llm_max_attempts,
             job_budget_seconds=settings.llm_job_model_budget_seconds,
             temperature=settings.llm_temperature,
-            provider_preferences=settings.llm_provider_prefs, **kwargs,
+            provider_preferences=settings.llm_provider_prefs,
+            reasoning_effort=settings.llm_reasoning_effort, **kwargs,
         )
         self.comparison_cache = CachedExtractionProvider(
             settings.cache_dir / "comparisons", proposal_model=PolicyComparisonProposal,
@@ -84,6 +86,7 @@ class ModelStageService:
             base_url=self.settings.llm_base_url,
             temperature=self.settings.llm_temperature,
             provider_preferences=self.settings.llm_provider_prefs,
+            reasoning_effort=self.settings.llm_reasoning_effort,
             parser_version=PARSER_VERSION,
         )
 

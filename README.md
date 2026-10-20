@@ -211,10 +211,20 @@ hardcoded. Important variables:
 | `DHAKA_LLM_*`, `FRANKFURT_LLM_*` | per-office overrides |
 | `LLM_TEMPERATURE`, `LLM_TIMEOUT_SECONDS`, `LLM_MAX_ATTEMPTS` | live-call behavior; request timeout defaults to 300 seconds |
 | `LLM_JOB_MODEL_BUDGET_SECONDS` | total model budget per extraction/comparison stage attempt, including request retries; defaults to 300 seconds |
+| `LLM_REASONING_EFFORT` | explicit reasoning effort for extraction and comparison; demo config uses `none`, `low` retains some reasoning, empty uses model defaults |
+| `DHAKA_LLM_PROVIDER_PREFS`, `FRANKFURT_LLM_PROVIDER_PREFS` | provider allowlist, preference order and supported-parameter requirements |
 | `DHAKA_DB_PATH`, `FRANKFURT_DB_PATH` | office SQLite paths |
 | `TRUSTED_KEYS_PATH` | pinned public-key registry |
 | `DEMO_TOKEN_*` | bearer tokens for the static principal map |
 | `DEMO_EXTRACTION_MODE` | default `replay`, `cached` or `live` |
+
+Provider preferences support comma-separated options and comma- or pipe-separated
+lists. For example, `only=deepseek,cloudflare,order=deepseek,cloudflare,require_parameters=true`
+restricts all routing to those two providers and tries DeepSeek first. `order` by
+itself is a preference, not an allowlist. The demo configuration uses this allowlist
+and `LLM_REASONING_EFFORT=none` for both model stages. Reasoning changes produce
+separate cache keys. Office-prefixed reasoning settings override the shared value.
+Restart the offices after changing model settings.
 
 See `.env.example` for the full template. Do not commit `.env`, `runtime/` or
 `evidence/`.

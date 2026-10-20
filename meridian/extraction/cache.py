@@ -26,6 +26,7 @@ def compute_cache_key(
     temperature: float,
     provider_preferences: str | None,
     parser_version: str,
+    reasoning_effort: str | None = None,
 ) -> str:
     """Cache key over tenant/region, input hashes, parser/model/prompt/schema versions."""
 
@@ -48,6 +49,8 @@ def compute_cache_key(
     }
     if request.subject.value == "general_policy":
         payload["manifest_scope_sha256"] = sha256_hex(request.manifest_scope_summary.encode("utf-8"))
+    if reasoning_effort is not None:
+        payload["reasoning_effort"] = reasoning_effort
     return sha256_hex(canonical_json_bytes(payload))
 
 

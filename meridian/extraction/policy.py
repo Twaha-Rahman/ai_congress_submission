@@ -80,6 +80,7 @@ def _body(provider, request, *, system, schema_model, name):
     routing = provider._provider_routing()
     if routing:
         body["provider"] = routing
+    body.update(provider._generation_options())
     return body
 
 

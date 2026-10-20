@@ -342,21 +342,39 @@ model quality still require rehearsal.
   file. Pending checks prevent duplicate submissions; changing evidence aborts the
   obsolete request and discards its result. Keep errors and selected files available
   for retry. Report export preserves the actual server result.
-- Group the trace into conclusions, statements, passages and sources, with a selected
-  node inspector and direct connections. Keep long lists bounded and scrollable.
+- Separate Check integrity and Trace evidence into accessible tabs. Switching tasks
+  preserves the selected file, pending check and report for the same evidence target.
+  Findings open directly in Trace evidence; their Check integrity tab offers source-copy
+  checks and explicitly does not promise finding-signature verification.
+- Start with the root record’s evidence dependencies, not the entire connected graph.
+  Follow citation/comparison, extraction and source membership edges; do not pull in
+  sibling findings or other versions through document identity. Source roots include
+  their own statements/passages. Show related evidence is an explicit expansion.
+- Group the trace into conclusions, statements, passages and sources, showing one
+  group at a time. Paginate records in batches of eight and direct connections in
+  batches of three. Desktop keeps the inspector beside the record list, with sticky
+  positioning while scrolling. Mobile shows either the browser or selected details,
+  with Back to evidence restoring scroll and keyboard focus. Do not stack independently
+  scrolling graph columns on mobile.
   Keyboard focus rings stay inside node cards. Show a source name and version as
   distinct elements; render quotations verbatim without search highlights. A selected
   node persists when searching, including when it is outside the filtered nodes.
+- Result summaries explain only the checks actually returned. A file-byte mismatch
+  with matching text/passages says so explicitly and suggests checking the intended
+  copy or obtaining the stored original. Failures appear first, followed by unchecked
+  checks, then passed checks. Missing/undisclosed evidence is incomplete, never an
+  aggregate success. Keep hashes expandable and preserve the server report on export.
 - Source inspection opens at the recorded page and passage; store its passage node
   in the URL independently of the selected graph node. Outside click/Escape close
   inspection, preserve the page width and restore focus. Uploaded-bundle topology is
   explicitly supplied data, not verified local history, and cannot open local source
   records through a claimed ID.
-- URL state includes kind/target, node, passage, search, check filter and source
+- URL state includes task, trace scope, group, mobile browse/detail pane, kind/target,
+  node, passage, search, check filter and source
   location. File bytes, filenames, unsaved answer IDs and check results stay out of
   shared links. Explain that imported files need to be selected again after reload.
-- `/` searches lineage, Escape leaves search, J/K move visible nodes in visual order,
-  L focuses lineage, and V runs a ready check (or opens the current finding's trace
+- `/` searches lineage, Escape leaves search, J/K move matching records in group order,
+  L opens Trace evidence, and V opens Check integrity and runs a ready check (or opens the current finding's trace
   from Findings). Show keycaps for the primary actions on desktop only. Preserve
   F1, theme/office shortcuts and the existing shortcut preference.
 - Header finding tags and Share view copy with a fixed-size in-button icon animation
@@ -382,3 +400,14 @@ build. Browser checks covered all three workspaces in light/dark themes at 320�
 short-window control access, office/theme persistence, keyboard dropdowns, outside
 modal dismissal and stable page width. The removed top bar and helper footer are
 absent, and each office/theme control has one responsive instance.
+
+
+The task/trace redesign passed all 52 frontend tests and the production build.
+Read-only browser checks used an isolated copy of the demo database, without a
+worker or hosted model calls. They covered focused versus related traces (7 versus
+105 records for the selected finding), adjacent desktop inspection, original and
+byte-modified PDF checks, result ordering, file/report and pending-request preservation
+across task tabs, imported bundle preview, URL reloads, tab arrow keys, search Escape,
+J/K across pagination boundaries, mobile Back scroll/focus restoration, incremental
+record loading, and 320–1440px layouts in both themes. The browser review also caught
+and fixed a focus race when keyboard navigation revealed the next page of records.

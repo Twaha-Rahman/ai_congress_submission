@@ -102,7 +102,9 @@ make test                     # backend suite, including durable review history
 ### Verify evidence and inspect lineage
 
 Open **http://127.0.0.1:5173/verification**, use **Trace evidence** (`V`) from a
-finding, or **Verify source** from source inspection. Choose an evidence type:
+finding, or **Verify source** from source inspection. Use **Check integrity** to run
+checks and **Trace evidence** to follow evidence connections. Switching tabs retains
+your selected file and results for the same evidence. Choose an evidence type:
 
 - **Source copy:** select an authorized source, choose its PDF or saved Slack JSON
   copy, then run verification. File bytes, normalized text, passage text and the
@@ -126,16 +128,20 @@ selected local office backend. Files are limited to 20 MiB. Neither uploaded cop
 imported bundles nor verification reports are published as sources or stored in URL
 state; export a report if you need to keep it.
 
-The lineage view groups conclusions, statements, passages and sources. Selecting a
-node shows its direct connections and recorded passage. Connections represent stored
+The trace starts with the selected record’s supporting evidence; **Show related
+evidence** expands the wider authorized graph. Browse conclusions, statements,
+passages and sources one group at a time, with more records loaded on request.
+Selecting a record shows its connections and exact passage beside the list on desktop.
+On mobile it opens a detail view; **Back to evidence** restores your scroll and focus. Connections represent stored
 provenance, not an integrity result. Uploaded-bundle connections are explicitly
 labelled as supplied data. Server-authorized traces omit inaccessible nodes and
 dangling edges; a bounded trace warns when it reaches the node limit.
 
 `/` focuses lineage search; `Escape` leaves it without clearing the query. `J`/`K`
-move through visible nodes, `L` focuses lineage, and `V` runs a ready verification
-form. `Ctrl+Enter` / `⌘+Enter` also submits that form. Share view preserves office,
-evidence type/ID, selected node, search, result filter and source page/zoom/passage.
+move through matching records, `L` opens Trace evidence, and `V` opens Check integrity
+and runs a ready verification form. `Ctrl+Enter` / `⌘+Enter` also submits that form. Share view preserves office,
+task, trace scope/group, mobile pane, evidence type/ID, selected node, search, result
+filter and source page/zoom/passage.
 Local files and check results must be supplied or rerun after reload. Browser history
 restores the evidence view, with explicit unavailable states for missing IDs.
 

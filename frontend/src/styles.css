@@ -684,6 +684,10 @@ textarea::placeholder {
   padding: 15px 15px 12px;
   position: relative;
 }
+.finding-list-item:focus-visible {
+  /* Keep the focus ring inside the card, clear of the queue's scroll clipping. */
+  outline-offset: -3px;
+}
 .finding-list-item.selected {
   background: var(--surface);
   border-color: var(--coral);

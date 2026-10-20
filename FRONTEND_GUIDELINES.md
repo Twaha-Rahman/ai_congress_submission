@@ -144,6 +144,8 @@ The viewer, worker, fonts, character maps and WebAssembly resources are self-hos
   stationary when opening or closing a dialog. Tab panels support arrow/Home/End keys.
 - Provide visible focus indicators, a skip link, labels on all controls, text with
   semantic colors, status/error announcements, and reduced-motion support.
+  Queue cards use an inset focus outline so scrolling and J/K navigation never
+  clip the ring at the list's edges.
 - Keyboard shortcuts are discoverable through the header button, `?`, or `F1`.
   Hide the header keyboard button at mobile widths; do not replace it with an
   unexplained keyboard icon. Physical-keyboard shortcuts remain available.

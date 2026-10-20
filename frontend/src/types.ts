@@ -117,6 +117,9 @@ export interface UploadJob {
   status: "queued" | "running" | "succeeded" | "needs_review" | "failed";
   mode: "live" | "cached" | "replay";
   stage_modes: Record<string, string>;
+  attempts?: number;
+  max_attempts?: number;
+  progress?: { attempt: number; current_stage: string | null; stages: JobStage[]; previous_attempts?: unknown[] };
   error_code: string | null;
   review_reason: string | null;
   source_id: string | null;
@@ -125,6 +128,16 @@ export interface UploadJob {
   created_at: string;
   started_at: string | null;
   finished_at: string | null;
+}
+
+export interface JobStage {
+  key: string;
+  status: "running" | "completed" | "failed" | "interrupted";
+  started_at: string;
+  finished_at: string | null;
+  elapsed_ms: number | null;
+  completed?: number;
+  total?: number;
 }
 
 export interface PolicyManifest {

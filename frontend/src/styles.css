@@ -1058,10 +1058,21 @@ textarea::placeholder {
   background: var(--card);
 }
 .queue-finding-tag {
-  color: var(--body);
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 3px 6px;
+  border: 1px solid var(--neutral-line);
+  border-radius: 4px;
+  background: var(--neutral-surface);
+  color: var(--neutral-ink);
   font-size: 10px;
   font-family: ui-monospace, monospace;
   font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .025em;
+  line-height: 1.4;
+  white-space: nowrap;
 }
 .shortcut-list {
   margin: 0 0 24px;
@@ -1933,16 +1944,7 @@ textarea {
   .refresh-button {
     position: relative;
   }
-  .refresh-button[aria-pressed="true"]::after {
-    content: "";
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: var(--teal);
-    position: absolute;
-    right: 5px;
-    bottom: 5px;
-  }
+
   .evidence-card-bottom {
     flex-wrap: wrap;
   }
@@ -2245,4 +2247,25 @@ textarea {
     transition: none !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Keep the refresh state visible independently of color and button text. */
+.auto-refresh-toggle { display: inline-flex; align-items: center; flex-shrink: 0; width: 29px; height: 17px; padding: 2px; border: 1px solid var(--neutral-line); border-radius: 20px; background: var(--neutral-surface); }
+.auto-refresh-toggle > span { width: 11px; height: 11px; border-radius: 50%; background: var(--muted); transition: transform .15s, background .15s; }
+.refresh-button[aria-pressed="true"] .auto-refresh-toggle { background: var(--teal); border-color: var(--teal); }
+.refresh-button[aria-pressed="true"] .auto-refresh-toggle > span { transform: translateX(12px); background: var(--canvas); }
+.auto-refresh-state { font-size: 11px; min-width: 20px; }
+.list-item-footer { gap: 8px; flex-wrap: wrap; }
+.list-item-footer time { margin-left: auto; white-space: nowrap; }
+.timeline-source { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 9px; margin: 7px 0; color: var(--ink); font-size: 12px; line-height: 1.6; }
+.timeline-source > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.timeline h3 { font-weight: 600; }
+.knowledge-note p > .knowledge-source-name { display: block; color: var(--body); margin: 0 0 4px; white-space: normal; overflow-wrap: anywhere; font-size: 11px; }
+.knowledge-source-name .source-version { display: inline-flex; margin-left: 5px; }
+@media (max-width: 760px) {
+  .refresh-button { gap: 7px; }
+  .refresh-button .auto-refresh-label { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .auto-refresh-toggle > span { transition: none; }
 }

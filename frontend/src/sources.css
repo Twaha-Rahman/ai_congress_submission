@@ -165,3 +165,33 @@
   .library-source-metadata dl { grid-template-columns: minmax(0, 1fr); gap: 4px; }
   .library-source-metadata dd { margin-bottom: 8px; }
 }
+
+/* The status drawer occupies the top layer, keeping every list row in place. */
+.dialog.upload-status-dialog { position: fixed; inset: 0 0 0 auto; margin: 0; width: min(520px, 100%); max-width: 100%; height: 100dvh; max-height: 100dvh; border-radius: 0; border-width: 0 0 0 1px; }
+.dialog.upload-status-dialog[open] { display: flex; flex-direction: column; }
+.upload-status-dialog .dialog-header, .upload-status-dialog .dialog-footer { flex-shrink: 0; }
+.upload-status-body { overflow-y: auto; min-height: 0; overscroll-behavior: contain; padding: 24px; }
+.upload-status-title h3 { font-size: 18px; line-height: 1.45; overflow-wrap: anywhere; }
+.upload-status-title > div { display: flex; gap: 9px; align-items: center; margin-top: 11px; }
+.job-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; padding: 20px 0; margin-top: 16px; border-bottom: 1px solid var(--line); }
+.job-metrics > div { display: flex; align-items: flex-start; gap: 9px; color: var(--muted); }
+.job-metrics svg { margin-top: 2px; flex-shrink: 0; }
+.job-metrics span { display: grid; gap: 4px; font-size: 11px; }
+.job-metrics strong { font-size: 19px; font-weight: 500; color: var(--ink); font-variant-numeric: tabular-nums; }
+.job-current-stage { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--teal); margin: 18px 0; }
+.job-stage-list { list-style: none; margin: 0; padding: 0; }
+.job-stage { display: flex; gap: 12px; align-items: flex-start; padding: 13px 0; border-bottom: 1px solid var(--line); color: var(--body); }
+.job-stage-icon { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 7px; border: 1px solid var(--line); flex-shrink: 0; background: var(--surface); }
+.job-stage > div { flex: 1; min-width: 0; }
+.job-stage strong { display: block; font-size: 12px; font-weight: 500; }
+.job-stage div > span { display: block; margin-top: 4px; color: var(--muted); font-size: 10px; }
+.job-stage time { font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; padding-top: 3px; }
+.job-stage.stage-active .job-stage-icon, .job-stage.stage-completed .job-stage-icon { color: var(--teal); background: var(--teal-surface); border-color: var(--teal-line); }
+.job-stage.stage-active strong { color: var(--teal); }
+.job-stage.stage-failed .job-stage-icon { color: var(--warning-ink); border-color: var(--warning-line); background: var(--warning-surface); }
+.job-stage.stage-pending { color: var(--muted); }
+.job-stage progress { display: block; width: 100%; height: 4px; accent-color: var(--teal); margin-top: 9px; }
+.job-progress-unavailable { padding: 16px; border-radius: 7px; background: var(--surface); border: 1px solid var(--line); color: var(--muted); font-size: 12px; line-height: 1.65; }
+.job-technical > p { font-size: 11px; margin-top: 12px; color: var(--muted); line-height: 1.6; }
+.upload-status-dialog .dialog-footer { margin-top: auto; }
+@media (max-width: 480px) { .upload-status-body { padding: 20px 18px; } }

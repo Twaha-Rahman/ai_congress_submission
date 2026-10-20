@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { blankDraft, buildPolicyManifest, jobDescription, validatePdf, visibleSources, utcDate } from "./uploads.ts";
+import { blankDraft, buildPolicyManifest, jobDescription, validatePdf, visibleSources, utcDate, keepUploadSelection, elapsedMilliseconds, durationLabel } from "./uploads.ts";
 import type { PolicyManifest, Source, UploadJob } from "./types";
 
 const draft = () => ({ ...blankDraft(), name: "Travel policy", family: "travel", scope: "All employees", published: "2026-10-01", effective: "2026-10-02" });
@@ -49,4 +49,14 @@ test("job status copy distinguishes incomplete processing from a completed check
   assert.match(jobDescription({ status: "needs_review", review_reason: "policy_retrieval_limited" } as UploadJob), /incomplete/);
   assert.match(jobDescription({ status: "running", kind: "pdf" } as UploadJob), /extracting/);
   assert.match(jobDescription({ status: "succeeded" } as UploadJob), /does not certify/);
+});
+
+test("new uploads preserve the open job and duration displays handle live, finished and legacy records", () => {
+  assert.equal(keepUploadSelection("job-in-progress", "new-job"), "job-in-progress");
+  assert.equal(keepUploadSelection("", "new-job"), "new-job");
+  assert.equal(durationLabel(elapsedMilliseconds("2026-10-20T00:00:00Z", "2026-10-20T00:02:46Z")), "2m 46s");
+  assert.equal(durationLabel(elapsedMilliseconds("2026-10-20T00:00:00Z", null, Date.parse("2026-10-20T00:00:12Z"))), "12s");
+  assert.equal(durationLabel(elapsedMilliseconds(null, null)), "Not recorded");
+  assert.equal(elapsedMilliseconds("invalid", null), null);
+  assert.equal(durationLabel(10), "<1s");
 });

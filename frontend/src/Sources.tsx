@@ -1,12 +1,13 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertCircle, ArrowDownToLine, ArrowRight, ArrowUpFromLine, ArrowDownWideNarrow, Check, Clock3, FileText, Files, Keyboard, LoaderCircle, LockKeyhole, MessageSquare, RefreshCw, Search, X } from "lucide-react";
+import { AlertCircle, ArrowDownToLine, ArrowRight, ArrowUpFromLine, ArrowDownWideNarrow, Check, Clock3, FileText, Files, Keyboard, LockKeyhole, MessageSquare, Search, X } from "lucide-react";
 import { api } from "./api";
-import { EmptyState, ErrorState, Loading, Modal, ShortcutHint } from "./components";
+import { EmptyState, ErrorState, Loading, Modal, ShortcutHint, AutoRefreshButton } from "./components";
 import { date, humanize, scopeLabel, sourceTitle } from "./presentation";
 import Select from "./Select";
 import UploadPdf from "./UploadPdf";
+import UploadStatus, { JobBadge } from "./UploadStatus";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
-import { isProcessing, jobDescription, jobLabels, visibleSources } from "./uploads";
+import { isProcessing, keepUploadSelection, visibleSources } from "./uploads";
 import type { Office, Session, Source, SourceDetail, UploadJob } from "./types";
 import type { View } from "./viewState";
 import "./sources.css";
@@ -35,6 +36,8 @@ export default function Sources({ office, session, view, navigate, shortcutsEnab
   const requestSequence = useRef(0);
   const mounted = useRef(true);
   const busy = useRef(false);
+  const selectedJobId = useRef(view.uploadJob);
+  selectedJobId.current = view.uploadJob;
   const canUpload = !!session?.uploads?.[office]?.enabled;
   const active = jobs.some(isProcessing) || !!(selectedJob && isProcessing(selectedJob));
 
@@ -79,7 +82,7 @@ export default function Sources({ office, session, view, navigate, shortcutsEnab
   useEffect(() => {
     if (!view.autoRefresh || openUpload || view.document) return;
     const timer = window.setInterval(() => {
-      if (document.hidden || document.querySelector("dialog[open]") || document.activeElement?.closest("input, textarea, [contenteditable=true], [role=combobox][aria-expanded=true]")) return;
+      if (document.hidden || document.querySelector("dialog[open]:not(.upload-status-dialog)") || document.activeElement?.closest("input, textarea, [contenteditable=true], [role=combobox][aria-expanded=true]")) return;
       void load();
       setReadRevision((n) => n + 1);
     }, active ? 3000 : 10000);
@@ -95,10 +98,9 @@ export default function Sources({ office, session, view, navigate, shortcutsEnab
   function queued(job: UploadJob) {
     if (!mounted.current) return;
     setOpenUpload(false); setJobs((current) => [job, ...current.filter((j) => j.job_id !== job.job_id)]);
-    setSelectedJob(job); setNotice("PDF received. Processing is queued and auto-refresh is on.");
-    navigate({ uploadJob: job.job_id, autoRefresh: true });
+    setNotice("PDF received. Processing is queued and auto-refresh is on.");
+    navigate({ uploadJob: keepUploadSelection(selectedJobId.current, job.job_id), autoRefresh: true });
     void load();
-    requestAnimationFrame(() => document.getElementById("upload-activity")?.focus());
   }
   async function retryComparison(job: UploadJob) {
     if (!job.source_id || retrying) return;
@@ -116,8 +118,9 @@ export default function Sources({ office, session, view, navigate, shortcutsEnab
     <div className="page-heading sources-heading"><h1>Sources</h1>
       <div className="page-actions">
         <button className="button secondary shortcuts-button" aria-label="Keyboard shortcuts" aria-keyshortcuts={shortcutsEnabled ? "F1 Shift+/" : "F1"} onClick={onHelp}><Keyboard size={16} /><span>Shortcuts</span><ShortcutHint>F1</ShortcutHint></button>
-        <button className="button secondary source-refresh" aria-label="Auto-refresh sources" aria-pressed={view.autoRefresh} aria-keyshortcuts={shortcutsEnabled ? "Shift+R" : undefined} title="Checks every 3 seconds during processing and every 10 seconds otherwise. Pauses while editing or inspecting sources."
-          onClick={() => { navigate({ autoRefresh: !view.autoRefresh }); if (!view.autoRefresh) void load(); }}><RefreshCw size={15} className={refreshing ? "spin" : ""} /><span>Auto-refresh {view.autoRefresh ? "on" : "off"}</span>{shortcutsEnabled && <ShortcutHint>Shift+R</ShortcutHint>}</button>
+        <AutoRefreshButton enabled={view.autoRefresh} refreshing={refreshing} shortcutsEnabled={shortcutsEnabled}
+          title="Checks every 3 seconds during processing and every 10 seconds otherwise. Pauses while editing or inspecting sources."
+          onToggle={() => { navigate({ autoRefresh: !view.autoRefresh }); if (!view.autoRefresh) void load(); }} />
         <button className="button primary" disabled={!canUpload} aria-keyshortcuts={shortcutsEnabled && canUpload ? "U" : undefined} onClick={() => setOpenUpload(true)}><ArrowUpFromLine size={16} />Upload PDF{shortcutsEnabled && <ShortcutHint>U</ShortcutHint>}</button>
       </div>
     </div>
@@ -155,35 +158,22 @@ export default function Sources({ office, session, view, navigate, shortcutsEnab
           <div className="source-section-heading"><h2 id="upload-activity-title">Recent uploads</h2>{active && <span className="activity-live"><span className="small-dot dot-policy" />In progress</span>}</div>
           {!view.autoRefresh && active && <p className="activity-paused">Updates paused. <button className="text-button" onClick={() => { navigate({ autoRefresh: true }); void load(); }}>Resume updates</button></p>}
           {jobError && <div className="notice warning" role="alert"><AlertCircle size={16} /><span>{jobError}</span></div>}
-          {view.uploadJob && !selectedJob && !jobError && <Loading label="Opening processing job…" />}
-          {selectedJob && <div className={`selected-upload job-${selectedJob.status}`}>
-            <div className="selected-upload-heading"><JobBadge job={selectedJob} /><button className="icon-button" aria-label="Close processing details" onClick={() => navigate({ uploadJob: "" })}><X size={15} /></button></div>
-            <h3>{selectedJob.source_identity || "PDF processing"}</h3>
-            <p className="selected-upload-version">{selectedJob.version_label || ""} · {selectedJob.kind === "policy_comparison" ? "Comparison retry" : "PDF upload"}</p>
-            <p className="selected-upload-description" role="status">{jobDescription(selectedJob)}</p>
-            <div className="upload-result-actions">
-              {selectedJob.source_id && <button className="text-button" onClick={() => onFindings(selectedJob.source_id!)}>View findings<ArrowRight size={14} /></button>}
-              {selectedJob.source_id && <button className="text-button" onClick={() => navigate({ document: selectedJob.source_id!, page: 1, zoom: 100 })}>Inspect source</button>}
-              {selectedJob.source_id && ["needs_review", "failed"].includes(selectedJob.status) && canUpload && sources.find((s) => s.source_id === selectedJob.source_id)?.subject === "general_policy" &&
-                <button className="button secondary" disabled={retrying || active} onClick={() => void retryComparison(selectedJob)}>{retrying ? <LoaderCircle size={14} className="spin" /> : <RefreshCw size={14} />}Retry comparison</button>}
-              {selectedJob.status === "failed" && !selectedJob.source_id && canUpload && <button className="button secondary" onClick={() => setOpenUpload(true)}>Upload again</button>}
-            </div>
-            <details className="job-technical"><summary>Processing details</summary><dl><dt>Job</dt><dd>{selectedJob.job_id}</dd><dt>Model mode</dt><dd>{selectedJob.mode}</dd><dt>Submitted</dt><dd>{date(selectedJob.created_at, true)}</dd>{selectedJob.finished_at && <><dt>Finished</dt><dd>{date(selectedJob.finished_at, true)}</dd></>}{selectedJob.error_code && <><dt>Error</dt><dd>{selectedJob.error_code}</dd></>}</dl></details>
-          </div>}
           {jobs.length ? <ul className="upload-job-list">{jobs.slice(0, 12).map((job) => <li key={job.job_id}><button className={`upload-job ${view.uploadJob === job.job_id ? "selected" : ""}`} aria-pressed={view.uploadJob === job.job_id} onClick={() => navigate({ uploadJob: job.job_id })}>
             <span className="upload-job-name">{job.source_identity || (job.kind === "policy_comparison" ? "Policy comparison" : "PDF upload")}</span><JobBadge job={job} /><span className="upload-job-date">{job.version_label ? `${job.version_label} · ` : ""}{date(job.created_at, true)}</span>
           </button></li>)}</ul> : <div className="activity-empty"><Clock3 size={21} /><p>No recent uploads</p><span>Processing status will appear here after you upload a PDF.</span></div>}
         </aside>
       </div>
     </>}
+    {view.uploadJob && !openUpload && !view.document && <Modal title="Upload status" className="upload-status-dialog" onClose={() => navigate({ uploadJob: "" })}>
+      {selectedJob && jobError && <div className="notice warning" role="alert"><AlertCircle size={16} /><span>{jobError}</span></div>}
+      {selectedJob ? <UploadStatus job={selectedJob} retrying={retrying} canRetry={!!(selectedJob.source_id && ["needs_review", "failed"].includes(selectedJob.status) && canUpload && !active && sources.find((s) => s.source_id === selectedJob.source_id)?.subject === "general_policy")}
+        onRetry={() => void retryComparison(selectedJob)} onFindings={() => onFindings(selectedJob.source_id!)}
+        onInspect={() => navigate({ document: selectedJob.source_id!, page: 1, zoom: 100 })}
+        onUpload={canUpload ? () => setOpenUpload(true) : undefined} /> : <div className="dialog-body">{jobError ? <ErrorState error={jobError} retry={() => setReadRevision((n) => n + 1)} /> : <Loading label="Opening processing job…" />}</div>}
+    </Modal>}
     <UploadPdf open={openUpload} office={office} sources={sources} config={session?.uploads?.[office]} shortcutsEnabled={shortcutsEnabled} onClose={() => setOpenUpload(false)} onQueued={queued} />
     {view.document && <DocumentDialog office={office} sourceId={view.document} view={view} navigate={navigate} onClose={() => navigate({ document: "" })} />}
   </>;
-}
-
-function JobBadge({ job }: { job: UploadJob }) {
-  const Icon = isProcessing(job) ? (job.status === "running" ? LoaderCircle : Clock3) : job.status === "succeeded" ? Check : AlertCircle;
-  return <span className={`job-badge job-${job.status}`}><Icon size={13} className={job.status === "running" ? "spin" : ""} />{jobLabels[job.status]}</span>;
 }
 
 function DocumentDialog({ office, sourceId, view, navigate, onClose }: {

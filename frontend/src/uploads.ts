@@ -2,6 +2,26 @@ import type { PolicyManifest, Source, UploadJob } from "./types";
 
 export const maxPdfBytes = 20 * 1024 * 1024;
 export const isProcessing = (job: UploadJob) => ["queued", "running"].includes(job.status);
+export const keepUploadSelection = (current: string, incoming: string) => current || incoming;
+
+export function elapsedMilliseconds(start: string | null | undefined, end: string | null | undefined, now = Date.now()) {
+  if (!start) return null;
+  const duration = (end ? Date.parse(end) : now) - Date.parse(start);
+  return Number.isFinite(duration) ? Math.max(0, duration) : null;
+}
+export function durationLabel(milliseconds: number | null) {
+  if (milliseconds === null) return "Not recorded";
+  if (milliseconds < 1000) return "<1s";
+  const seconds = Math.floor(milliseconds / 1000);
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  return minutes < 60 ? `${minutes}m ${seconds % 60}s` : `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+}
+
+export const stageLabels: Record<string, string> = {
+  reading: "Reading document", extraction: "Extracting statements", validation: "Validating evidence",
+  comparison: "Comparing policies", publication: "Saving results",
+};
 export const jobLabels: Record<UploadJob["status"], string> = {
   queued: "Queued", running: "Processing", succeeded: "Processed",
   needs_review: "Needs review", failed: "Failed",
@@ -105,7 +125,16 @@ const reasonLabels: Record<string, string> = {
 };
 export function jobDescription(job: UploadJob) {
   if (job.status === "queued") return "Waiting for this office to begin processing.";
-  if (job.status === "running") return job.kind === "policy_comparison" ? "Comparing accepted statements with relevant policies." : "Reading the PDF, extracting statements and checking relevant policies.";
+  if (job.status === "running") {
+    const descriptions: Record<string, string> = {
+      reading: "Reading the document and locating its text passages.",
+      extraction: "The model is extracting policy statements from the document.",
+      validation: "Matching quotations to the source and validating the extracted statements.",
+      comparison: "Checking relevant statement pairs against their full source context.",
+      publication: "Saving statements, findings and their evidence.",
+    };
+    return descriptions[job.progress?.current_stage || ""] || (job.kind === "policy_comparison" ? "Comparing accepted statements with relevant policies." : "Reading the PDF, extracting statements and checking relevant policies.");
+  }
   if (job.status === "succeeded") return "Processing finished. Findings are candidates for review; this does not certify compliance.";
   const reasons = job.review_reason?.split(";").map((s) => s.trim()).filter(Boolean) || [];
   return reasons.map((s) => reasonLabels[s] || s.replaceAll("_", " ")).join(" ") || "Open the source and review its context before drawing a conclusion.";

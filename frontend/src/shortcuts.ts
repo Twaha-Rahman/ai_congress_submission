@@ -9,6 +9,7 @@ export const shortcutDescriptions = [
   { keys: "S", label: "Open sort options" },
   { keys: "O", label: "Open office options" },
   { keys: "Shift + R", label: "Toggle auto-refresh" },
+  { keys: "Shift + T", label: "Open theme options" },
   { keys: "Ctrl / ⌘ + Enter", label: "Submit the open review or upload form" },
   { keys: "Esc", label: "Leave search or close a dropdown or dialog" },
   { keys: "? / F1", label: "Show keyboard shortcuts" },
@@ -26,6 +27,7 @@ export type ShortcutAction =
   | "sort"
   | "office"
   | "refresh"
+  | "theme"
   | "help"
   | "upload";
 // Upload opens a form and never sends a file immediately.
@@ -49,6 +51,7 @@ export function shortcutForKey(
     s: "sort",
     o: "office",
     R: "refresh",
+    T: "theme",
     "?": "help",
     u: "upload",
   };

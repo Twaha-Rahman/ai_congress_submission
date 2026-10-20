@@ -730,7 +730,7 @@ function Chronology({
       if (source.publication_time)
         result.push({
           time: source.publication_time,
-          title: `${sourceTitle(source)} · ${source.version_label}`,
+          title: source.source_type === "slack" ? "Guidance published" : "Document published",
           note:
             source.source_type === "slack"
               ? "Guidance published in a saved Slack message."
@@ -740,10 +740,10 @@ function Chronology({
       if (source.source_type !== "slack" && source.effective_from)
         result.push({
           time: source.effective_from,
-          title: `${source.version_label} becomes effective`,
+          title: source.authority === "procedure" ? "Procedure takes effect" : source.authority === "policy" ? "Policy takes effect" : "Guidance takes effect",
           note: source.supersedes
             ? `Explicitly replaces ${source.supersedes.supersedes_version_label} in the declared scope.`
-            : "Effective date declared by the source manifest.",
+            : "Effective date supplied when this version was uploaded.",
           source,
         });
       return result;
@@ -761,6 +761,7 @@ function Chronology({
             <span className="timeline-point" />
             <time dateTime={event.time}>{date(event.time)}</time>
             <h3>{event.title}</h3>
+            <div className="timeline-source"><span>{sourceTitle(event.source)}</span><span className="source-version" aria-label={`Version ${event.source.version_label}`}>{event.source.version_label}</span></div>
             <p>{event.note}</p>
           </li>
         ))}
@@ -771,7 +772,7 @@ function Chronology({
           <h3>Known to Meridian</h3>
           {relevant.map((source) => (
             <p key={source.source_id}>
-              {sourceTitle(source)} · {source.version_label}
+              <span className="knowledge-source-name">{sourceTitle(source)} <span className="source-version">{source.version_label}</span></span>
               <span>{date(source.ingested_at, true)}</span>
             </p>
           ))}

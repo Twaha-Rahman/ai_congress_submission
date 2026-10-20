@@ -7,10 +7,26 @@ import {
   Clock3,
   Info,
   LoaderCircle,
+  RefreshCw,
   X,
 } from "lucide-react";
 import type { Finding, ReviewState } from "./types";
 import { humanize } from "./presentation";
+
+export function AutoRefreshButton({ enabled, refreshing, onToggle, shortcutsEnabled, title }: {
+  enabled: boolean; refreshing: boolean; onToggle: () => void;
+  shortcutsEnabled: boolean; title: string;
+}) {
+  return <button className="button secondary refresh-button" onClick={onToggle}
+    aria-label="Auto-refresh" aria-pressed={enabled} title={title}
+    aria-keyshortcuts={shortcutsEnabled ? "Shift+R" : undefined}>
+    <RefreshCw size={15} className={refreshing ? "spin" : ""} />
+    <span className="auto-refresh-label">Auto-refresh</span>
+    <span className="auto-refresh-toggle" aria-hidden="true"><span /></span>
+    <span className="auto-refresh-state">{enabled ? "On" : "Off"}</span>
+    {shortcutsEnabled && <ShortcutHint>Shift+R</ShortcutHint>}
+  </button>;
+}
 
 export function ShortcutHint({
   children,

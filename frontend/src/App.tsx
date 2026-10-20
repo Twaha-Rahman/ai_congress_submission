@@ -12,7 +12,6 @@ import {
   LayoutList,
   LoaderCircle,
   LockKeyhole,
-  RefreshCw,
   Search,
   Shield,
   Keyboard,
@@ -27,6 +26,7 @@ import {
   Modal,
   ReviewBadge,
   ShortcutHint,
+  AutoRefreshButton,
 } from "./components";
 import FindingDetail from "./FindingDetail";
 import Highlight, { QueueMatchContext } from "./Highlight";
@@ -506,7 +506,7 @@ export default function App() {
             <strong>{isSources ? "Sources" : "Findings"}</strong>
           </div>
           <div className="topbar-context">
-            <ThemeSelect />
+            <ThemeSelect shortcutsEnabled={shortcutsEnabled} />
             <div className="office-select">
               <Select
                 label="Office"
@@ -571,22 +571,8 @@ export default function App() {
                 <span>Shortcuts</span>
                 <ShortcutHint>F1</ShortcutHint>
               </button>
-              <button
-                className="button secondary refresh-button"
-                onClick={toggleAutoRefresh}
-                aria-label="Auto-refresh"
-                aria-pressed={view.autoRefresh}
-                title={
-                  view.autoRefresh
-                    ? "Auto-refresh every 10 seconds; pauses while editing or inspecting sources"
-                    : "Enable auto-refresh every 10 seconds"
-                }
-                aria-keyshortcuts={shortcutsEnabled ? "Shift+R" : undefined}
-              >
-                <RefreshCw size={15} className={loading ? "spin" : ""} />
-                Auto-refresh {view.autoRefresh ? "on" : "off"}
-                {shortcutsEnabled && <ShortcutHint>Shift+R</ShortcutHint>}
-              </button>
+              <AutoRefreshButton enabled={view.autoRefresh} refreshing={loading} onToggle={toggleAutoRefresh}
+                shortcutsEnabled={shortcutsEnabled} title="Checks every 10 seconds; pauses while editing or inspecting sources." />
             </div>
           </div>
 

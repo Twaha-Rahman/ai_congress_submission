@@ -62,7 +62,9 @@ for the keyboard guide and the option to disable single-key shortcuts. `/` focus
 search, `J` / `K` move through findings, and `A` / `R` / `D` open review forms.
 `U` opens PDF upload when permitted.
 `Ctrl+Enter` / `⌘+Enter` submits the open review or upload form after validation.
-`Shift+R` toggles auto-refresh. The shortcuts button is hidden in the mobile layout.
+`Shift+R` toggles auto-refresh; `Shift+T` opens theme options. Auto-refresh has an
+explicit on/off switch indicator on desktop and mobile. Key hints and the shortcuts
+button are hidden in the mobile layout.
 
 Use the header's **Theme** control for **Light**, **Dark**, or **System** appearance.
 System is the default and follows device changes; your choice is saved locally.
@@ -122,6 +124,13 @@ failed processing; an empty Findings queue does not establish consistency. You c
 inspect accepted sources, open their findings, or explicitly retry a comparison.
 Failed extraction requires another upload. Failed requests keep the form and file;
 uncertain submissions are never automatically resent.
+
+Selecting an upload opens a status drawer without moving the activity list. It
+shows the current processing stage, per-stage durations, comparison-pair counts,
+queue time and total elapsed time. Updates continue while the drawer is open.
+Uploading another PDF keeps the currently selected upload open. New jobs record
+stage timings; older jobs clearly indicate when those measurements are unavailable.
+Retries retain earlier attempt history and report timings for the latest attempt.
 
 For a complete policy replacement, choose the earlier version in **Version
 relationship**. The form keeps its name, category and scope and sends an explicit

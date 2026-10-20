@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Monitor, Moon, Sun } from "lucide-react";
 import Select from "./Select";
+import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 
 type Theme = "light" | "dark" | "system";
 const storageKey = "meridian-theme";
@@ -8,7 +9,9 @@ function themePreference(value: string | null | undefined): Theme {
   return value === "light" || value === "dark" ? value : "system";
 }
 
-export default function ThemeSelect() {
+export default function ThemeSelect({ shortcutsEnabled }: { shortcutsEnabled: boolean }) {
+  const trigger = useRef<HTMLButtonElement>(null);
+  useKeyboardShortcuts(shortcutsEnabled, { theme: () => { trigger.current?.focus(); trigger.current?.click(); } });
   const [theme, setTheme] = useState<Theme>(() =>
     themePreference(document.documentElement.dataset.themePreference),
   );
@@ -40,6 +43,8 @@ export default function ThemeSelect() {
     <div className="theme-select">
       <Select
         label="Theme"
+        triggerRef={trigger}
+        shortcut={shortcutsEnabled ? "Shift+T" : undefined}
         value={theme}
         icon={<Icon size={16} />}
         options={[

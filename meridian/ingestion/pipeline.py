@@ -145,8 +145,30 @@ def prepare_slack_source(manifest: SourceManifest, raw_bytes: bytes) -> Prepared
 
 
 def clause_id_for(manifest: SourceManifest, clause_index: int, section: str | None) -> str:
+    """Legacy base ID; use clause_ids_for when preparing a complete source."""
     suffix = section if section else f"p{clause_index + 1}"
     return f"{manifest.source_identity}:{manifest.version_label}:{suffix}"
+
+
+def clause_ids_for(manifest: SourceManifest, parsed: ParsedDocument) -> list[str]:
+    """Preserve existing IDs, disambiguating repeated sections by passage order.
+
+    A section may span pages or appear more than once. Its human-readable section
+    remains metadata; every preserved passage needs its own commitment and ID.
+    """
+    bases = [clause_id_for(manifest, i, clause.section) for i, clause in enumerate(parsed.clauses)]
+    reserved = set(bases)
+    used: set[str] = set()
+    identifiers = []
+    for index, base in enumerate(bases):
+        identifier = base
+        part = index + 1
+        while identifier in used or (identifier != base and identifier in reserved):
+            identifier = f"{base}:part{part}"
+            part += 1
+        identifiers.append(identifier)
+        used.add(identifier)
+    return identifiers
 
 
 def store_original(source_dir: Path, raw_bytes: bytes, extension: str, region: str) -> Path:
@@ -184,9 +206,9 @@ def build_source_version(
     manifest = prepared.manifest
     clauses: list[ClauseRow] = []
     leaves: list[bytes] = []
-    clause_ids: list[str] = []
+    clause_ids = clause_ids_for(manifest, prepared.parsed)
     for index, parsed_clause in enumerate(prepared.parsed.clauses):
-        clause_id = clause_id_for(manifest, index, parsed_clause.section)
+        clause_id = clause_ids[index]
         payload = clause_leaf_payload(
             tenant_id=manifest.tenant_id,
             region=manifest.region.value,
@@ -203,12 +225,11 @@ def build_source_version(
             parser_version=prepared.parsed.parser_version,
         )
         leaves.append(payload)
-        clause_ids.append(clause_id)
     leaf_hashes, root = build_tree(leaves)
     for index, (parsed_clause, payload, leaf_hash) in enumerate(zip(prepared.parsed.clauses, leaves, leaf_hashes)):
         clauses.append(
             ClauseRow(
-                clause_id=clause_id_for(manifest, index, parsed_clause.section),
+                clause_id=clause_ids[index],
                 source_id=source_id,
                 clause_index=index,
                 page=parsed_clause.page,

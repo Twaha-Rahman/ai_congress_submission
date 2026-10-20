@@ -24,7 +24,7 @@ from meridian.extraction.provider import ClauseInput, ExtractionRequest  # noqa:
 from meridian.extraction.replay import ReplayExtractionProvider  # noqa: E402
 from meridian.extraction.service import ModelStageService  # noqa: E402
 from meridian.ingestion.pipeline import (  # noqa: E402
-    clause_id_for,
+    clause_ids_for,
     prepare_pdf_source,
     prepare_slack_source,
 )
@@ -54,10 +54,10 @@ def main() -> int:
         )
         clauses = []
         # Rebuild clause IDs exactly as the pipeline does.
-        for index, clause in enumerate(prepared.parsed.clauses):
+        for clause_id, clause in zip(clause_ids_for(manifest, prepared.parsed), prepared.parsed.clauses):
             clauses.append(
                 ClauseInput(
-                    clause_id=clause_id_for(manifest, index, clause.section),
+                    clause_id=clause_id,
                     page=clause.page,
                     section=clause.section,
                     text=clause.text,

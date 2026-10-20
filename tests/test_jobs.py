@@ -98,3 +98,48 @@ def test_model_retry_keeps_pdf_until_terminal_result(dhaka: OfficeHarness, monke
         assert final.error_code == ErrorCode.PROVIDER_ERROR.value
         assert final.review_reason == "Model provider unavailable"
     assert not staged.exists()
+
+
+def test_internal_failure_retry_has_no_finished_time_or_stale_error(dhaka: OfficeHarness, monkeypatch) -> None:
+    staged = dhaka.settings.source_dir / "_staging" / "retry.pdf"
+    staged.parent.mkdir(parents=True)
+    staged.write_bytes((FIXTURES / DEMO_POLICY_V2[0]).read_bytes())
+    job = dhaka.store.create_job(kind="pdf", mode=Mode.REPLAY, max_attempts=2, request={
+        "file_ref": str(staged), "manifest": read_manifest(DEMO_POLICY_V2[1]).model_dump(mode="json"),
+    })
+    original = worker_module.ingest_prepared
+    calls = 0
+
+    def fail_once(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise RuntimeError("Controlled persistence failure")
+        running = dhaka.store.get_job(job.job_id)
+        assert running.status == "running"
+        assert running.finished_at is running.error_code is running.review_reason is None
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(worker_module, "ingest_prepared", fail_once)
+    worker = OfficeWorker(store=dhaka.store, settings=dhaka.settings, signer=dhaka.signer)
+    assert worker.process_once()
+    queued = dhaka.store.get_job(job.job_id)
+    assert queued.status == "queued" and queued.finished_at is None
+    assert queued.error_code == "internal_error" and staged.exists()
+    assert worker.process_once()
+    final = dhaka.store.get_job(job.job_id)
+    assert final.status == "succeeded" and final.finished_at is not None
+    assert final.error_code is final.review_reason is None
+
+
+def test_retry_recovery_clears_legacy_finished_metadata(dhaka: OfficeHarness) -> None:
+    job = dhaka.store.create_job(kind="pdf", mode=Mode.REPLAY, request={})
+    assert dhaka.store.claim_next_job()
+    # Simulate an old worker that incorrectly marked a retrying attempt finished.
+    with dhaka.store.db.transaction() as conn:
+        conn.execute("UPDATE jobs SET finished_at=updated_at, error_code='internal_error', review_reason='old failure' WHERE job_id=?", (job.job_id,))
+    assert dhaka.store.requeue_unfinished_jobs() == 1
+    assert dhaka.store.get_job(job.job_id).finished_at is None
+    running = dhaka.store.claim_next_job()
+    assert running.attempts == 2
+    assert running.finished_at is running.error_code is running.review_reason is None

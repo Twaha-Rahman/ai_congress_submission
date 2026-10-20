@@ -217,12 +217,13 @@ class OfficeWorker:
                 source_dir=self.settings.source_dir,
             )
         except Exception as exc:  # noqa: BLE001 - job must not crash the worker
+            status = self._failure_status(job, ErrorCode.INTERNAL_ERROR.value)
             self.store.update_job(
                 job.job_id,
-                status=self._failure_status(job, ErrorCode.INTERNAL_ERROR.value),
+                status=status,
                 error_code=ErrorCode.INTERNAL_ERROR.value,
                 review_reason=f"{type(exc).__name__}: {exc}"[:400],
-                finished=True,
+                finished=status is JobStatus.FAILED,
             )
             recorder.flush(self.store)
             return None

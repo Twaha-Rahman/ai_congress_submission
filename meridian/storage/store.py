@@ -438,7 +438,7 @@ class OfficeStore:
                 return None
             connection.execute(
                 "UPDATE jobs SET status = ?, attempts = attempts + 1, started_at = ?, "
-                "updated_at = ? WHERE job_id = ?",
+                "updated_at = ?, finished_at = NULL, error_code = NULL, review_reason = NULL WHERE job_id = ?",
                 (JobStatus.RUNNING.value, _iso(now), _iso(now), row["job_id"]),
             )
         return self.get_job(row["job_id"])
@@ -460,6 +460,13 @@ class OfficeStore:
         if status is not None:
             sets.append("status = ?")
             params.append(status.value)
+            if status in {JobStatus.QUEUED, JobStatus.RUNNING}:
+                sets.append("finished_at = NULL")
+            elif status in {JobStatus.SUCCEEDED, JobStatus.NEEDS_REVIEW}:
+                if error_code is None:
+                    sets.append("error_code = NULL")
+                if review_reason is None:
+                    sets.append("review_reason = NULL")
         if error_code is not None:
             sets.append("error_code = ?")
             params.append(error_code)
@@ -472,7 +479,7 @@ class OfficeStore:
         if stage_modes is not None:
             sets.append("stage_modes_json = ?")
             params.append(canonical_json_text(stage_modes))
-        if finished:
+        if finished and status not in {JobStatus.QUEUED, JobStatus.RUNNING}:
             sets.append("finished_at = ?")
             params.append(now)
         params.append(job_id)
@@ -508,7 +515,7 @@ class OfficeStore:
                     )
                     continue
                 connection.execute(
-                    "UPDATE jobs SET status = ?, updated_at = ? WHERE job_id = ?",
+                    "UPDATE jobs SET status = ?, updated_at = ?, finished_at = NULL WHERE job_id = ?",
                     (JobStatus.QUEUED.value, now, row["job_id"]),
                 )
                 requeued += 1

@@ -29,10 +29,18 @@ Tokens live in `frontend/src/styles.css`; use variables when extending component
   These are semantic accents, not alternative page backgrounds.
 - Light/dark/system appearance is selected in the header. Default to System and
   persist only the preference in local storage. Apply it before the first paint;
-  follow system changes while System is selected. Dark mode uses warm charcoal
-  canvas/surfaces and cream text, with brighter coral/teal semantic inks. Use the
+  follow system changes while System is selected. Dark mode uses neutral charcoal
+  surfaces and warm cream text. Navigation is `#171719`, the workspace `#1e1e20`,
+  queue cards `#242426`, and raised evidence/dialogs `#2c2c2f`. Selected findings
+  use a coral-tinted `#3b2c27` surface and an inset vertical marker. Use the
   shared variables for controls, popups, dialogs and scrollbars. Original PDF pages
   retain their document colors. Theme preference stays out of shared finding URLs.
+- Surface tokens describe their role: chrome, header, queue, selected, scope, field,
+  raised, secondary control and keycap. Dark mode separates light coral text/focus
+  (`--primary`) from richer coral button fills (`--primary-fill`) and pressed fills.
+  Policy evidence gets a teal header/icon/top edge; informal evidence gets coral.
+  Keep authority labels explicit and retain neutral styling for procedures or
+  unavailable metadata. These accents do not indicate integrity verification.
 - Cormorant Garamond 500 for display headings and rule summaries, as the reference's
   public substitute for its licensed display face. Inter 400/500/600 for controls
   and body. Both are bundled locally; no runtime font network dependency.
@@ -241,3 +249,9 @@ simulated system theme changes, dark-mode PDF rendering, 320px/390px mobile
 layouts, fixed-size copy success/failure feedback, outside-click dismissal,
 inside-click/drag protection, focus restoration and zero horizontal movement of
 the workspace when the shortcuts dialog opens.
+
+The dark-theme polish was checked on desktop and 320px/390px mobile layouts,
+including raised source dialogs, original PDF rendering and switching back to the
+light palette. Sampled dark text combinations exceeded 4.5:1 contrast, including
+primary and pressed button labels; input boundaries and focus accents exceeded
+3:1 in the targeted palette checks.

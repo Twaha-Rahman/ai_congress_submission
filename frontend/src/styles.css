@@ -25,6 +25,18 @@
   --backdrop: #18171566;
   --search-match-surface: #f2d89a;
   --search-match-ink: #463315;
+  --chrome-surface: var(--surface);
+  --header-surface: transparent;
+  --queue-surface: transparent;
+  --selected-surface: var(--surface);
+  --scope-surface: var(--surface);
+  --field-surface: var(--canvas);
+  --raised-surface: var(--canvas);
+  --secondary-surface: var(--canvas);
+  --primary-fill: var(--primary);
+  --primary-pressed: var(--warning-ink);
+  --key-surface: var(--surface);
+  --key-line: var(--line);
   --serif: "Cormorant Garamond", Georgia, serif;
   --sans: "Inter", system-ui, sans-serif;
   font-family: var(--sans);
@@ -35,32 +47,44 @@
   scrollbar-gutter: stable;
 }
 :root[data-theme="dark"] {
-  --canvas: #1f1e1b;
-  --surface: #272621;
-  --card: #33312b;
-  --ink: #f1ede4;
-  --body: #d7d2c7;
-  --muted: #ada79a;
-  --line: #4b473f;
-  --coral: #cc785c;
-  --primary: #e6a48b;
-  --dark: #f1ede4;
-  --on-primary: #241c17;
-  --teal: #9bd1bd;
-  --teal-surface: #23372f;
-  --teal-line: #4d806d;
-  --warning-ink: #f0b198;
-  --warning-surface: #3c2a21;
-  --warning-line: #8c5844;
-  --control-line: #8a8274;
-  --neutral-ink: #e1dbce;
-  --neutral-surface: #3b3931;
-  --neutral-line: #756e5e;
+  --canvas: #1e1e20;
+  --surface: #272729;
+  --card: #333337;
+  --ink: #f5f1eb;
+  --body: #d9d7d3;
+  --muted: #aaa9a6;
+  --line: #3a3a3e;
+  --coral: #c58268;
+  --primary: #efab90;
+  --dark: #f5f1eb;
+  --on-primary: #241813;
+  --teal: #91cdb8;
+  --teal-surface: #20342e;
+  --teal-line: #4f806e;
+  --warning-ink: #efb197;
+  --warning-surface: #3b2b25;
+  --warning-line: #845b4a;
+  --control-line: #737376;
+  --neutral-ink: #d5d5d8;
+  --neutral-surface: #303034;
+  --neutral-line: #59595f;
   --popover-shadow: #00000040;
   --dialog-shadow: #00000080;
-  --backdrop: #080705a6;
+  --backdrop: #09090ba6;
   --search-match-surface: #725723;
   --search-match-ink: #fff5d4;
+  --chrome-surface: #171719;
+  --header-surface: #1b1b1d;
+  --queue-surface: #242426;
+  --selected-surface: #3b2c27;
+  --scope-surface: #28282b;
+  --field-surface: #222224;
+  --raised-surface: #2c2c2f;
+  --secondary-surface: #29292c;
+  --primary-fill: #d88b6e;
+  --primary-pressed: #c9795d;
+  --key-surface: #2c2c2f;
+  --key-line: #454549;
   color-scheme: dark;
 }
 * {
@@ -173,15 +197,15 @@ svg {
   white-space: nowrap;
 }
 .button.primary {
-  background: var(--primary);
+  background: var(--primary-fill);
   color: var(--on-primary);
-  border-color: var(--primary);
+  border-color: var(--primary-fill);
 }
 .button.primary:active {
-  background: var(--warning-ink);
+  background: var(--primary-pressed);
 }
 .button.secondary {
-  background: var(--canvas);
+  background: var(--secondary-surface);
   border-color: var(--line);
   color: var(--body);
 }
@@ -237,7 +261,7 @@ svg {
   inset: 0 auto 0 0;
   width: 216px;
   z-index: 10;
-  background: var(--surface);
+  background: var(--chrome-surface);
   border-right: 1px solid var(--line);
   padding: 27px 16px 20px;
   display: flex;
@@ -344,6 +368,7 @@ svg {
 }
 .topbar {
   height: 69px;
+  background: var(--header-surface);
   border-bottom: 1px solid var(--line);
   padding: 0 36px;
   display: flex;
@@ -550,6 +575,7 @@ svg {
   border-radius: 7px;
   min-height: 40px;
   color: var(--muted);
+  background: var(--field-surface);
 }
 .search-input:focus-within {
   outline: 2px solid var(--primary);
@@ -612,7 +638,7 @@ textarea::placeholder {
   min-width: 0;
   min-height: 38px;
   padding: 8px 10px;
-  background: var(--canvas);
+  background: var(--field-surface);
   border: 1px solid var(--control-line);
   border-radius: 7px;
   text-align: left;
@@ -652,7 +678,7 @@ textarea::placeholder {
   z-index: 30;
   overflow-y: auto;
   overscroll-behavior: contain;
-  background: var(--canvas);
+  background: var(--raised-surface);
   border: 1px solid var(--line);
   border-radius: 9px;
   padding: 5px;
@@ -719,13 +745,14 @@ textarea::placeholder {
   border-radius: 8px;
   padding: 15px 15px 12px;
   position: relative;
+  background: var(--queue-surface);
 }
 .finding-list-item:focus-visible {
   /* Keep the focus ring inside the card, clear of the queue's scroll clipping. */
   outline-offset: -3px;
 }
 .finding-list-item.selected {
-  background: var(--surface);
+  background: var(--selected-surface);
   border-color: var(--coral);
 }
 .finding-list-item.selected::before {
@@ -1054,9 +1081,9 @@ textarea::placeholder {
 kbd {
   font-family: ui-monospace, monospace;
   color: var(--body);
-  background: var(--surface);
+  background: var(--key-surface);
   padding: 3px 6px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--key-line);
   border-bottom-width: 2px;
   border-radius: 4px;
   font-size: 11px;
@@ -1119,7 +1146,7 @@ kbd {
   max-width: 730px;
 }
 .scope-card {
-  background: var(--surface);
+  background: var(--scope-surface);
   display: flex;
   align-items: center;
   gap: 13px;
@@ -1618,7 +1645,7 @@ kbd {
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 0;
-  background: var(--canvas);
+  background: var(--raised-surface);
   color: var(--ink);
   width: min(560px, calc(100vw - 32px));
   max-height: calc(100dvh - 48px);
@@ -1674,7 +1701,7 @@ kbd {
 }
 textarea {
   border: 1px solid var(--control-line);
-  background: var(--canvas);
+  background: var(--field-surface);
   border-radius: 8px;
   padding: 13px;
   width: 100%;
@@ -1717,6 +1744,52 @@ textarea {
 }
 .source-facts dd {
   margin: 0;
+}
+
+/* Dark surfaces have distinct jobs; authority colors stay confined to evidence. */
+:root[data-theme="dark"] .finding-list-item.selected::before {
+  top: 10px;
+  bottom: 10px;
+  left: 0;
+  height: auto;
+}
+:root[data-theme="dark"] .nav-count {
+  border-color: var(--line);
+  color: var(--muted);
+}
+:root[data-theme="dark"] .evidence-card {
+  background: var(--raised-surface);
+  border-top: 2px solid var(--evidence-accent-line, var(--line));
+}
+:root[data-theme="dark"] .evidence-policy {
+  --evidence-accent: var(--teal);
+  --evidence-accent-surface: var(--teal-surface);
+  --evidence-accent-line: var(--teal-line);
+}
+:root[data-theme="dark"] .evidence-informal {
+  --evidence-accent: var(--primary);
+  --evidence-accent-surface: var(--warning-surface);
+  --evidence-accent-line: var(--warning-line);
+}
+:root[data-theme="dark"] .evidence-card .evidence-role {
+  color: var(--evidence-accent, var(--body));
+  font-size: 10px;
+}
+:root[data-theme="dark"] .evidence-procedure .small-dot,
+:root[data-theme="dark"] .evidence-unknown .small-dot {
+  color: var(--muted);
+}
+:root[data-theme="dark"] .evidence-card .source-file-icon {
+  color: var(--evidence-accent, var(--body));
+  background: var(--evidence-accent-surface, var(--surface));
+  border-color: var(--evidence-accent-line, var(--line));
+}
+:root[data-theme="dark"] .evidence-card header p {
+  font-size: 10px;
+}
+:root[data-theme="dark"] .evidence-card .rule-summary {
+  color: var(--ink);
+  font-size: 27px;
 }
 
 @media (min-width: 1550px) {

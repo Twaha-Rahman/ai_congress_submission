@@ -637,7 +637,7 @@ function EvidenceCard({
   const formal = source?.authority === "policy";
   const Icon = source?.source_type === "slack" ? MessageSquare : FileText;
   return (
-    <section className={`evidence-card ${formal ? "formal-evidence" : ""}`}>
+    <section className={`evidence-card evidence-${source?.authority || "unknown"} ${formal ? "formal-evidence" : ""}`}>
       <div className="evidence-role">
         <span>
           <span

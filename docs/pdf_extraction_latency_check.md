@@ -1,5 +1,8 @@
 # PDF extraction latency check — 20 October 2026
 
+Follow-up: [full paid HTTP API verification with default reasoning](pdf_api_verification.md)
+now covers successful ingestion, comparisons, findings, and evidence validation.
+
 One explicitly authorized paid extraction request used
 `fixtures/conflict_testing/northwind_security_procurement_procedure_2026.pdf`.
 The PDF text was parsed with the real ingestion parser and submitted with the real

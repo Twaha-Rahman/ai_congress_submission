@@ -20,8 +20,8 @@ export async function getFinding(office: Office, id: string, signal?: AbortSigna
   return { finding: { ...payload, ...record } as Finding, reviews: response.reviews || [] };
 }
 
-export function reviewFinding(office: Office, id: string, action: ReviewAction, reason: string, revisions: string[]) {
+export function reviewFinding(office: Office, id: string, action: ReviewAction, reason: string, revisions: string[], snapshotId: string) {
   return api<{ new_state: ReviewState; actor: string; event_id: string }>(`${office}/findings/${encodeURIComponent(id)}/reviews`, {
-    method: 'POST', body: JSON.stringify({ action, reason, referenced_revision_ids: revisions }),
+    method: 'POST', body: JSON.stringify({ action, reason, referenced_revision_ids: revisions, expected_snapshot_id: snapshotId }),
   });
 }

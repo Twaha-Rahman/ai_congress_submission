@@ -37,6 +37,8 @@ export interface ReviewEvent {
 export interface Session { role: 'reviewer' | 'reader'; canReview: boolean; demo: boolean }
 export interface WorkspaceData { findings: Finding[]; sources: Source[]; claims: Claim[] }
 export interface FindingResponse {
-  finding: Omit<Finding, 'finding_id'> & { payload: Omit<Finding, 'review_state'> };
+  finding: Pick<Finding, 'snapshot_id' | 'snapshot_hash' | 'signature' | 'key_id' | 'review_state' | 'superseded_by_snapshot_id'> & {
+    payload: Omit<Finding, 'review_state' | 'snapshot_id' | 'snapshot_hash' | 'signature' | 'key_id' | 'superseded_by_snapshot_id'>;
+  };
   reviews?: ReviewEvent[];
 }

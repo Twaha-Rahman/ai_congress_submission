@@ -1,0 +1,84 @@
+import type { AmountInterval, Claim, Finding, FindingType, Scope, Source } from './types';
+
+export function humanize(value: string) {
+  return value.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
+}
+export function date(value: string | null | undefined, includeTime = false) {
+  if (!value) return 'Not specified';
+  return new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC',
+    ...(includeTime ? { hour: '2-digit', minute: '2-digit' } as const : {}),
+  }).format(new Date(value)) + (includeTime ? ' UTC' : '');
+}
+export function money(minor: number, currency = 'USD') {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: minor % 100 ? 2 : 0, maximumFractionDigits: 2 }).format(minor / 100);
+}
+export function amountRange(interval: AmountInterval, currency = 'USD') {
+  const { lower, upper, lower_inclusive: li, upper_inclusive: ui } = interval;
+  if (lower !== null && upper !== null && lower === upper) return `Exactly ${money(lower, currency)}`;
+  const start = lower === null ? null : `${li ? 'From' : 'Above'} ${money(lower, currency)}`;
+  const end = upper === null ? null : `${ui ? 'up to' : 'below'} ${money(upper, currency)}`;
+  return [start, end].filter(Boolean).join(', ') || 'All amounts';
+}
+export function scopeLabel(scope: Scope) {
+  if (scope.kind === 'loan' && scope.amount_minor) return amountRange(scope.amount_minor, scope.currency);
+  return `${humanize(scope.record_class || 'records')} · ${humanize(scope.product || 'all products')}`;
+}
+export function scopeContext(scope: Scope) {
+  return scope.kind === 'loan'
+    ? `${humanize(scope.loan_type || 'business')} loans · ${scope.currency || 'USD'} · ${humanize(scope.origin_office.toLowerCase())} origin`
+    : `${humanize(scope.origin_office.toLowerCase())} → ${humanize((scope.processing_office || '').toLowerCase())} · From ${humanize(scope.starting_event || 'loan closure').toLowerCase()}`;
+}
+export const typeLabels: Record<FindingType, string> = {
+  stale_guidance: 'Stale guidance', incorrect_guidance: 'Incorrect guidance', contradiction: 'Contradiction',
+  compliance_gap: 'Compliance gap', compatible_difference: 'Compatible difference', supersession: 'Policy replacement',
+  not_comparable: 'Not comparable', needs_review: 'Needs interpretation',
+};
+export function findingTitle(finding: Finding) {
+  const subject = finding.subject === 'loan_approval' ? 'Approval' : 'Retention';
+  const titles: Record<FindingType, string> = {
+    stale_guidance: `${subject} guidance is out of date`,
+    incorrect_guidance: `${subject} guidance conflicts with a requirement`,
+    contradiction: `${subject} requirements cannot both be met`,
+    compliance_gap: `${subject} procedure falls short of policy`,
+    compatible_difference: `${subject} requirements can be met together`,
+    supersession: `${subject} policy has been replaced`,
+    not_comparable: `${subject} rules need separate interpretation`,
+    needs_review: `${subject} rules need human interpretation`,
+  };
+  return titles[finding.finding_type];
+}
+export function explanation(finding: Finding) {
+  const d = finding.detail;
+  switch (finding.finding_type) {
+    case 'stale_guidance':
+      return `The guidance matches a superseded requirement. ${d.required ? `The governing requirement is ${d.required}; ` : ''}${d.advised_value ? `the guidance says ${d.advised_value} is sufficient. ` : ''}The mismatch applies only to the scope below.`;
+    case 'incorrect_guidance':
+      return `The guidance does not satisfy the governing requirement${d.required ? ` (${d.required})` : ''}. Compare the source passages before deciding how to respond.`;
+    case 'supersession': return 'An explicit policy replacement links these revisions. This records a change in policy; it is not a contradiction alert.';
+    case 'compatible_difference': return `Both requirements can be satisfied at the same time${d.satisfying_value ? ` with a value of ${d.satisfying_value}` : ''}. A difference in wording or minimums does not by itself create a conflict.`;
+    case 'contradiction': return 'The allowed values of these requirements do not overlap in the affected scope. Compare their authority and applicability before taking action.';
+    case 'compliance_gap': return 'The operating procedure does not meet the policy requirement for the same scope and starting event. Review both passages to establish the change needed.';
+    default: return 'These rules could not be fully compared automatically. Inspect their scope, dates, and original evidence before drawing a conclusion.';
+  }
+}
+export function sourceTitle(source?: Pick<Source, 'source_identity'>) {
+  if (!source) return 'Source metadata unavailable';
+  const names: Record<string, string> = {
+    dhaka_lending_policy: 'Business lending policy', dha_slack_credit_channel: 'Credit team · Slack',
+    dhaka_credit_note_restricted: 'Credit committee note', dhaka_records_procedure: 'Records operating procedure',
+    frankfurt_records_policy: 'Records retention policy',
+  };
+  return names[source.source_identity] || humanize(source.source_identity);
+}
+export function ruleSummary(claim?: Claim) {
+  if (!claim) return 'Rule metadata unavailable';
+  const kinds: Record<string, string> = { required_minimum: 'At least', maximum_allowed: 'At most', exactly_required: 'Exactly', advised_sufficient: 'Sufficient:', operating_exact: 'Operating at' };
+  const value = claim.rule.value;
+  const unit = claim.rule.unit === 'approvals' && Number(value) === 1 ? 'approval' : claim.rule.unit;
+  return `${kinds[claim.rule.kind] || humanize(claim.rule.kind)} ${value} ${unit}`;
+}
+export function orderFindings(findings: Finding[]) {
+  const rank = { high: 0, review: 1, info: 2 };
+  return [...findings].sort((a, b) => rank[a.severity] - rank[b.severity] || b.created_at.localeCompare(a.created_at) || a.finding_id.localeCompare(b.finding_id));
+}

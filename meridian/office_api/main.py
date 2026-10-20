@@ -535,7 +535,11 @@ def create_app(settings: OfficeSettings | None = None) -> FastAPI:
                 "key_id": record.key_id,
                 "review_state": record.review_state.value,
                 "superseded_by_snapshot_id": record.superseded_by_snapshot_id,
-            }
+            },
+            "reviews": [
+                event.model_dump(mode="json")
+                for event in store.review_events(finding_id)
+            ],
         }
 
     @app.post("/v1/findings/{finding_id}/reviews", status_code=201)
@@ -551,6 +555,12 @@ def create_app(settings: OfficeSettings | None = None) -> FastAPI:
         body = await request.json()
         if not isinstance(body, dict):
             raise ApiError(ErrorCode.INVALID_INPUT, "body must be a JSON object")
+        expected_snapshot = body.get("expected_snapshot_id")
+        if expected_snapshot is not None and expected_snapshot != record.snapshot_id:
+            raise ApiError(
+                ErrorCode.CONFLICT,
+                "the finding changed; refresh it before recording your review",
+            )
         try:
             action = ReviewAction(str(body.get("action", "")).strip().lower())
         except ValueError as exc:
@@ -581,6 +591,16 @@ def create_app(settings: OfficeSettings | None = None) -> FastAPI:
         )
         payload_bytes = canonical_json_bytes(event)
         with store.db.transaction() as connection:
+            current = store.get_finding(finding_id, connection=connection)
+            if (
+                current is None
+                or current.snapshot_id != record.snapshot_id
+                or current.review_state != record.review_state
+            ):
+                raise ApiError(
+                    ErrorCode.CONFLICT,
+                    "the finding changed; refresh it before recording your review",
+                )
             store.append_review_event(
                 connection,
                 event,

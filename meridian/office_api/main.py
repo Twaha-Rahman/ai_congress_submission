@@ -165,6 +165,8 @@ def _job_dict(job: JobRow) -> dict[str, Any]:    return {
         "started_at": canonical_datetime(job.started_at) if job.started_at else None,
         "finished_at": canonical_datetime(job.finished_at) if job.finished_at else None,
         "updated_at": canonical_datetime(job.updated_at),
+        "source_identity": (job.request.get("manifest") or {}).get("source_identity"),
+        "version_label": (job.request.get("manifest") or {}).get("version_label"),
     }
 
 
@@ -403,7 +405,12 @@ def create_app(settings: OfficeSettings | None = None) -> FastAPI:
         source = store.get_source(source_id)
         if not _source_readable(principal, source):
             raise ApiError(ErrorCode.NOT_FOUND, "no such source")
-        return {"source": _source_dict(source)}
+        return {
+            "source": _source_dict(source),
+            "clauses": [{"clause_id": clause.clause_id, "page": clause.page,
+                         "section": clause.section}
+                        for clause in store.clauses_for_source(source_id)],
+        }
 
     @app.post("/v1/sources/{source_id}/comparisons", status_code=202)
     def recheck_source(source_id: str, mode: str | None = None,

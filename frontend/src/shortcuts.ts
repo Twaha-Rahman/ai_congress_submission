@@ -1,5 +1,6 @@
 export const shortcutDescriptions = [
-  { keys: "/", label: "Search findings or a finding ID" },
+  { keys: "/", label: "Search the current page" },
+  { keys: "U", label: "Upload a policy PDF (when permitted)" },
   { keys: "J / K", label: "Next / previous finding" },
   { keys: "A", label: "Acknowledge selected finding" },
   { keys: "R", label: "Resolve selected finding" },
@@ -8,7 +9,7 @@ export const shortcutDescriptions = [
   { keys: "S", label: "Open sort options" },
   { keys: "O", label: "Open office options" },
   { keys: "Shift + R", label: "Toggle auto-refresh" },
-  { keys: "Ctrl / ⌘ + Enter", label: "Submit a review with a reason" },
+  { keys: "Ctrl / ⌘ + Enter", label: "Submit the open review or upload form" },
   { keys: "Esc", label: "Leave search or close a dropdown or dialog" },
   { keys: "? / F1", label: "Show keyboard shortcuts" },
 ];
@@ -25,7 +26,9 @@ export type ShortcutAction =
   | "sort"
   | "office"
   | "refresh"
-  | "help";
+  | "help"
+  | "upload";
+// Upload opens a form and never sends a file immediately.
 export function shortcutForKey(
   event: { key: string; ctrlKey: boolean; metaKey: boolean; altKey: boolean },
   enabled: boolean,
@@ -47,6 +50,7 @@ export function shortcutForKey(
     o: "office",
     R: "refresh",
     "?": "help",
+    u: "upload",
   };
   return actions[event.key] || null;
 }

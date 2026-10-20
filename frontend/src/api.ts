@@ -25,7 +25,7 @@ export async function api<T>(
     headers: {
       ...options.headers,
       "X-Meridian-UI": "1",
-      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(options.body && !(options.body instanceof FormData) ? { "Content-Type": "application/json" } : {}),
     },
   });
   const body = await response.json();

@@ -71,6 +71,10 @@ export interface Source {
   effective_from: string | null;
   effective_to: string | null;
   ingested_at: string;
+  subject?: string;
+  policy_family?: string;
+  hosted_model?: boolean;
+  office_export?: boolean;
   supersedes: {
     supersedes_source_identity: string;
     supersedes_version_label: string;
@@ -104,6 +108,48 @@ export interface Session {
   role: "reviewer" | "reader";
   canReview: boolean;
   demo: boolean;
+  uploads?: Record<Office, { enabled: boolean; processing: "local" | "hosted"; maxBytes: number }>;
+}
+
+export interface UploadJob {
+  job_id: string;
+  kind: "pdf" | "slack" | "policy_comparison";
+  status: "queued" | "running" | "succeeded" | "needs_review" | "failed";
+  mode: "live" | "cached" | "replay";
+  stage_modes: Record<string, string>;
+  error_code: string | null;
+  review_reason: string | null;
+  source_id: string | null;
+  source_identity: string | null;
+  version_label: string | null;
+  created_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+}
+
+export interface PolicyManifest {
+  source_identity: string;
+  version_label: string;
+  policy_family: string;
+  authority: "policy" | "procedure";
+  scope: { kind: "policy"; description: string; attributes: Record<string, string> };
+  effective_from: string | null;
+  effective_to: string | null;
+  publication_time: string;
+  sensitivity: "demo_shareable" | "restricted";
+  permissions: { hosted_model: boolean; office_export: boolean };
+  supersedes?: {
+    supersedes_source_identity: string;
+    supersedes_version_label: string;
+    replaced_clause_ids: string[];
+    replaced_scope: PolicyManifest["scope"];
+    effective_from: string;
+  };
+}
+
+export interface SourceDetail {
+  source: Source & { manifest: PolicyManifest };
+  clauses: { clause_id: string; page: number; section: string | null }[];
 }
 export interface WorkspaceData {
   findings: Finding[];

@@ -39,7 +39,7 @@ export default function SourcePreview({
   onZoomChange,
 }: {
   office: Office;
-  evidence: Evidence;
+  evidence?: Evidence;
   source?: Source;
   pageNumber: number;
   zoom: number;
@@ -63,6 +63,7 @@ export default function SourcePreview({
   const cited = useRef<HTMLElement>(null);
   const onPage = useRef(onPageChange);
   onPage.current = onPageChange;
+  const sourceId = evidence?.source_id || source?.source_id;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -74,8 +75,9 @@ export default function SourcePreview({
     setSaved(null);
     async function load() {
       try {
+        if (!sourceId) throw new Error("Source metadata is unavailable.");
         const response = await fetch(
-          `/api/${office}/sources/${encodeURIComponent(evidence.source_id)}/content`,
+          `/api/${office}/sources/${encodeURIComponent(sourceId)}/content`,
           { signal: controller.signal },
         );
         if (!response.ok) {
@@ -90,7 +92,7 @@ export default function SourcePreview({
         ) {
           const passage = savedSourcePassage(
             await response.text(),
-            evidence.quote,
+            evidence?.quote || "",
           );
           if (!disposed) {
             setSaved(passage);
@@ -129,7 +131,7 @@ export default function SourcePreview({
       controller.abort();
       void task?.destroy();
     };
-  }, [office, evidence.source_id, evidence.quote, source?.source_type]);
+  }, [office, sourceId, evidence?.quote, source?.source_type]);
 
   useEffect(() => {
     const element = scroll.current;
@@ -186,7 +188,7 @@ export default function SourcePreview({
           (item): item is TextItem => "str" in item,
         );
         const match =
-          pageIndex === evidence.page
+          evidence && pageIndex === evidence.page
             ? locatePassage(items, evidence.quote)
             : { indices: [], ambiguous: false };
         const boxes = match.indices.map((index) => {
@@ -231,7 +233,7 @@ export default function SourcePreview({
       cancelled = true;
       render?.cancel();
     };
-  }, [document, pageNumber, width, zoom, evidence.page, evidence.quote]);
+  }, [document, pageNumber, width, zoom, evidence?.page, evidence?.quote]);
 
   useEffect(() => {
     if (saved && cited.current && scroll.current)
@@ -257,13 +259,13 @@ export default function SourcePreview({
       >
         <p className="source-location-note">
           Saved Slack event ·{" "}
-          {saved.start >= 0
+          {!evidence ? "Original messages" : saved.start >= 0
             ? "Cited message highlighted"
             : "The cited quote could not be located in this saved source"}
         </p>
         <div className="source-page-scroll saved-source-scroll" ref={scroll}>
           <pre>
-            {saved.start < 0 ? (
+            {!evidence || saved.start < 0 ? (
               saved.text
             ) : (
               <>
@@ -303,7 +305,7 @@ export default function SourcePreview({
             <ChevronRight size={17} />
           </button>
         </div>
-        <button
+        {evidence && <button
           className="text-button"
           onClick={() => {
             if (pageNumber !== evidence.page) onPageChange(evidence.page);
@@ -317,7 +319,7 @@ export default function SourcePreview({
           <LocateFixed size={15} />
           Cited page {evidence.page}
           {evidence.section ? ` · § ${evidence.section}` : ""}
-        </button>
+        </button>}
         <div>
           <button
             className="icon-button"
@@ -341,6 +343,7 @@ export default function SourcePreview({
       <p className="source-location-note" role="status">
         {rendering
           ? "Rendering page…"
+          : !evidence ? "Original PDF · use page controls to inspect the document."
           : highlights.length
             ? "Highlighted lines contain the cited passage."
             : ambiguous
@@ -363,7 +366,7 @@ export default function SourcePreview({
           <canvas
             ref={canvas}
             role="img"
-            aria-label={`Original PDF page ${pageNumber}${evidence.section ? `; cited section ${evidence.section}` : ""}`}
+            aria-label={`Original PDF page ${pageNumber}${evidence?.section ? `; cited section ${evidence.section}` : ""}`}
           />
           {highlights.map((box, index) => (
             <span

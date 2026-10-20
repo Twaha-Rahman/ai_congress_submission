@@ -68,3 +68,9 @@ test("old finding links stay valid and malformed options use safe defaults", () 
   assert.equal(view.tab, "evidence");
   assert.equal(view.autoRefresh, false);
 });
+
+test("source library links preserve search, sort, inspected document, job and related findings", () => {
+  const view = { ...readView(""), sourceSearch: "Travel & leave", sourceType: "pdf" as const,
+    sourceSort: "name" as const, document: "src_original", uploadJob: "job_123", forSource: "src_policy", page: 3, zoom: 125 };
+  assert.deepEqual(readView(viewSearch(view)), view);
+});

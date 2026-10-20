@@ -17,6 +17,7 @@ import {
   Shield,
   Keyboard,
   X,
+  Files,
 } from "lucide-react";
 import { api, ApiError, getFinding, reviewFinding } from "./api";
 import {
@@ -31,6 +32,7 @@ import FindingDetail from "./FindingDetail";
 import Highlight, { QueueMatchContext } from "./Highlight";
 import Select from "./Select";
 import ThemeSelect from "./ThemeSelect";
+import Sources from "./Sources";
 import {
   useKeyboardShortcuts,
   useShortcutPreference,
@@ -85,6 +87,9 @@ function readBrowserView() {
 }
 
 export default function App() {
+  const [screen, setScreen] = useState<"findings" | "sources">(() => window.location.pathname === "/sources" ? "sources" : "findings");
+  const isSources = screen === "sources";
+  const [uploadRequest, setUploadRequest] = useState(0);
   const [view, setView] = useState<View>(readBrowserView);
   const [session, setSession] = useState<Session | null>(null);
   const [workspace, setWorkspace] = useState<
@@ -109,14 +114,33 @@ export default function App() {
   function navigate(patch: Partial<View>, replace = false) {
     const next = { ...pinSelection(view, selectedRecord), ...patch };
     const url = new URL(window.location.href);
-    url.pathname = "/findings";
+    url.pathname = isSources ? "/sources" : "/findings";
     url.search = viewSearch(next);
     window.history[replace ? "replaceState" : "pushState"]({}, "", url);
     setView(next);
   }
+  function openScreen(nextScreen: "findings" | "sources", patch: Partial<View> = {}) {
+    const next = { ...pinSelection(view, selectedRecord), ...patch };
+    const url = new URL(window.location.href);
+    url.pathname = `/${nextScreen}`;
+    url.search = viewSearch(next);
+    window.history.pushState({}, "", url);
+    setScreen(nextScreen);
+    setView(next);
+    setReviewAction(null);
+    setShowShortcuts(false);
+    requestAnimationFrame(() => document.getElementById("workspace")?.focus({ preventScroll: true }));
+  }
+  function openUpload() {
+    if (session?.uploads?.[view.office]?.enabled) {
+      if (!isSources) openScreen("sources", { source: "", document: "" });
+      setUploadRequest((n) => n + 1);
+    }
+  }
   useEffect(() => {
     const handler = () => {
       const next = readBrowserView();
+      setScreen(window.location.pathname === "/sources" ? "sources" : "findings");
       setView(next);
       setNotice("");
       setReviewAction(null);
@@ -125,6 +149,9 @@ export default function App() {
     window.addEventListener("popstate", handler);
     return () => window.removeEventListener("popstate", handler);
   }, []);
+  useEffect(() => {
+    document.title = `${isSources ? "Sources" : "Findings"} · Meridian`;
+  }, [isSources]);
   useEffect(() => {
     const controller = new AbortController();
     api<Session>("session", { signal: controller.signal })
@@ -135,6 +162,7 @@ export default function App() {
     return () => controller.abort();
   }, []);
   useEffect(() => {
+    if (isSources) return;
     const controller = new AbortController();
     setLoading(true);
     setError("");
@@ -165,7 +193,7 @@ export default function App() {
         }
       });
     return () => controller.abort();
-  }, [view.office, revision]);
+  }, [view.office, revision, isSources]);
 
   const visible = useMemo(() => {
     return orderFindings(
@@ -174,11 +202,12 @@ export default function App() {
           (view.state === "all" || f.review_state === view.state) &&
           (view.type === "all" || f.finding_type === view.type) &&
           (view.severity === "all" || f.severity === view.severity) &&
+          (!view.forSource || f.evidence.some((e) => e.source_id === view.forSource)) &&
           matchesFinding(f, view.search),
       ),
       view.sort,
     );
-  }, [data, view.search, view.state, view.type, view.severity, view.sort]);
+  }, [data, view.search, view.state, view.type, view.severity, view.sort, view.forSource]);
   const selection = selectedFinding(view, data?.findings || [], visible);
   const selectedId = selection.id;
   const selectedRecord = data?.findings.find(
@@ -187,15 +216,15 @@ export default function App() {
   // Pin the initial implicit selection too, before sort/polling can change the queue.
   useEffect(() => {
     if (
-      selectedRecord &&
+      !isSources && selectedRecord &&
       (view.finding !== selectedId ||
         view.tag !== findingTag(selectedRecord).slice(1))
     )
       navigate({}, true);
-  }, [selectedRecord, selectedId, view.finding, view.tag]);
+  }, [selectedRecord, selectedId, view.finding, view.tag, isSources]);
   useEffect(() => {
     if (
-      !view.autoRefresh ||
+      isSources || !view.autoRefresh ||
       loading ||
       detailLoading ||
       reviewAction ||
@@ -217,8 +246,10 @@ export default function App() {
     reviewAction,
     showShortcuts,
     view.source,
+    isSources,
   ]);
   useEffect(() => {
+    if (isSources) return;
     if (!selectedId) {
       setDetail(null);
       setDetailError("");
@@ -244,7 +275,7 @@ export default function App() {
         }
       });
     return () => controller.abort();
-  }, [view.office, selectedId, revision]);
+  }, [view.office, selectedId, revision, isSources]);
   const current =
     detail?.office === view.office && detail.id === selectedId ? detail : null;
   useEffect(() => {
@@ -262,7 +293,7 @@ export default function App() {
   const reviewed =
     data?.findings.filter((f) => f.review_state !== "open").length || 0;
   const filtered = !!(
-    view.search ||
+    view.search || view.forSource ||
     view.state !== "all" ||
     view.type !== "all" ||
     view.severity !== "all"
@@ -302,7 +333,7 @@ export default function App() {
     );
   }
   function clearFilters() {
-    filter({ search: "", state: "all", type: "all", severity: "all" });
+    filter({ search: "", state: "all", type: "all", severity: "all", forSource: "" });
   }
   function retry() {
     setRevision((n) => n + 1);
@@ -378,6 +409,7 @@ export default function App() {
     });
   }
   useKeyboardShortcuts(shortcutsEnabled, {
+    ...(!isSources ? {
     search: focusSearch,
     next: () => moveFinding(1),
     previous: () => moveFinding(-1),
@@ -388,15 +420,17 @@ export default function App() {
     timeline: () => switchTab("timeline"),
     reviews: () => switchTab("reviews"),
     sort: () => openSelect(sortRef),
-    office: () => openSelect(officeRef),
     refresh: toggleAutoRefresh,
+    } : {}),
+    office: () => openSelect(officeRef),
+    upload: openUpload,
     help: () => setShowShortcuts(true),
   });
 
   return (
     <div className="app-shell">
       <a className="skip-link" href="#workspace">
-        Skip to findings
+        Skip to workspace
       </a>
       <aside className="sidebar">
         <a
@@ -404,7 +438,7 @@ export default function App() {
           href="/findings"
           onClick={(event) => {
             event.preventDefault();
-            navigate({
+            openScreen("findings", {
               finding: "",
               tag: "",
               source: "",
@@ -432,12 +466,12 @@ export default function App() {
         <div className="sidebar-label">Workspace</div>
         <nav aria-label="Workspace">
           <a
-            className="nav-item active"
+            className={`nav-item ${!isSources ? "active" : ""}`}
             href={`/findings?office=${view.office}`}
-            aria-current="page"
+            aria-current={!isSources ? "page" : undefined}
             onClick={(event) => {
               event.preventDefault();
-              navigate({ pane: "queue" });
+              openScreen("findings");
             }}
           >
             <LayoutList size={18} />
@@ -446,12 +480,17 @@ export default function App() {
               <span className="nav-count">{data.findings.length}</span>
             )}
           </a>
+          <a className={`nav-item ${isSources ? "active" : ""}`}
+            href={`/sources${viewSearch(view)}`} aria-current={isSources ? "page" : undefined}
+            onClick={(event) => { event.preventDefault(); openScreen("sources"); }}>
+            <Files size={18} /><span>Sources</span>
+          </a>
         </nav>
         <footer className="sidebar-footer">
           <Shield size={16} />
           <div>
-            <strong>Synthetic demo</strong>
-            <span>Fictional policies & people</span>
+            <strong>Office workspace</strong>
+            <span>Access follows your role</span>
           </div>
         </footer>
       </aside>
@@ -464,7 +503,7 @@ export default function App() {
             </span>
             <span>Workspace</span>
             <ChevronDown className="breadcrumb-chevron" size={12} />
-            <strong>Findings</strong>
+            <strong>{isSources ? "Sources" : "Findings"}</strong>
           </div>
           <div className="topbar-context">
             <ThemeSelect />
@@ -484,6 +523,9 @@ export default function App() {
                     tab: "evidence",
                     pane: "queue",
                     page: 1,
+                    document: "",
+                    uploadJob: "",
+                    forSource: "",
                   });
                   setNotice("");
                 }}
@@ -503,7 +545,18 @@ export default function App() {
           </div>
         </header>
 
+        <nav className="mobile-workspace-nav" aria-label="Workspace">
+          <a href={`/findings${viewSearch(view)}`} aria-current={!isSources ? "page" : undefined} onClick={(e) => { e.preventDefault(); openScreen("findings"); }}><LayoutList size={16} />Findings</a>
+          <a href={`/sources${viewSearch(view)}`} aria-current={isSources ? "page" : undefined} onClick={(e) => { e.preventDefault(); openScreen("sources"); }}><Files size={16} />Sources</a>
+        </nav>
         <main id="workspace" className="workspace" tabIndex={-1}>
+          {isSources ? <Sources key={view.office} office={view.office} session={session}
+            view={view} navigate={(patch, replace = true) => navigate(patch, replace)}
+            shortcutsEnabled={shortcutsEnabled} onHelp={() => setShowShortcuts(true)}
+            uploadRequest={uploadRequest}
+            onUploadOpened={() => setUploadRequest(0)}
+            onFindings={(sourceId) => openScreen("findings", { forSource: sourceId, finding: "", tag: "", search: "", state: "all", type: "all", severity: "all", source: "", pane: "queue" })}
+          /> : <>
           <div className="page-heading">
             <h1>Findings</h1>
             <div className="page-actions">
@@ -537,6 +590,7 @@ export default function App() {
             </div>
           </div>
 
+          {view.forSource && <div className="notice"><Files size={17} /><span>Findings for {data?.sources.find((s) => s.source_id === view.forSource)?.source_identity || "the selected source"}</span><button className="text-button" onClick={() => filter({ forSource: "" })}>Show all findings</button></div>}
           {notice && (
             <div className="notice success" role="status">
               <CircleCheck size={18} />
@@ -921,6 +975,7 @@ export default function App() {
               </div>
             </>
           )}
+          </>}
         </main>
       </div>
       {showShortcuts && (

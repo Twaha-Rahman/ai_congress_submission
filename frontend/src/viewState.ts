@@ -23,6 +23,12 @@ export interface View {
   sourceMode: "details" | "original";
   page: number;
   zoom: number;
+  sourceSearch: string;
+  sourceType: "all" | "pdf" | "slack";
+  sourceSort: "newest" | "name";
+  document: string;
+  uploadJob: string;
+  forSource: string;
 }
 
 export function readView(search: string): View {
@@ -60,6 +66,12 @@ export function readView(search: string): View {
     sourceMode: p.get("sourceMode") === "original" ? "original" : "details",
     page: Number.isSafeInteger(page) && page > 0 ? page : 1,
     zoom: Math.min(200, Math.max(50, Number(p.get("zoom")) || 100)),
+    sourceSearch: p.get("sq") || "",
+    sourceType: allowed("sourceType", ["pdf", "slack"]) as View["sourceType"],
+    sourceSort: allowed("sourceSort", ["newest", "name"], "newest") as View["sourceSort"],
+    document: p.get("document") || "",
+    uploadJob: p.get("job") || "",
+    forSource: p.get("forSource") || "",
   };
 }
 
@@ -77,6 +89,16 @@ export function viewSearch(view: View) {
   if (view.finding) p.set("finding", view.finding);
   if (view.tag) p.set("tag", view.tag);
   if (view.search) p.set("q", view.search);
+  if (view.sourceSearch) p.set("sq", view.sourceSearch);
+  if (view.sourceType !== "all") p.set("sourceType", view.sourceType);
+  if (view.sourceSort !== "newest") p.set("sourceSort", view.sourceSort);
+  if (view.document) {
+    p.set("document", view.document);
+    p.set("page", String(view.page));
+    p.set("zoom", String(view.zoom));
+  }
+  if (view.uploadJob) p.set("job", view.uploadJob);
+  if (view.forSource) p.set("forSource", view.forSource);
   if (view.source) {
     p.set("source", view.source);
     p.set("sourceMode", view.sourceMode);

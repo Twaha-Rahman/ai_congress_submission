@@ -29,6 +29,11 @@ export interface View {
   document: string;
   uploadJob: string;
   forSource: string;
+  verifyKind: "source" | "finding" | "answer" | "bundle";
+  verifyId: string;
+  verifyNode: string;
+  verifySearch: string;
+  verifyChecks: "all" | "passed" | "failed" | "not_checked";
 }
 
 export function readView(search: string): View {
@@ -72,6 +77,11 @@ export function readView(search: string): View {
     document: p.get("document") || "",
     uploadJob: p.get("job") || "",
     forSource: p.get("forSource") || "",
+    verifyKind: allowed("verify", ["source", "finding", "answer", "bundle"], "source") as View["verifyKind"],
+    verifyId: p.get("target") || "",
+    verifyNode: p.get("node") || "",
+    verifySearch: p.get("vq") || "",
+    verifyChecks: allowed("checks", ["passed", "failed", "not_checked"]) as View["verifyChecks"],
   };
 }
 
@@ -99,6 +109,11 @@ export function viewSearch(view: View) {
   }
   if (view.uploadJob) p.set("job", view.uploadJob);
   if (view.forSource) p.set("forSource", view.forSource);
+  if (view.verifyKind !== "source") p.set("verify", view.verifyKind);
+  if (view.verifyId) p.set("target", view.verifyId);
+  if (view.verifyNode) p.set("node", view.verifyNode);
+  if (view.verifySearch) p.set("vq", view.verifySearch);
+  if (view.verifyChecks !== "all") p.set("checks", view.verifyChecks);
   if (view.source) {
     p.set("source", view.source);
     p.set("sourceMode", view.sourceMode);

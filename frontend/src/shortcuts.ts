@@ -10,6 +10,8 @@ export const shortcutDescriptions = [
   { keys: "O", label: "Open office options" },
   { keys: "Shift + R", label: "Toggle auto-refresh" },
   { keys: "Shift + T", label: "Open theme options" },
+  { keys: "V", label: "Open verification from a finding / run the selected check" },
+  { keys: "L", label: "Focus evidence lineage (Verification)" },
   { keys: "Ctrl / ⌘ + Enter", label: "Submit the open review or upload form" },
   { keys: "Esc", label: "Leave search or close a dropdown or dialog" },
   { keys: "? / F1", label: "Show keyboard shortcuts" },
@@ -29,7 +31,9 @@ export type ShortcutAction =
   | "refresh"
   | "theme"
   | "help"
-  | "upload";
+  | "upload"
+  | "verify"
+  | "lineage";
 // Upload opens a form and never sends a file immediately.
 export function shortcutForKey(
   event: { key: string; ctrlKey: boolean; metaKey: boolean; altKey: boolean },
@@ -54,6 +58,8 @@ export function shortcutForKey(
     T: "theme",
     "?": "help",
     u: "upload",
+    v: "verify",
+    l: "lineage",
   };
   return actions[event.key] || null;
 }

@@ -33,6 +33,7 @@ import Highlight, { QueueMatchContext } from "./Highlight";
 import Select from "./Select";
 import ThemeSelect from "./ThemeSelect";
 import Sources from "./Sources";
+import Verification from "./Verification";
 import {
   useKeyboardShortcuts,
   useShortcutPreference,
@@ -87,8 +88,10 @@ function readBrowserView() {
 }
 
 export default function App() {
-  const [screen, setScreen] = useState<"findings" | "sources">(() => window.location.pathname === "/sources" ? "sources" : "findings");
+  const [screen, setScreen] = useState<"findings" | "sources" | "verification">(() => window.location.pathname === "/sources" ? "sources" : window.location.pathname === "/verification" ? "verification" : "findings");
   const isSources = screen === "sources";
+  const isVerification = screen === "verification";
+  const isFindings = screen === "findings";
   const [uploadRequest, setUploadRequest] = useState(0);
   const [view, setView] = useState<View>(readBrowserView);
   const [session, setSession] = useState<Session | null>(null);
@@ -114,12 +117,12 @@ export default function App() {
   function navigate(patch: Partial<View>, replace = false) {
     const next = { ...pinSelection(view, selectedRecord), ...patch };
     const url = new URL(window.location.href);
-    url.pathname = isSources ? "/sources" : "/findings";
+    url.pathname = `/${screen}`;
     url.search = viewSearch(next);
     window.history[replace ? "replaceState" : "pushState"]({}, "", url);
     setView(next);
   }
-  function openScreen(nextScreen: "findings" | "sources", patch: Partial<View> = {}) {
+  function openScreen(nextScreen: "findings" | "sources" | "verification", patch: Partial<View> = {}) {
     const next = { ...pinSelection(view, selectedRecord), ...patch };
     const url = new URL(window.location.href);
     url.pathname = `/${nextScreen}`;
@@ -140,7 +143,7 @@ export default function App() {
   useEffect(() => {
     const handler = () => {
       const next = readBrowserView();
-      setScreen(window.location.pathname === "/sources" ? "sources" : "findings");
+      setScreen(window.location.pathname === "/sources" ? "sources" : window.location.pathname === "/verification" ? "verification" : "findings");
       setView(next);
       setNotice("");
       setReviewAction(null);
@@ -150,8 +153,8 @@ export default function App() {
     return () => window.removeEventListener("popstate", handler);
   }, []);
   useEffect(() => {
-    document.title = `${isSources ? "Sources" : "Findings"} · Meridian`;
-  }, [isSources]);
+    document.title = `${isSources ? "Sources" : isVerification ? "Verification" : "Findings"} · Meridian`;
+  }, [screen]);
   useEffect(() => {
     const controller = new AbortController();
     api<Session>("session", { signal: controller.signal })
@@ -162,7 +165,7 @@ export default function App() {
     return () => controller.abort();
   }, []);
   useEffect(() => {
-    if (isSources) return;
+    if (!isFindings) return;
     const controller = new AbortController();
     setLoading(true);
     setError("");
@@ -193,7 +196,7 @@ export default function App() {
         }
       });
     return () => controller.abort();
-  }, [view.office, revision, isSources]);
+  }, [view.office, revision, isFindings]);
 
   const visible = useMemo(() => {
     return orderFindings(
@@ -216,15 +219,15 @@ export default function App() {
   // Pin the initial implicit selection too, before sort/polling can change the queue.
   useEffect(() => {
     if (
-      !isSources && selectedRecord &&
+      isFindings && selectedRecord &&
       (view.finding !== selectedId ||
         view.tag !== findingTag(selectedRecord).slice(1))
     )
       navigate({}, true);
-  }, [selectedRecord, selectedId, view.finding, view.tag, isSources]);
+  }, [selectedRecord, selectedId, view.finding, view.tag, isFindings]);
   useEffect(() => {
     if (
-      isSources || !view.autoRefresh ||
+      !isFindings || !view.autoRefresh ||
       loading ||
       detailLoading ||
       reviewAction ||
@@ -246,10 +249,10 @@ export default function App() {
     reviewAction,
     showShortcuts,
     view.source,
-    isSources,
+    isFindings,
   ]);
   useEffect(() => {
-    if (isSources) return;
+    if (!isFindings) return;
     if (!selectedId) {
       setDetail(null);
       setDetailError("");
@@ -275,7 +278,7 @@ export default function App() {
         }
       });
     return () => controller.abort();
-  }, [view.office, selectedId, revision, isSources]);
+  }, [view.office, selectedId, revision, isFindings]);
   const current =
     detail?.office === view.office && detail.id === selectedId ? detail : null;
   useEffect(() => {
@@ -409,7 +412,7 @@ export default function App() {
     });
   }
   useKeyboardShortcuts(shortcutsEnabled, {
-    ...(!isSources ? {
+    ...(isFindings ? {
     search: focusSearch,
     next: () => moveFinding(1),
     previous: () => moveFinding(-1),
@@ -421,6 +424,7 @@ export default function App() {
     reviews: () => switchTab("reviews"),
     sort: () => openSelect(sortRef),
     refresh: toggleAutoRefresh,
+    verify: () => { if (current && !detailError) openScreen("verification", { verifyKind: "finding", verifyId: current.id, verifyNode: "", verifySearch: "", verifyChecks: "all", document: "" }); },
     } : {}),
     office: () => openSelect(officeRef),
     upload: openUpload,
@@ -466,9 +470,9 @@ export default function App() {
         <div className="sidebar-label">Workspace</div>
         <nav aria-label="Workspace">
           <a
-            className={`nav-item ${!isSources ? "active" : ""}`}
+            className={`nav-item ${isFindings ? "active" : ""}`}
             href={`/findings?office=${view.office}`}
-            aria-current={!isSources ? "page" : undefined}
+            aria-current={isFindings ? "page" : undefined}
             onClick={(event) => {
               event.preventDefault();
               openScreen("findings");
@@ -484,6 +488,11 @@ export default function App() {
             href={`/sources${viewSearch(view)}`} aria-current={isSources ? "page" : undefined}
             onClick={(event) => { event.preventDefault(); openScreen("sources"); }}>
             <Files size={18} /><span>Sources</span>
+          </a>
+          <a className={`nav-item ${isVerification ? "active" : ""}`}
+            href={`/verification${viewSearch(view)}`} aria-current={isVerification ? "page" : undefined}
+            onClick={(event) => { event.preventDefault(); openScreen("verification"); }}>
+            <Shield size={18} /><span>Verification</span>
           </a>
         </nav>
         <footer className="sidebar-footer">
@@ -503,7 +512,7 @@ export default function App() {
             </span>
             <span>Workspace</span>
             <ChevronDown className="breadcrumb-chevron" size={12} />
-            <strong>{isSources ? "Sources" : "Findings"}</strong>
+            <strong>{isSources ? "Sources" : isVerification ? "Verification" : "Findings"}</strong>
           </div>
           <div className="topbar-context">
             <ThemeSelect shortcutsEnabled={shortcutsEnabled} />
@@ -526,6 +535,7 @@ export default function App() {
                     document: "",
                     uploadJob: "",
                     forSource: "",
+                    verifyId: "", verifyNode: "", verifySearch: "", verifyChecks: "all",
                   });
                   setNotice("");
                 }}
@@ -546,15 +556,21 @@ export default function App() {
         </header>
 
         <nav className="mobile-workspace-nav" aria-label="Workspace">
-          <a href={`/findings${viewSearch(view)}`} aria-current={!isSources ? "page" : undefined} onClick={(e) => { e.preventDefault(); openScreen("findings"); }}><LayoutList size={16} />Findings</a>
+          <a href={`/findings${viewSearch(view)}`} aria-current={isFindings ? "page" : undefined} onClick={(e) => { e.preventDefault(); openScreen("findings"); }}><LayoutList size={16} />Findings</a>
           <a href={`/sources${viewSearch(view)}`} aria-current={isSources ? "page" : undefined} onClick={(e) => { e.preventDefault(); openScreen("sources"); }}><Files size={16} />Sources</a>
+          <a href={`/verification${viewSearch(view)}`} aria-current={isVerification ? "page" : undefined} onClick={(e) => { e.preventDefault(); openScreen("verification"); }}><Shield size={16} />Verification</a>
         </nav>
         <main id="workspace" className="workspace" tabIndex={-1}>
-          {isSources ? <Sources key={view.office} office={view.office} session={session}
+          {isVerification ? <Verification key={view.office} office={view.office} view={view}
+            navigate={(patch, replace = true) => navigate(patch, replace)} shortcutsEnabled={shortcutsEnabled}
+            onHelp={() => setShowShortcuts(true)}
+            onFinding={(id) => openScreen("findings", { finding: id, tag: "", source: "", pane: "detail", document: "" })}
+          /> : isSources ? <Sources key={view.office} office={view.office} session={session}
             view={view} navigate={(patch, replace = true) => navigate(patch, replace)}
             shortcutsEnabled={shortcutsEnabled} onHelp={() => setShowShortcuts(true)}
             uploadRequest={uploadRequest}
             onUploadOpened={() => setUploadRequest(0)}
+            onVerify={(id) => openScreen("verification", { verifyKind: "source", verifyId: id, verifyNode: "", verifySearch: "", verifyChecks: "all", document: "" })}
             onFindings={(sourceId) => openScreen("findings", { forSource: sourceId, finding: "", tag: "", search: "", state: "all", type: "all", severity: "all", source: "", pane: "queue" })}
           /> : <>
           <div className="page-heading">
@@ -913,6 +929,7 @@ export default function App() {
                       office={view.office}
                       session={session}
                       onReview={setReviewAction}
+                      onVerify={() => openScreen("verification", { verifyKind: "finding", verifyId: current.id, verifyNode: "", verifySearch: "", verifyChecks: "all", document: "" })}
                       shortcutsEnabled={shortcutsEnabled}
                       tab={view.tab}
                       onTabChange={(tab) => navigate({ tab }, true)}

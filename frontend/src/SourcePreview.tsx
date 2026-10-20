@@ -39,7 +39,7 @@ export default function SourcePreview({
   onZoomChange,
 }: {
   office: Office;
-  evidence?: Evidence;
+  evidence?: Pick<Evidence, "source_id" | "quote" | "page" | "section">;
   source?: Source;
   pageNumber: number;
   zoom: number;

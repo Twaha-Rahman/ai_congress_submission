@@ -58,6 +58,7 @@ interface Props {
   office: Office;
   session: Session | null;
   onReview: (action: ReviewAction) => void;
+  onVerify: () => void;
   shortcutsEnabled: boolean;
   tab: DetailTab;
   onTabChange: (tab: DetailTab) => void;
@@ -81,6 +82,7 @@ export default function FindingDetail({
   office,
   session,
   onReview,
+  onVerify,
   shortcutsEnabled,
   tab,
   onTabChange,
@@ -425,6 +427,7 @@ export default function FindingDetail({
           <Fingerprint size={14} />
           Signed snapshot · verification not run here
         </span>
+        <button className="text-button" onClick={onVerify} aria-keyshortcuts={shortcutsEnabled ? "V" : undefined}><Shield size={14} />Trace evidence{shortcutsEnabled && <ShortcutHint>V</ShortcutHint>}</button>
         <span>Extraction: {modes.length ? modes.join(" / ") : "unknown"}</span>
       </footer>
       <details className="technical-details">

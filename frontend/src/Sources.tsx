@@ -8,17 +8,18 @@ import UploadPdf from "./UploadPdf";
 import UploadStatus, { JobBadge } from "./UploadStatus";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 import { isProcessing, keepUploadSelection, visibleSources } from "./uploads";
-import type { Office, Session, Source, SourceDetail, UploadJob } from "./types";
+import type { Evidence, Office, Session, Source, SourceDetail, UploadJob } from "./types";
 import type { View } from "./viewState";
 import "./sources.css";
 
 const SourcePreview = lazy(() => import("./SourcePreview"));
 
-export default function Sources({ office, session, view, navigate, shortcutsEnabled, onHelp, onFindings, uploadRequest, onUploadOpened }: {
+export default function Sources({ office, session, view, navigate, shortcutsEnabled, onHelp, onFindings, onVerify, uploadRequest, onUploadOpened }: {
   office: Office; session: Session | null; view: View;
   navigate: (patch: Partial<View>, replace?: boolean) => void;
   shortcutsEnabled: boolean; onHelp: () => void; onFindings: (sourceId: string) => void;
   uploadRequest: number; onUploadOpened: () => void;
+  onVerify: (sourceId: string) => void;
 }) {
   const [sources, setSources] = useState<Source[]>([]);
   const [jobs, setJobs] = useState<UploadJob[]>([]);
@@ -172,12 +173,14 @@ export default function Sources({ office, session, view, navigate, shortcutsEnab
         onUpload={canUpload ? () => setOpenUpload(true) : undefined} /> : <div className="dialog-body">{jobError ? <ErrorState error={jobError} retry={() => setReadRevision((n) => n + 1)} /> : <Loading label="Opening processing job…" />}</div>}
     </Modal>}
     <UploadPdf open={openUpload} office={office} sources={sources} config={session?.uploads?.[office]} shortcutsEnabled={shortcutsEnabled} onClose={() => setOpenUpload(false)} onQueued={queued} />
-    {view.document && <DocumentDialog office={office} sourceId={view.document} view={view} navigate={navigate} onClose={() => navigate({ document: "" })} />}
+    {view.document && <DocumentDialog office={office} sourceId={view.document} view={view} navigate={navigate} onClose={() => navigate({ document: "" })} onVerify={onVerify} />}
   </>;
 }
 
-function DocumentDialog({ office, sourceId, view, navigate, onClose }: {
+export function DocumentDialog({ office, sourceId, view, navigate, onClose, onVerify, evidence }: {
   office: Office; sourceId: string; view: View; navigate: (patch: Partial<View>) => void; onClose: () => void;
+  onVerify?: (sourceId: string) => void;
+  evidence?: Pick<Evidence, "source_id" | "quote" | "page" | "section">;
 }) {
   const [detail, setDetail] = useState<SourceDetail | null>(null);
   const [error, setError] = useState("");
@@ -193,10 +196,10 @@ function DocumentDialog({ office, sourceId, view, navigate, onClose }: {
       {error ? <div className="notice warning" role="alert"><AlertCircle size={17} /><span>{error}</span></div> : !detail ? <Loading label="Opening source…" /> : <>
         <div className="library-source-title"><h3>{sourceTitle(detail.source)}</h3><span className="source-version">{detail.source.version_label}</span></div>
         <p className="library-source-context">{humanize(detail.source.authority)} · Published {date(detail.source.publication_time)} · Effective {date(detail.source.effective_from)}</p>
-        <Suspense fallback={<Loading label="Loading document viewer…" />}><SourcePreview office={office} source={detail.source} pageNumber={view.page} zoom={view.zoom} onPageChange={(page) => navigate({ page })} onZoomChange={(zoom) => navigate({ zoom })} /></Suspense>
+        <Suspense fallback={<Loading label="Loading document viewer…" />}><SourcePreview office={office} source={detail.source} evidence={evidence} pageNumber={view.page} zoom={view.zoom} onPageChange={(page) => navigate({ page })} onZoomChange={(zoom) => navigate({ zoom })} /></Suspense>
         <details className="library-source-metadata"><summary>Source details</summary><dl><dt>Policy category</dt><dd>{detail.source.policy_family ? humanize(detail.source.policy_family) : "Not specified"}</dd><dt>Applies to</dt><dd>{scopeLabel(detail.source.manifest.scope)}</dd><dt>Access</dt><dd>{detail.source.sensitivity === "restricted" ? "Restricted readers" : "Office readers"}</dd><dt>Hosted processing</dt><dd>{detail.source.hosted_model ? "Permitted" : "Not permitted"}</dd><dt>Office export</dt><dd>{detail.source.office_export ? "Permitted" : "Not permitted"}</dd><dt>Added</dt><dd>{date(detail.source.ingested_at, true)}</dd></dl></details>
       </>}
     </div>
-    <footer className="dialog-footer"><span className="upload-save-status">Integrity verification has not been run here.</span>{detail && <a className="button secondary" href={`/api/${office}/sources/${encodeURIComponent(sourceId)}/content`} download><ArrowDownToLine size={15} />Download original</a>}</footer>
+    <footer className="dialog-footer"><span className="upload-save-status">Integrity verification has not been run here.</span>{detail && <>{onVerify && <button className="button secondary" onClick={() => onVerify(sourceId)}><Check size={15} />Verify source</button>}<a className="button secondary" href={`/api/${office}/sources/${encodeURIComponent(sourceId)}/content`} download><ArrowDownToLine size={15} />Download original</a></>}</footer>
   </Modal>;
 }

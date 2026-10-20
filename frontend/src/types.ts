@@ -191,3 +191,30 @@ export interface FindingResponse {
   };
   reviews?: ReviewEvent[];
 }
+
+export type CheckStatus = "passed" | "failed" | "not_checked";
+export interface VerificationReport {
+  target_type: string;
+  target_id: string;
+  generated_at?: string;
+  checks: { check: string; status: CheckStatus; reason?: string | null; detail: Record<string, string> }[];
+}
+export interface LineageNode {
+  node_id: string;
+  node_type: string;
+  label: string;
+  attributes: Record<string, string>;
+  restricted: boolean;
+}
+export interface LineageGraph {
+  root_id: string;
+  nodes: LineageNode[];
+  edges: { edge_id: string; edge_type: string; from_node_id: string; to_node_id: string; attributes: Record<string, string> }[];
+  truncated: boolean;
+}
+export interface StoredAnswer {
+  answer: {
+    answer_id: string; question: string; answer_text: string; status: string;
+    valid_at: string; known_at: string; modes: Record<string, string>;
+  };
+}

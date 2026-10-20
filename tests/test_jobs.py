@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
-from meridian.contracts.common import JobStatus, Mode
+import pytest
+
+from meridian.contracts.common import ErrorCode, JobStatus, Mode
+from meridian.ingestion import worker as worker_module
+from meridian.ingestion.pipeline import IngestionOutcome
+from meridian.ingestion.worker import OfficeWorker
 from meridian.storage.db import Database
 from meridian.storage.store import OfficeStore
 
-from conftest import OfficeHarness
+from conftest import DEMO_POLICY_V2, FIXTURES, OfficeHarness, read_manifest
 
 
 def _restart(harness: OfficeHarness) -> OfficeStore:
@@ -57,3 +62,39 @@ def test_restart_fails_an_interrupted_job_that_exhausted_attempts(
     assert recovered.status == JobStatus.FAILED.value
     assert recovered.error_code == "interrupted_attempts_exhausted"
     assert recovered.finished_at is not None
+
+
+@pytest.mark.parametrize("recover", [True, False])
+def test_model_retry_keeps_pdf_until_terminal_result(dhaka: OfficeHarness, monkeypatch, recover: bool) -> None:
+    staged = dhaka.settings.source_dir / "_staging" / "retry.pdf"
+    staged.parent.mkdir(parents=True)
+    staged.write_bytes((FIXTURES / DEMO_POLICY_V2[0]).read_bytes())
+    job = dhaka.store.create_job(kind="pdf", mode=Mode.REPLAY, max_attempts=2, request={
+        "file_ref": str(staged),
+        "manifest": read_manifest(DEMO_POLICY_V2[1]).model_dump(mode="json"),
+    })
+    original = worker_module.ingest_prepared
+    calls = 0
+
+    def flaky_model(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        if calls == 1 or not recover:
+            return IngestionOutcome(error_code=ErrorCode.PROVIDER_ERROR.value,
+                                    error_detail="Model provider unavailable")
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(worker_module, "ingest_prepared", flaky_model)
+    worker = OfficeWorker(store=dhaka.store, settings=dhaka.settings, signer=dhaka.signer)
+    assert worker.process_once()
+    assert dhaka.store.get_job(job.job_id).status == JobStatus.QUEUED.value
+    assert staged.exists()
+    assert worker.process_once()
+    final = dhaka.store.get_job(job.job_id)
+    assert calls == 2
+    assert final.attempts == 2
+    assert final.status == (JobStatus.SUCCEEDED.value if recover else JobStatus.FAILED.value)
+    if not recover:
+        assert final.error_code == ErrorCode.PROVIDER_ERROR.value
+        assert final.review_reason == "Model provider unavailable"
+    assert not staged.exists()

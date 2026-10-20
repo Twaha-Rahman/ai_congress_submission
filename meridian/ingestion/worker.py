@@ -229,7 +229,11 @@ class OfficeWorker:
 
         recorder.flush(self.store)
         self._finalise(job, outcome)
-        self._cleanup_staging(job)
+        final_job = self.store.get_job(job.job_id)
+        # Retryable model errors requeue the same durable request, including its
+        # file reference. Keep the original bytes until that request is terminal.
+        if final_job and final_job.status not in {JobStatus.QUEUED.value, JobStatus.RUNNING.value}:
+            self._cleanup_staging(job)
         return outcome
 
     def _prepare(self, job: JobRow) -> tuple[Any, str]:

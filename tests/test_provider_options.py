@@ -68,8 +68,8 @@ def test_general_policy_schema_cannot_request_numeric_rule_or_scope():
     provider = OpenRouterExtractionProvider(base_url="https://openrouter.test", model="test", api_key="test")
     schema = provider.build_body(request())["response_format"]["json_schema"]["schema"]
     defs = schema["$defs"]
-    rule = defs["GeneralPolicyProposedRule"]["properties"]
-    assert rule["subject"]["const"] == "general_policy"
+    rule = defs["PolicyTextProposal"]["properties"]
+    assert "subject" not in rule and "rule" not in rule
     assert rule["scope"] == {"$ref": "#/$defs/PolicyScope"}
-    assert rule["rule"] == {"$ref": "#/$defs/PolicyRule"}
+    assert rule["evidence"] == {"$ref": "#/$defs/EvidenceQuote"}
     assert "AmountScope" not in defs and "RecordScope" not in defs

@@ -24,7 +24,7 @@ from meridian.extraction.service import ModelStageService
 from meridian.extraction.validate import ValidatorClause, validate_proposal
 from meridian.ingestion.pipeline import ingest_prepared, prepare_pdf_source, prepare_slack_source
 from meridian.rules.compare import ClaimView
-from meridian.rules.general import classify_policy, comparison_request, rank_candidates
+from meridian.rules.general import classify_policy, comparison_request, rank_candidates, prepare_policy_comparisons
 from meridian.rules.intervals import scope_intersection
 from conftest import OfficeHarness, make_office
 
@@ -284,6 +284,43 @@ def test_repeated_quote_resolves_page_hint_without_losing_offsets():
     assert result.accepted[0].evidence.clause_id == "c2"
 
 
+def test_compact_hosted_policy_text_preserves_qualifications_and_rejects_inventions(dhaka):
+    text = "Contractors must obtain approval before travel, except during an evacuation."
+
+    def transport(request):
+        body = json.loads(request.content)
+        schema = body["response_format"]["json_schema"]["schema"]
+        assert "actor" not in json.dumps(schema)
+        assert "start_char" not in json.dumps(schema)
+        output = {"rules": [{"scope": manifest().scope.model_dump(),
+            "evidence": {"quote": text}, "modality": "required"}]}
+        return httpx.Response(200, json={"model": "offline-test-model", "choices": [
+            {"message": {"content": json.dumps(output)}}]})
+
+    service = ModelStageService(replace(dhaka.settings, llm_model="offline-test-model",
+        llm_api_key="test-only"), transport=httpx.MockTransport(transport))
+    outcome = ingest(dhaka, text, manifest(), service=service)
+    assert outcome.ok and not outcome.review_reasons
+    claim = dhaka.store.claims_for_source(outcome.source_id)[0].payload
+    assert claim.rule.statement == claim.rule.action == claim.evidence.quote == text
+    assert claim.evidence.end_char > claim.evidence.start_char
+    # Compact output still cannot turn a fabricated quotation into a claim.
+    rejected = ingest(dhaka, "Contractors must obtain approval before travel.",
+        manifest("other"), service=service)
+    assert rejected.rejection_reasons
+    assert dhaka.store.claims_for_source(rejected.source_id) == []
+
+
+def test_compact_policy_output_cannot_assign_authority():
+    from meridian.extraction.openrouter import OpenRouterExtractionProvider
+    provider = OpenRouterExtractionProvider(base_url="http://localhost", model="test", api_key="test")
+    output = {"rules": [{"scope": manifest().scope.model_dump(),
+        "evidence": {"quote": POLICY}, "modality": "required", "authority": "policy"}]}
+    parsed = provider._parse_response(json.dumps({"choices": [
+        {"message": {"content": json.dumps(output)}}]}).encode())
+    assert parsed[-1][0].value == "schema_violation"
+
+
 def test_retrieval_ranks_relevant_policy_without_requiring_family_match(dhaka):
     service, _ = model_service(dhaka)
     ingest(dhaka, POLICY, manifest(), service=service)
@@ -350,6 +387,25 @@ def test_pair_limit_is_visible_and_does_not_silently_report_clean(dhaka):
     outcome = ingest(dhaka, MESSAGE, manifest("team_message", source_type="slack"), service=service)
     assert "policy_retrieval_limited" in outcome.review_reasons
     assert any(r["reason_code"] == "policy_retrieval_limited" for r in dhaka.store.list_claim_reviews())
+
+
+def test_global_pair_budget_prioritizes_relevance_over_extraction_order(dhaka):
+    service, calls = model_service(dhaka, relationship="unrelated")
+    ingest(dhaka, "The facilities team maintains the office directory.", manifest("directory"), service=service)
+    ingest(dhaka, POLICY, manifest(), service=service)
+    ingest(dhaka, MESSAGE, manifest("team_message", source_type="slack"), service=service)
+    views = dhaka.store.claim_views(subject="general_policy", limit=None)
+    revisions = [v.revision for v in sorted(views, key=lambda v: v.revision.source_identity != "directory")]
+    service.settings = replace(service.settings, policy_comparison_max_pairs=1)
+    calls.clear()
+    for ordered in (revisions, list(reversed(revisions))):
+        batch = prepare_policy_comparisons(dhaka.store, new_revisions=ordered,
+            new_clauses=[], manifest=manifest(), service=service, mode=Mode.LIVE,
+            request_id="global-priority", recheck=True)
+        assert len(batch.calls) == 1
+        request, _ = batch.calls[0]
+        assert {c.text for c in request.clauses[:2]} == {POLICY, MESSAGE}
+        assert "policy_comparison_limit" in {code for code, _ in batch.reviews}
 
 
 def test_general_findings_are_readable_through_existing_ui_api(dhaka, monkeypatch):

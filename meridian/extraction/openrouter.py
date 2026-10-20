@@ -348,6 +348,13 @@ class OpenRouterExtractionProvider:
                         evidence.pop("start_char", None)
                         evidence.pop("end_char", None)
         try:
+            if (self.proposal_model is ExtractionProposal and isinstance(data, dict)
+                    and isinstance(data.get("rules"), list)
+                    and data["rules"]
+                    and all(isinstance(rule, dict) and "rule" not in rule for rule in data["rules"])):
+                from .policy import expand_policy_text
+
+                data = expand_policy_text(data)
             proposal = self.proposal_model.model_validate(data)
         except Exception as exc:
             return (

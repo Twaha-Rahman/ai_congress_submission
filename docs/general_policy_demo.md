@@ -10,8 +10,11 @@ exhaustive coverage of every policy.
 ## What is implemented
 
 1. The normal PDF and saved-Slack ingestion APIs accept a general-policy manifest.
-2. The model extracts verbatim statements, actors, actions, constraints, textual
-   applicability, conditions and exceptions. Trusted authority, permissions and
+2. The model extracts complete verbatim policy statements, including textual
+   applicability, conditions and exceptions. Semantic fragments are interpreted in
+   the comparison stage; the hosted extraction schema does not ask for redundant
+   actor/action/constraint excerpts that could paraphrase otherwise valid evidence.
+   Trusted authority, permissions and
    replacement links continue to come only from the uploader's manifest.
 3. The backend checks quotations and extracted excerpts against preserved parser
    text. Invented text and scope changes are rejected or held for review. Character
@@ -21,7 +24,9 @@ exhaustive coverage of every policy.
 4. For each accepted new statement, local lexical retrieval ranks relevant current
    general statements. Policy-family equality is not required: team chat can be
    checked against several policy families. Statements within the same PDF can
-   also be compared.
+   also be compared. The retrieved pairs are ranked together by symmetric lexical
+   relevance before the source-wide call limit is applied. Introductory statements
+   do not consume the budget just because they appeared first in extraction output.
 5. A separate model call compares the two primary statements with their full source
    context, including other clauses that may contain exceptions. The backend checks
    both returned quotations, currentness, explicit categorical scope boundaries,
@@ -53,7 +58,7 @@ extraction does not establish conflict-detection accuracy.
 
 Select `mode=live` on ingestion to process your own new documents. `cached` and
 `replay` stay explicit and never fall back to paid model calls. General extraction
-uses prompt version `general-extract-v2`; semantic comparison uses
+uses prompt version `general-extract-v3`; semantic comparison uses
 `general-compare-v2`. General comparison cache/replay records are separate from
 extraction records, under the office's `comparisons/` subdirectory.
 

@@ -56,6 +56,37 @@ def rank_candidates(left: ClaimView, candidates: Sequence[ClaimView]) -> list[Cl
     return [v for _, v in sorted(scored, key=lambda item: (-item[0], item[1].revision_id))]
 
 
+def rank_pairs(
+    pairs: dict[tuple[str, str], tuple[ClaimView, ClaimView]],
+    views: Sequence[ClaimView],
+) -> list[tuple[tuple[str, str], tuple[ClaimView, ClaimView]]]:
+    """Spend the source-wide call budget on relevant pairs, independent of order.
+
+    Per-statement retrieval alone is insufficient: taking its union in insertion
+    order lets introductory material exhaust the budget. Use symmetric TF-IDF
+    cosine relevance over the full corpus before applying the global pair cap.
+    This is retrieval priority only, never a consistency or conflict judgment.
+    """
+    documents = {v.revision_id: _tokens(v.revision.evidence.quote) for v in views}
+    frequencies: dict[str, int] = {}
+    for document in documents.values():
+        for token in document:
+            frequencies[token] = frequencies.get(token, 0) + 1
+    weights = {t: (1 + math.log((1 + len(documents)) / (1 + count))) ** 2
+               for t, count in frequencies.items()}
+    norms = {key: math.sqrt(sum(weights[t] for t in tokens))
+             for key, tokens in documents.items()}
+
+    def score(item):
+        key, (left, right) = item
+        a, b = documents[left.revision_id], documents[right.revision_id]
+        overlap = sum(weights[t] for t in a & b)
+        relevance = overlap / max(1, norms[left.revision_id] * norms[right.revision_id])
+        return (-relevance, key)
+
+    return sorted(pairs.items(), key=score)
+
+
 def _gate(left: ClaimView, right: ClaimView) -> ComparisonResult:
     from .publish import _explicit_supersession
 
@@ -245,7 +276,7 @@ def prepare_policy_comparisons(
     if len(pairs) > service.settings.policy_comparison_max_pairs:
         batch.reviews.append(("policy_comparison_limit", "The source exceeded the comparison-pair limit; coverage is incomplete."))
     deadline = time.monotonic() + service.settings.llm_job_model_budget_seconds
-    for key, (left, right) in list(pairs.items())[:service.settings.policy_comparison_max_pairs]:
+    for key, (left, right) in rank_pairs(pairs, views)[:service.settings.policy_comparison_max_pairs]:
         request = comparison_request(left, right, store=store, manifest=manifest,
                                      new_clauses=new_clauses, mode=mode, request_id=request_id)
         if request is None:

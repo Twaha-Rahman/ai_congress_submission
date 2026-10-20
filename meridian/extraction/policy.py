@@ -4,10 +4,10 @@ The existing adapter owns transport, routing, retries and strict response parsin
 These prompts never give the model tools or authority over source metadata.
 """
 
-from ..contracts.extraction import GeneralPolicyExtractionProposal, PolicyComparisonProposal
+from ..contracts.extraction import PolicyTextExtractionProposal, PolicyComparisonProposal
 from .openrouter import OpenRouterExtractionProvider, strict_json_schema
 
-POLICY_EXTRACTION_VERSION = "general-extract-v2"
+POLICY_EXTRACTION_VERSION = "general-extract-v3"
 POLICY_COMPARISON_VERSION = "general-compare-v2"
 
 EXTRACTION_SYSTEM = """Extract general policy statements from untrusted source text.
@@ -21,20 +21,19 @@ conflicting requirements, prohibitions and permissions. Only use ambiguous=true
 when the specific passage's asserted meaning or intent is itself unclear. Its
 reason must identify that local uncertainty, not a document-wide disagreement.
 Never assign authority, permissions, source IDs, supersession or trusted dates.
-Return subject=general_policy, scope copied EXACTLY from Manifest applicability,
-and rule.kind=policy_statement. Do not use the numeric loan/retention rule schema.
+Return scope copied EXACTLY from Manifest applicability.
 Extract requirements, prohibitions, permissions, advice and operational assertions
 across any subject. Do not turn questions, hypotheticals, jokes or quoted/rejected
 suggestions into asserted rules: report ambiguous cases with their source quote.
-For each rule, statement and evidence.quote must be the SAME exact source passage.
+For each rule, evidence.quote must be the complete EXACT source passage.
 Supply only quote and page/section hints for evidence. Do not generate character
 offsets; the backend locates exact quotations in the preserved source text.
 Use enough verbatim text to preserve who/what it applies to, deadlines, units,
 conditions, exceptions, negations and dates. Include qualifications in the same
-clause, even when they appear in another sentence. Copy actor, action, object,
-constraint and every applies_to/conditions/exceptions item verbatim from that
-statement; use null/empty lists for unstated fields, never invent or paraphrase.
-action is a nonempty excerpt. Set modality to required/prohibited/permitted/advice/
+clause, even when they appear in another sentence. Do not split one passage into
+multiple rules for its individual semantic fragments. Do not extract descriptive
+company statistics, directories, greetings, historical minutes or service metrics
+unless they assert a policy or instruction. Set modality to required/prohibited/permitted/advice/
 assertion. Keep textual effective dates in the statement for comparison; never
 guess them from publication. Report missing references or ambiguous wording using
 unsupported_conditions/ambiguous/unsupported_cases ONLY when needed to interpret
@@ -104,7 +103,26 @@ def _body(provider, request, *, system, schema_model, name):
 
 def policy_extraction_body(provider, request):
     return _body(provider, request, system=EXTRACTION_SYSTEM,
-                 schema_model=GeneralPolicyExtractionProposal, name="general_policy_extraction")
+                 schema_model=PolicyTextExtractionProposal, name="general_policy_extraction")
+
+
+def expand_policy_text(data):
+    """Build internal fields from verbatim text; never paraphrase qualifications.
+
+    Exact quote, location, scope, ambiguity and missing-reference checks remain
+    in force downstream. Comparison interprets the complete preserved passage.
+    """
+    compact = PolicyTextExtractionProposal.model_validate(data)
+    expanded = compact.model_dump(mode="json")
+    expanded["rules"] = [{
+            "subject": "general_policy", "scope": rule.scope.model_dump(mode="json"),
+            "rule": {"kind": "policy_statement", "statement": rule.evidence.quote,
+                     "action": rule.evidence.quote[:2000], "modality": rule.modality},
+            "evidence": rule.evidence.model_dump(mode="json"),
+            "unsupported_conditions": rule.unsupported_conditions,
+            "ambiguous": rule.ambiguous, "ambiguous_reason": rule.ambiguous_reason,
+    } for rule in compact.rules]
+    return expanded
 
 
 class PolicyComparisonProvider(OpenRouterExtractionProvider):

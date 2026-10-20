@@ -123,6 +123,28 @@ class GeneralPolicyExtractionProposal(ExtractionProposal):
     rules: list[GeneralPolicyProposedRule]
 
 
+class PolicyTextProposal(StrictModel):
+    """Hosted extraction supplies complete text, not redundant semantic fragments.
+
+    Comparison interprets the exact passage with its complete source context.
+    Backend-generated PolicyRule fields never paraphrase or discard this text.
+    """
+
+    scope: PolicyScope
+    evidence: EvidenceQuote
+    modality: Literal["required", "prohibited", "permitted", "advice", "assertion"]
+    unsupported_conditions: list[str] = Field(default_factory=list)
+    ambiguous: bool = False
+    ambiguous_reason: str | None = None
+
+
+class PolicyTextExtractionProposal(StrictModel):
+    source_language: str = "en"
+    rules: list[PolicyTextProposal]
+    unsupported_cases: list[UnsupportedCase] = Field(default_factory=list)
+    notes: str | None = None
+
+
 class PolicyComparisonProposal(StrictModel):
     """Semantic relationship only; the backend assigns severity, IDs and authority.
 

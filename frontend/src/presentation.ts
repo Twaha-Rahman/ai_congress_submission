@@ -127,12 +127,58 @@ export function ruleSummary(claim?: Claim) {
       : claim.rule.unit;
   return `${kinds[claim.rule.kind] || humanize(claim.rule.kind)} ${value} ${unit}`;
 }
-export function orderFindings(findings: Finding[]) {
+export const sortOptions = [
+  { value: "severity", label: "Severity first" },
+  { value: "newest", label: "Newest first" },
+  { value: "oldest", label: "Oldest first" },
+  { value: "status", label: "Review status" },
+  { value: "id", label: "Finding ID" },
+];
+export type FindingSort = "severity" | "newest" | "oldest" | "status" | "id";
+
+export function findingTag(finding: Pick<Finding, "finding_id">) {
+  return `#${finding.finding_id.slice(-8).toUpperCase()}`;
+}
+
+export function matchesFinding(finding: Finding, search: string) {
+  const query = search.trim().toLowerCase();
+  if (!query) return true;
+  if (query.startsWith("#"))
+    return finding.finding_id.toLowerCase().includes(query.slice(1));
+  return [
+    findingTitle(finding),
+    typeLabels[finding.finding_type],
+    scopeLabel(finding.affected_scope),
+    finding.finding_id,
+    ...finding.evidence.map((e) => e.quote),
+  ]
+    .join(" ")
+    .toLowerCase()
+    .includes(query);
+}
+
+export function orderFindings(
+  findings: Finding[],
+  sort: FindingSort = "severity",
+) {
   const rank = { high: 0, review: 1, info: 2 };
-  return [...findings].sort(
-    (a, b) =>
-      rank[a.severity] - rank[b.severity] ||
-      b.created_at.localeCompare(a.created_at) ||
-      a.finding_id.localeCompare(b.finding_id),
-  );
+  const states = { open: 0, acknowledged: 1, resolved: 2, dismissed: 3 };
+  const newest = (a: Finding, b: Finding) =>
+    b.created_at.localeCompare(a.created_at);
+  const id = (a: Finding, b: Finding) =>
+    findingTag(a).localeCompare(findingTag(b)) ||
+    a.finding_id.localeCompare(b.finding_id);
+  return [...findings].sort((a, b) => {
+    if (sort === "newest") return newest(a, b) || id(a, b);
+    if (sort === "oldest") return -newest(a, b) || id(a, b);
+    if (sort === "id") return id(a, b);
+    if (sort === "status")
+      return (
+        states[a.review_state] - states[b.review_state] ||
+        rank[a.severity] - rank[b.severity] ||
+        newest(a, b) ||
+        id(a, b)
+      );
+    return rank[a.severity] - rank[b.severity] || newest(a, b) || id(a, b);
+  });
 }

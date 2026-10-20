@@ -30,6 +30,7 @@ import {
   date,
   explanation,
   findingTitle,
+  findingTag,
   humanize,
   ruleSummary,
   scopeContext,
@@ -49,6 +50,8 @@ interface Props {
   session: Session | null;
   busy: boolean;
   onReview: (action: ReviewAction) => void;
+  onSearchTag: (tag: string) => void;
+  shortcutsEnabled: boolean;
 }
 
 export default function FindingDetail({
@@ -60,6 +63,8 @@ export default function FindingDetail({
   session,
   busy,
   onReview,
+  onSearchTag,
+  shortcutsEnabled,
 }: Props) {
   const [tab, setTab] = useState<Tab>("evidence");
   const [sourceEvidence, setSourceEvidence] = useState<Evidence | null>(null);
@@ -90,12 +95,19 @@ export default function FindingDetail({
     >
       <div className="finding-kicker">
         <span>{typeLabels[finding.finding_type]}</span>
-        <span className="tiny-id" title={finding.finding_id}>
-          #{finding.finding_id.slice(-8).toUpperCase()}
-        </span>
+        <button
+          className="finding-tag"
+          title={`Search ${findingTag(finding)}`}
+          aria-label={`Search finding ${findingTag(finding)}`}
+          onClick={() => onSearchTag(findingTag(finding))}
+        >
+          {findingTag(finding)}
+        </button>
       </div>
       <div className="detail-heading">
-        <h2 id="finding-title">{findingTitle(finding)}</h2>
+        <h2 id="finding-title" tabIndex={-1}>
+          {findingTitle(finding)}
+        </h2>
         <div className="badge-row">
           <SeverityBadge severity={finding.severity} />
           <ReviewBadge state={finding.review_state} />
@@ -148,6 +160,11 @@ export default function FindingDetail({
             aria-label={label}
             aria-controls={`panel-${key}`}
             aria-selected={tab === key}
+            aria-keyshortcuts={
+              shortcutsEnabled
+                ? { evidence: "E", timeline: "T", reviews: "H" }[key]
+                : undefined
+            }
             tabIndex={tab === key ? 0 : -1}
             onKeyDown={(event) => {
               let next = index;
@@ -275,23 +292,41 @@ export default function FindingDetail({
               className="button secondary"
               disabled={busy || !!finding.superseded_by_snapshot_id}
               onClick={() => onReview("dismiss")}
+              aria-keyshortcuts={shortcutsEnabled ? "D" : undefined}
             >
-              Dismiss
+              Dismiss{" "}
+              {shortcutsEnabled && (
+                <span className="action-shortcut" aria-hidden="true">
+                  D
+                </span>
+              )}
             </button>
             <button
               className="button secondary"
               disabled={busy || !!finding.superseded_by_snapshot_id}
               onClick={() => onReview("resolve")}
+              aria-keyshortcuts={shortcutsEnabled ? "R" : undefined}
             >
-              Resolve
+              Resolve{" "}
+              {shortcutsEnabled && (
+                <span className="action-shortcut" aria-hidden="true">
+                  R
+                </span>
+              )}
             </button>
             <button
               className="button primary"
               disabled={busy || !!finding.superseded_by_snapshot_id}
               onClick={() => onReview("acknowledge")}
+              aria-keyshortcuts={shortcutsEnabled ? "A" : undefined}
             >
               <Check size={16} />
-              Acknowledge
+              Acknowledge{" "}
+              {shortcutsEnabled && (
+                <span className="action-shortcut" aria-hidden="true">
+                  A
+                </span>
+              )}
             </button>
           </div>
         ) : (

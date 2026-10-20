@@ -4,7 +4,6 @@ import {
   ArrowDownWideNarrow,
   ArrowLeft,
   ArrowRight,
-  BookOpen,
   Check,
   ChevronDown,
   CircleCheck,
@@ -16,6 +15,7 @@ import {
   RefreshCw,
   Search,
   Shield,
+  Keyboard,
   X,
 } from "lucide-react";
 import { api, ApiError, getFinding, reviewFinding } from "./api";
@@ -27,11 +27,21 @@ import {
   ReviewBadge,
 } from "./components";
 import FindingDetail from "./FindingDetail";
+import Select from "./Select";
+import {
+  useKeyboardShortcuts,
+  useShortcutPreference,
+} from "./useKeyboardShortcuts";
+import { shortcutDescriptions } from "./shortcuts";
 import {
   date,
   findingTitle,
+  findingTag,
   humanize,
   orderFindings,
+  matchesFinding,
+  sortOptions,
+  type FindingSort,
   scopeLabel,
   typeLabels,
 } from "./presentation";
@@ -53,6 +63,7 @@ interface View {
   state: string;
   type: string;
   severity: string;
+  sort: FindingSort;
 }
 function readView(): View {
   const p = new URLSearchParams(window.location.search);
@@ -65,6 +76,9 @@ function readView(): View {
     state: allowed("state", ["open", "acknowledged", "resolved", "dismissed"]),
     type: allowed("type", Object.keys(typeLabels)),
     severity: allowed("severity", ["high", "review", "info"]),
+    sort: sortOptions.some((option) => option.value === p.get("sort"))
+      ? (p.get("sort") as FindingSort)
+      : "severity",
   };
 }
 type Detail = {
@@ -88,8 +102,13 @@ export default function App() {
   const [revision, setRevision] = useState(0);
   const [reviewAction, setReviewAction] = useState<ReviewAction | null>(null);
   const [notice, setNotice] = useState("");
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  const [shortcutsEnabled, setShortcutsEnabled] = useShortcutPreference();
   const [mobileDetail, setMobileDetail] = useState(!!view.finding);
   const searchRef = useRef<HTMLInputElement>(null);
+  const sortRef = useRef<HTMLButtonElement>(null);
+  const officeRef = useRef<HTMLButtonElement>(null);
+  const pendingKeyboardFocus = useRef(false);
   const data = workspace?.office === view.office ? workspace : null;
 
   function navigate(patch: Partial<View>, replace = false) {
@@ -110,6 +129,8 @@ export default function App() {
       setView(next);
       setMobileDetail(!!next.finding);
       setNotice("");
+      setReviewAction(null);
+      setShowShortcuts(false);
     };
     window.addEventListener("popstate", handler);
     return () => window.removeEventListener("popstate", handler);
@@ -157,25 +178,17 @@ export default function App() {
   }, [view.office, revision]);
 
   const visible = useMemo(() => {
-    const query = view.search.trim().toLowerCase();
-    return (data?.findings || []).filter(
-      (f) =>
-        (view.state === "all" || f.review_state === view.state) &&
-        (view.type === "all" || f.finding_type === view.type) &&
-        (view.severity === "all" || f.severity === view.severity) &&
-        (!query ||
-          [
-            findingTitle(f),
-            typeLabels[f.finding_type],
-            scopeLabel(f.affected_scope),
-            f.finding_id,
-            ...f.evidence.map((e) => e.quote),
-          ]
-            .join(" ")
-            .toLowerCase()
-            .includes(query)),
+    return orderFindings(
+      (data?.findings || []).filter(
+        (f) =>
+          (view.state === "all" || f.review_state === view.state) &&
+          (view.type === "all" || f.finding_type === view.type) &&
+          (view.severity === "all" || f.severity === view.severity) &&
+          matchesFinding(f, view.search),
+      ),
+      view.sort,
     );
-  }, [data, view.search, view.state, view.type, view.severity]);
+  }, [data, view.search, view.state, view.type, view.severity, view.sort]);
   const selectedId = view.finding || visible[0]?.finding_id || "";
   useEffect(() => {
     if (!selectedId) {
@@ -206,6 +219,12 @@ export default function App() {
   }, [view.office, selectedId, revision]);
   const current =
     detail?.office === view.office && detail.id === selectedId ? detail : null;
+  useEffect(() => {
+    if (pendingKeyboardFocus.current && current && !detailLoading) {
+      document.getElementById("finding-title")?.focus({ preventScroll: true });
+      pendingKeyboardFocus.current = false;
+    }
+  }, [current, detailLoading]);
   const needsAttention =
     data?.findings.filter(
       (f) =>
@@ -242,6 +261,81 @@ export default function App() {
   function retry() {
     setRevision((n) => n + 1);
   }
+
+  function focusSearch() {
+    setMobileDetail(false);
+    requestAnimationFrame(() => {
+      searchRef.current?.focus();
+      searchRef.current?.select();
+    });
+  }
+  function moveFinding(direction: number) {
+    const index = visible.findIndex((f) => f.finding_id === selectedId);
+    const next =
+      visible[Math.max(0, Math.min(visible.length - 1, index + direction))];
+    if (!next) return;
+    pendingKeyboardFocus.current =
+      window.matchMedia("(max-width: 760px)").matches;
+    selectFinding(next);
+    requestAnimationFrame(() => {
+      const element = window.matchMedia("(max-width: 760px)").matches
+        ? document.querySelector<HTMLElement>("#finding-title")
+        : document.querySelector<HTMLElement>(
+            `[data-finding-id="${next.finding_id}"]`,
+          );
+      element?.focus({ preventScroll: true });
+      if (element?.matches(".finding-list-item"))
+        element.scrollIntoView({ block: "nearest" });
+    });
+  }
+  function reviewWithShortcut(action: ReviewAction) {
+    if (
+      current &&
+      !detailError &&
+      !error &&
+      session?.canReview &&
+      !loading &&
+      !detailLoading &&
+      !current.finding.superseded_by_snapshot_id
+    ) {
+      setMobileDetail(true);
+      setReviewAction(action);
+    }
+  }
+  function switchTab(tab: string) {
+    if (!current || detailError || error) return;
+    setMobileDetail(true);
+    requestAnimationFrame(() => {
+      const button = document.getElementById(`tab-${tab}`);
+      button?.click();
+      button?.focus();
+    });
+  }
+  function openSelect(ref: typeof sortRef) {
+    setMobileDetail(false);
+    requestAnimationFrame(() => {
+      ref.current?.focus();
+      if (ref.current?.getAttribute("aria-expanded") === "false")
+        ref.current.click();
+    });
+  }
+  useKeyboardShortcuts(shortcutsEnabled, {
+    search: focusSearch,
+    next: () => moveFinding(1),
+    previous: () => moveFinding(-1),
+    acknowledge: () => reviewWithShortcut("acknowledge"),
+    resolve: () => reviewWithShortcut("resolve"),
+    dismiss: () => reviewWithShortcut("dismiss"),
+    evidence: () => switchTab("evidence"),
+    timeline: () => switchTab("timeline"),
+    reviews: () => switchTab("reviews"),
+    sort: () => openSelect(sortRef),
+    office: () => openSelect(officeRef),
+    refresh: () => {
+      if (!loading) retry();
+    },
+    help: () => setShowShortcuts(true),
+  });
 
   return (
     <div className="app-shell">
@@ -295,19 +389,6 @@ export default function App() {
             )}
           </a>
         </nav>
-        <div className="sidebar-context">
-          <BookOpen size={19} strokeWidth={1.5} />
-          <p>
-            Every finding starts
-            <br />
-            with its evidence.
-          </p>
-          <span>
-            Understand the change.
-            <br />
-            Make an informed decision.
-          </span>
-        </div>
         <footer className="sidebar-footer">
           <Shield size={16} />
           <div>
@@ -328,26 +409,26 @@ export default function App() {
             <strong>Findings</strong>
           </div>
           <div className="topbar-context">
-            <label className="office-select">
-              <Globe2 size={16} />
-              <span className="sr-only">Office</span>
-              <select
-                aria-label="Office"
+            <div className="office-select">
+              <Select
+                label="Office"
+                icon={<Globe2 size={16} />}
+                triggerRef={officeRef}
                 value={view.office}
-                onChange={(event) => {
+                onChange={(value) => {
                   navigate({
-                    office: event.target.value as Office,
+                    office: value as Office,
                     finding: "",
                   });
                   setMobileDetail(false);
                   setNotice("");
                 }}
-              >
-                <option value="dhaka">Dhaka office</option>
-                <option value="frankfurt">Frankfurt office</option>
-              </select>
-              <ChevronDown size={13} />
-            </label>
+                options={[
+                  { value: "dhaka", label: "Dhaka office" },
+                  { value: "frankfurt", label: "Frankfurt office" },
+                ]}
+              />
+            </div>
             <span className="topbar-divider" />
             <span className="role-label">
               {session ? humanize(session.role) : "Connecting…"}
@@ -360,21 +441,28 @@ export default function App() {
 
         <main id="workspace" className="workspace" tabIndex={-1}>
           <div className="page-heading">
-            <div>
-              <div className="eyebrow page-eyebrow">
-                Your office, in context
-              </div>
-              <h1>Findings</h1>
-              <p>See what changed. Understand what needs your attention.</p>
+            <h1>Findings</h1>
+            <div className="page-actions">
+              <button
+                className="button secondary shortcuts-button"
+                aria-label="Keyboard shortcuts"
+                title="Keyboard shortcuts (F1)"
+                onClick={() => setShowShortcuts(true)}
+                aria-keyshortcuts={shortcutsEnabled ? "F1 Shift+/" : "F1"}
+              >
+                <Keyboard size={16} />
+                <span>Shortcuts</span>
+              </button>
+              <button
+                className="button secondary refresh-button"
+                onClick={retry}
+                disabled={loading}
+                aria-keyshortcuts={shortcutsEnabled ? "Shift+R" : undefined}
+              >
+                <RefreshCw size={15} className={loading ? "spin" : ""} />
+                {loading ? "Refreshing" : "Refresh"}
+              </button>
             </div>
-            <button
-              className="button secondary refresh-button"
-              onClick={retry}
-              disabled={loading}
-            >
-              <RefreshCw size={15} className={loading ? "spin" : ""} />
-              {loading ? "Refreshing" : "Refresh"}
-            </button>
           </div>
 
           {notice && (
@@ -430,9 +518,16 @@ export default function App() {
                     <h2>
                       Review queue <span>{visible.length}</span>
                     </h2>
-                    <ArrowDownWideNarrow
-                      size={16}
-                      aria-label="Sorted by severity, then newest"
+                    <Select
+                      label="Sort"
+                      compact
+                      triggerRef={sortRef}
+                      icon={<ArrowDownWideNarrow size={15} />}
+                      value={view.sort}
+                      options={sortOptions}
+                      onChange={(value) =>
+                        navigate({ sort: value as FindingSort }, true)
+                      }
                     />
                   </div>
                   <label className="search-input">
@@ -440,8 +535,9 @@ export default function App() {
                     <span className="sr-only">Search findings</span>
                     <input
                       ref={searchRef}
-                      placeholder="Search findings…"
+                      placeholder="Search findings or #ID…"
                       aria-label="Search findings"
+                      aria-keyshortcuts={shortcutsEnabled ? "/" : undefined}
                       value={view.search}
                       onChange={(event) =>
                         filter({ search: event.target.value })
@@ -461,49 +557,50 @@ export default function App() {
                     )}
                   </label>
                   <div className="queue-filters">
-                    <label>
+                    <div>
                       <span>Review status</span>
-                      <select
-                        aria-label="Review status"
+                      <Select
+                        label="Review status"
                         value={view.state}
-                        onChange={(e) => filter({ state: e.target.value })}
-                      >
-                        <option value="all">All statuses</option>
-                        <option value="open">Open</option>
-                        <option value="acknowledged">Acknowledged</option>
-                        <option value="resolved">Resolved</option>
-                        <option value="dismissed">Dismissed</option>
-                      </select>
-                    </label>
-                    <label>
+                        onChange={(value) => filter({ state: value })}
+                        options={[
+                          { value: "all", label: "All statuses" },
+                          { value: "open", label: "Open" },
+                          { value: "acknowledged", label: "Acknowledged" },
+                          { value: "resolved", label: "Resolved" },
+                          { value: "dismissed", label: "Dismissed" },
+                        ]}
+                      />
+                    </div>
+                    <div>
                       <span>Severity</span>
-                      <select
-                        aria-label="Severity"
+                      <Select
+                        label="Severity"
                         value={view.severity}
-                        onChange={(e) => filter({ severity: e.target.value })}
-                      >
-                        <option value="all">All severities</option>
-                        <option value="high">High</option>
-                        <option value="review">Interpretation</option>
-                        <option value="info">Informational</option>
-                      </select>
-                    </label>
+                        onChange={(value) => filter({ severity: value })}
+                        options={[
+                          { value: "all", label: "All severities" },
+                          { value: "high", label: "High" },
+                          { value: "review", label: "Interpretation" },
+                          { value: "info", label: "Informational" },
+                        ]}
+                      />
+                    </div>
                   </div>
-                  <label className="type-filter">
-                    <span className="sr-only">Finding type</span>
-                    <select
-                      aria-label="Finding type"
+                  <div className="type-filter">
+                    <Select
+                      label="Finding type"
                       value={view.type}
-                      onChange={(e) => filter({ type: e.target.value })}
-                    >
-                      <option value="all">All finding types</option>
-                      {Object.entries(typeLabels).map(([key, label]) => (
-                        <option key={key} value={key}>
-                          {label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                      onChange={(value) => filter({ type: value })}
+                      options={[
+                        { value: "all", label: "All finding types" },
+                        ...Object.entries(typeLabels).map(([value, label]) => ({
+                          value,
+                          label,
+                        })),
+                      ]}
+                    />
+                  </div>
                   <div className="queue-results" aria-live="polite">
                     <span>
                       {visible.length}{" "}
@@ -520,6 +617,7 @@ export default function App() {
                       <li key={f.finding_id}>
                         <button
                           className={`finding-list-item ${f.finding_id === selectedId ? "selected" : ""}`}
+                          data-finding-id={f.finding_id}
                           aria-current={
                             f.finding_id === selectedId ? "true" : undefined
                           }
@@ -540,6 +638,9 @@ export default function App() {
                           <p>{scopeLabel(f.affected_scope)}</p>
                           <div className="list-item-footer">
                             <ReviewBadge state={f.review_state} />
+                            <span className="queue-finding-tag">
+                              {findingTag(f)}
+                            </span>
                             <time dateTime={f.created_at}>
                               {date(f.created_at).replace(/ \d{4}$/, "")}
                             </time>
@@ -620,6 +721,16 @@ export default function App() {
                       session={session}
                       busy={loading || detailLoading}
                       onReview={setReviewAction}
+                      shortcutsEnabled={shortcutsEnabled}
+                      onSearchTag={(tag) => {
+                        filter({
+                          search: tag,
+                          state: "all",
+                          type: "all",
+                          severity: "all",
+                        });
+                        requestAnimationFrame(() => searchRef.current?.focus());
+                      }}
                     />
                   ) : (
                     <EmptyState
@@ -647,14 +758,49 @@ export default function App() {
                   )}
                 </div>
               </div>
-              <footer className="workspace-footer">
-                <span>Meridian · Verifiable institutional memory</span>
-                <span>Source evidence, with context.</span>
-              </footer>
             </>
           )}
         </main>
       </div>
+      {showShortcuts && (
+        <Modal
+          title="Keyboard shortcuts"
+          onClose={() => setShowShortcuts(false)}
+          className="shortcuts-dialog"
+        >
+          <div className="dialog-body">
+            <p className="dialog-description">
+              Shortcuts pause while you type, use a dropdown, or have a dialog
+              open. Review actions open a form; they never submit a decision
+              immediately.
+            </p>
+            <dl className="shortcut-list">
+              {shortcutDescriptions.map((item) => (
+                <div key={item.keys}>
+                  <dt>{item.label}</dt>
+                  <dd>
+                    <kbd>{item.keys}</kbd>
+                  </dd>
+                </div>
+              ))}
+            </dl>
+            <label className="shortcut-preference">
+              <input
+                type="checkbox"
+                checked={shortcutsEnabled}
+                onChange={(event) => setShortcutsEnabled(event.target.checked)}
+              />
+              <span>
+                Enable single-key shortcuts
+                <small>
+                  Turn off to avoid conflicts with assistive tools. F1 and
+                  normal keyboard navigation still work.
+                </small>
+              </span>
+            </label>
+          </div>
+        </Modal>
+      )}
       {reviewAction && current && (
         <ReviewDialog
           action={reviewAction}
@@ -748,7 +894,19 @@ function ReviewDialog({
       onClose={onClose}
       busy={saving}
     >
-      <form onSubmit={submit}>
+      <form
+        onSubmit={submit}
+        onKeyDown={(event) => {
+          if (
+            (event.ctrlKey || event.metaKey) &&
+            event.key === "Enter" &&
+            !event.nativeEvent.isComposing
+          ) {
+            event.preventDefault();
+            if (reason.trim() && !saving) event.currentTarget.requestSubmit();
+          }
+        }}
+      >
         <div className="dialog-body">
           <p className="review-dialog-finding">{findingTitle(finding)}</p>
           <p className="dialog-description">{explanations[action]}</p>
@@ -789,6 +947,7 @@ function ReviewDialog({
             type="submit"
             className="button primary"
             disabled={!reason.trim() || saving}
+            aria-keyshortcuts="Control+Enter Meta+Enter"
           >
             {saving ? (
               <LoaderCircle className="spin" size={16} />
@@ -797,6 +956,7 @@ function ReviewDialog({
             )}
             {saving ? "Saving review…" : `${humanize(action)} finding`}
           </button>
+          <span className="submit-shortcut-hint">Ctrl / ⌘ + Enter</span>
         </footer>
       </form>
     </Modal>

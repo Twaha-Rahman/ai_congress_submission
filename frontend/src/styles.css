@@ -271,24 +271,8 @@ svg {
   border: 1px solid var(--control-line);
   border-radius: 5px;
 }
-.sidebar-context {
-  margin: auto 12px 58px;
-  padding-top: 60px;
-  color: var(--primary);
-}
-.sidebar-context p {
-  font-family: var(--serif);
-  color: var(--body);
-  font-size: 22px;
-  line-height: 1.2;
-  margin: 13px 0 10px;
-}
-.sidebar-context > span {
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.8;
-}
 .sidebar-footer {
+  margin-top: auto;
   border-top: 1px solid var(--line);
   padding: 18px 8px 0;
   display: flex;
@@ -343,13 +327,6 @@ svg {
   gap: 8px;
   align-items: center;
 }
-.office-select select {
-  appearance: none;
-  border: 0;
-  background: none;
-  font-weight: 500;
-  padding: 8px 0;
-}
 .topbar-divider {
   height: 20px;
   width: 1px;
@@ -386,19 +363,17 @@ svg {
   align-items: center;
   margin-bottom: 17px;
 }
-.page-eyebrow {
-  margin-bottom: 3px;
-}
 .page-heading h1 {
   font-size: 44px;
   margin-bottom: 6px;
 }
-.page-heading p {
-  color: var(--muted);
-  font-size: 13px;
+.page-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 .refresh-button {
-  margin-top: 21px;
+  margin-top: 0;
 }
 .summary-strip {
   display: flex;
@@ -531,22 +506,88 @@ textarea::placeholder {
   gap: 8px;
   margin: 12px 0 8px;
 }
-.queue-filters label > span {
+.queue-filters > div > span {
   display: block;
   color: var(--muted);
   font-size: 10px;
   margin: 0 0 4px 1px;
 }
-.queue-filters select,
-.type-filter select {
+.queue-filters > div {
   min-width: 0;
+}
+.select-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   width: 100%;
-  font-size: 11px;
+  min-width: 0;
+  min-height: 38px;
+  padding: 8px 10px;
+  background: var(--canvas);
   border: 1px solid var(--control-line);
-  border-radius: 6px;
-  min-height: 35px;
-  background: transparent;
-  padding: 7px 5px;
+  border-radius: 7px;
+  text-align: left;
+  font-size: 11px;
+}
+.select-trigger > span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.select-chevron {
+  color: var(--muted);
+}
+.select-chevron.expanded {
+  transform: rotate(180deg);
+}
+.select-trigger[aria-expanded="true"] {
+  border-color: var(--primary);
+  outline: 2px solid var(--card);
+  outline-offset: 1px;
+}
+.select-compact {
+  width: auto;
+  min-height: 32px;
+  padding: 6px 8px;
+  font-size: 11px;
+  border-color: var(--line);
+}
+.office-select .select-trigger {
+  font-size: 12px;
+  border-color: var(--line);
+}
+.select-options {
+  position: fixed;
+  z-index: 30;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 5px;
+  box-shadow: 0 6px 24px #18171518;
+}
+.select-option {
+  min-height: 39px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 11px;
+  border-radius: 5px;
+  cursor: pointer;
+  color: var(--body);
+  font-size: 12px;
+}
+.select-option.option-active {
+  background: var(--card);
+  color: var(--ink);
+}
+.select-option[aria-selected="true"] {
+  color: var(--primary);
+  font-weight: 500;
 }
 .queue-results {
   display: flex;
@@ -729,9 +770,83 @@ textarea::placeholder {
   letter-spacing: 1px;
   margin-bottom: 12px;
 }
-.tiny-id {
+.finding-tag {
+  font-family: ui-monospace, monospace;
+  color: var(--primary);
+  background: var(--surface);
+  border: 1px solid var(--control-line);
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.4px;
+  border-radius: 6px;
+  padding: 6px 10px;
+  white-space: nowrap;
+}
+.finding-tag:active {
+  background: var(--card);
+}
+.queue-finding-tag {
+  color: var(--body);
+  font-size: 10px;
+  font-family: ui-monospace, monospace;
+  font-weight: 500;
+}
+.shortcut-list {
+  margin: 0 0 24px;
+}
+.shortcut-list > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+  padding: 9px 0;
+  font-size: 12px;
+}
+.shortcut-list dd {
+  margin: 0;
+  white-space: nowrap;
+}
+kbd {
+  font-family: ui-monospace, monospace;
+  color: var(--body);
+  background: var(--surface);
+  padding: 3px 6px;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+.shortcut-preference {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.shortcut-preference input {
+  accent-color: var(--primary);
+  margin-top: 4px;
+}
+.shortcut-preference small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 4px;
+}
+.submit-shortcut-hint {
+  font-size: 10px;
+  color: var(--muted);
+}
+.action-shortcut {
+  display: inline-block;
+  margin-left: 2px;
+  opacity: 0.85;
   font-size: 9px;
-  letter-spacing: 0.6px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  padding: 0 3px;
+  line-height: 1.5;
 }
 .detail-heading h2 {
   font-size: 34px;
@@ -1409,9 +1524,6 @@ textarea {
   .sidebar-workspace strong {
     font-size: 9px;
   }
-  .sidebar-context {
-    margin-left: 9px;
-  }
   .main-shell {
     margin-left: 182px;
   }
@@ -1492,7 +1604,6 @@ textarea {
   .sidebar-workspace,
   .sidebar-label,
   .nav-item > span,
-  .sidebar-context,
   .sidebar-footer > div {
     display: none;
   }
@@ -1544,7 +1655,7 @@ textarea {
     gap: 5px;
     font-size: 11px;
   }
-  .office-select > svg:first-child {
+  .office-select .select-trigger > svg:first-child {
     display: none;
   }
   .avatar {
@@ -1559,17 +1670,20 @@ textarea {
   .page-heading h1 {
     font-size: 43px;
   }
-  .page-heading p {
-    font-size: 12px;
-    max-width: 260px;
+  .shortcuts-button {
+    padding: 10px;
   }
-  .page-eyebrow {
-    font-size: 9px;
+  .shortcuts-button > span {
+    display: none;
+  }
+  .office-select .select-trigger {
+    font-size: 11px;
+    padding: 8px;
   }
   .refresh-button {
     font-size: 0;
     padding: 10px;
-    margin-left: 8px;
+    margin-left: 0;
     gap: 0;
   }
   .summary-strip {
@@ -1620,11 +1734,11 @@ textarea {
   .search-input input {
     font-size: 14px;
   }
-  .queue-filters label > span {
+  .queue-filters > div > span {
     font-size: 11px;
   }
-  .queue-filters select,
-  .type-filter select {
+  .queue-filters .select-trigger,
+  .type-filter .select-trigger {
     font-size: 12px;
     min-height: 40px;
     padding: 9px;

@@ -65,7 +65,12 @@ export function buildPolicyManifest(draft: PolicyDraft, replaced?: { manifest: P
     if (!effective) throw new Error("A replacement needs an effective date.");
     if (!replaced.clauses.length) throw new Error("The earlier version has no clauses to replace.");
     if (manifest.version_label === replaced.manifest.version_label) throw new Error("Give the replacement a new version label.");
-    if (JSON.stringify(manifest.scope) !== JSON.stringify(replaced.manifest.scope)
+    if (replaced.manifest.effective_from && effective <= replaced.manifest.effective_from)
+      throw new Error("The replacement must take effect after the earlier version began.");
+    const previous = replaced.manifest.scope;
+    if (manifest.scope.description !== previous.description
+      || Object.keys(attributes).length !== Object.keys(previous.attributes).length
+      || Object.entries(attributes).some(([key, value]) => previous.attributes[key] !== value)
       || manifest.policy_family !== replaced.manifest.policy_family
       || manifest.source_identity !== replaced.manifest.source_identity)
       throw new Error("A replacement must keep the earlier policy's name, category and scope.");

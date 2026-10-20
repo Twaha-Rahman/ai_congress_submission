@@ -57,6 +57,30 @@ cross-office federation or numeric Q&A APIs.
 Use a text-based PDF. Scanned/image-only PDFs still need OCR support. Complicated
 layouts should be rehearsed with the actual document and model.
 
+### Browser workflow
+
+Start the office services and frontend as described in the [README](../README.md).
+Configure the selected office's uploader credential on the frontend server in your
+private `.env`; reader mode cannot upload. Open **Sources → Upload PDF** and select
+a text-based PDF up to 20 MiB. Enter its name, version, category, authority,
+publication date and applicability, plus an effective date when known. Dates use UTC.
+For a hosted model, explicitly allow sending the source text to it. These browser
+uploads use `subject: "general_policy"`, `mode: "live"` and `office_export: false`.
+
+Submit with the button or `Ctrl+Enter` / `⌘+Enter`. Recent uploads displays the real
+job and incomplete-coverage reasons, with auto-refresh enabled after submission.
+You can inspect the original, open its findings and retry comparisons when accepted
+statements exist. A request error preserves the draft and selected file; the browser
+never automatically resends a POST. Check recent uploads before retrying an uncertain
+submission. Failed extraction requires an upload again.
+
+Choose **Version relationship → Replaces …** only for a whole-version replacement.
+The UI retrieves the trusted scope and existing clause IDs and requires a new
+version label and a later effective start. For a partial replacement or numeric
+subject, use the API workflow below.
+
+### API workflow
+
 Create `travel-policy.manifest.json`:
 
 ```json
@@ -143,7 +167,8 @@ The manifest publication time must match the newest supplied message. When no
 effective-from date is explicitly supplied, each general Slack statement uses its
 own message timestamp. Source text can still make applicability uncertain. Thread
 context is not fetched automatically: “the same exception as before” should require
-review. The PDF upload UI and live Slack connector remain separate work.
+review. The live Slack connector remains separate integration work. Saved Slack
+sources appear in the Sources library after API ingestion.
 
 ## Limits, failure recovery and policy versions
 

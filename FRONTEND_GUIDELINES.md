@@ -1,14 +1,16 @@
-# Meridian frontend: first-slice design notes
+# Meridian frontend: design and interaction notes
 
 Status: implemented starting point for a style/UX review, not an approved final
-design system. Refine the findings workspace before applying these rules to the
-remaining workflows.
+design system. Findings and Sources share the patterns below; refine them before
+applying these rules to the remaining workflows.
 
 ## Scope and visual reference
 
 The first slice is **Findings and investigation**: an office-scoped queue,
-evidence comparison, source inspection, chronology, and reviewer decisions. Sources
-and ingestion, questions, verification, and cross-office audit are later slices.
+evidence comparison, source inspection, chronology, and reviewer decisions. The
+second slice is **Sources and PDF ingestion**: a source library, trusted upload
+metadata, processing status and whole-version replacement. Questions, verification
+and cross-office audit remain later slices.
 Do not add navigation destinations until their workflows exist.
 
 `DESIGN.md` was installed using `npx getdesign@latest add claude`. Use its warm
@@ -194,7 +196,8 @@ The viewer, worker, fonts, character maps and WebAssembly resources are self-hos
   and modified key combinations.
 - Shortcuts: `/` search, `J`/`K` next/previous finding, `A` acknowledge, `R` resolve,
   `D` dismiss, `E` evidence, `T` chronology, `H` review history, `S` sort, `O` office,
-  and `Shift+R` toggles auto-refresh. Navigation moves keyboard focus to the selected item.
+  `U` opens PDF upload when permitted, and `Shift+R` toggles auto-refresh. Navigation
+  moves keyboard focus to the selected item.
   Review shortcuts open a reason form; they never save a decision immediately.
   In that form, `Ctrl+Enter` or `⌘+Enter` submits only when the reason is nonblank
   and a save is not already in progress. Escape dismisses the form without saving.
@@ -221,7 +224,7 @@ Walk through this on a normal laptop and the actual projector:
 
 Target roughly one minute for the primary investigation once the screen is familiar.
 Judge clarity, not speed alone. Record any changes to type sizes, spacing, terminology
-or the evidence arrangement here before implementing the Sources slice.
+or the evidence arrangement here before extending either workspace.
 
 ## Validation recorded for this implementation
 
@@ -261,3 +264,51 @@ including raised source dialogs, original PDF rendering and switching back to th
 light palette. Sampled dark text combinations exceeded 4.5:1 contrast, including
 primary and pressed button labels; input boundaries and focus accents exceeded
 3:1 in the targeted palette checks.
+
+## Sources and PDF ingestion
+
+- Use the same navigation, theme tokens, styled Select, Modal and keyboard hints.
+  Mobile navigation exposes Findings and Sources; hints remain hidden at mobile
+  widths. `/` searches sources and Escape leaves search without clearing it.
+- Keep the library and recent processing activity distinct. Source rows show their
+  real type, authority, version, category and dates. Show restricted access clearly.
+  Library inspection opens the authorized original without fabricating a citation
+  highlight. An actual finding still opens at its cited passage.
+- URL state includes source search/type/sort, selected processing job, open document
+  and page/zoom; source-filtered Findings links retain the selected source. Unsent
+  metadata, files, consent and credentials stay out of the URL.
+- Upload is a native modal with a fixed header/footer and a separately scrollable
+  form. Account for the actual header/footer height rather than viewport arithmetic
+  that can clip submission controls. Keep validation/error space stable and preserve
+  the draft when dismissing or when a request fails. Single-key shortcuts must not
+  fire while editing. Ctrl/Meta+Enter uses native form validation.
+- Show trusted name, version, category, authority, publication/effective dates and
+  applicability as explicit form inputs. Additional access, end date and scope labels
+  belong under Additional settings. Do not infer authority or replacement from text.
+  Whole-version replacement locks trusted name/category/scope, loads actual clause
+  IDs and requires a different version and later effective start.
+- Check one nonempty PDF, its header and 20 MiB size cap in the browser and bridge.
+  Parsing still occurs on the backend; an accepted request is not a processed source.
+  Explain text-only support, hosted processing and office boundaries before submit.
+  Hosted consent starts unchecked. Approved local endpoints disable hosted egress.
+- Enable upload only with a server-configured office uploader credential in reviewer
+  mode. The bridge stamps tenant, office, PDF/general-policy subject and live mode;
+  it never accepts a browser-selected identity. Reader restrictions remain enforced
+  on the server. No model calls or bearer credentials belong in browser code.
+- Render durable job states, review reasons and failures as received. Processed is
+  not a compliance certificate. Successful queueing enables auto-refresh with an
+  explicit notice: three seconds while active, ten seconds otherwise, paused during
+  editing, hidden tabs and dialogs. The toggle remains stoppable during requests.
+  Never automatically retry a POST after an uncertain response. Comparison retry
+  preserves originals and prior assessments; it does not rerun failed extraction.
+
+The Sources implementation passed 39 frontend tests, the production build and 126
+backend tests. Browser checks used isolated office databases and a controlled local
+model endpoint, with no paid calls. Checks covered real upload and explicit policy
+replacement, original PDF viewing, reader restrictions, office switching, preserved
+form/file/consent after a request failure, manual resubmission, corrupt PDFs and
+model failure, keyboard search/Escape/upload, outside dismissal without width shift,
+and 320px/390px/768px layouts in the shared light/dark palette. A failure check also
+found and fixed premature staged-file deletion during model retries, with regression
+coverage for recovery and exhausted attempts. Physical-projector and actual hosted
+model quality still require rehearsal.

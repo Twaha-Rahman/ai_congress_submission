@@ -196,6 +196,8 @@ test("rejects invalid and oversized PDF payloads before reaching an office", asy
   assert.equal((await request(invalid)).status, 422);
   const large = uploadForm(); large.set("file", new Blob(["%PDF-", new Uint8Array(20 * 1024 * 1024)]), "too-big.pdf");
   assert.equal((await request(large)).status, 422);
+  const oversizedRequest = uploadForm(); oversizedRequest.set("file", new Blob([new Uint8Array(21 * 1024 * 1024)]), "too-big.pdf");
+  assert.equal((await request(oversizedRequest)).status, 413);
   const badJson = uploadForm(); badJson.set("manifest", "{");
   assert.equal((await request(badJson)).status, 422);
   assert.equal(calls.length, 0);

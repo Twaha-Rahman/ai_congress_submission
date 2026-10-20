@@ -150,7 +150,8 @@ def _parse_iso(value: Any) -> datetime | None:
     return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
 
 
-def _job_dict(job: JobRow) -> dict[str, Any]:    return {
+def _job_dict(job: JobRow) -> dict[str, Any]:
+    return {
         "job_id": job.job_id,
         "kind": job.kind,
         "status": job.status,

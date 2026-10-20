@@ -7,18 +7,19 @@ stale/contradictory/incomplete guidance, answers scoped questions deterministica
 and produces signed evidence bundles that an independent verifier can check.
 
 The repository also contains the synthetic demo corpus, replay proposals, evaluation
-labels, command-line demos and an offline test suite. The first frontend slice is a
-Claude-inspired findings workspace with evidence comparison and persisted reviews.
+labels, command-line demos and an offline test suite. The frontend includes a
+Claude-inspired findings workspace with persisted reviews and a Sources workspace
+for PDF uploads, processing status and original-document inspection.
 
 For your own policy subjects, use `subject: "general_policy"`. This path retrieves
 relevant statements, checks source quotations, and publishes model-assisted conflict
 candidates for human review. See the [general policy demo guide](docs/general_policy_demo.md)
 for manifests, PDF/Slack API examples, comparison retries, limits and model evaluation.
 The existing numeric checks remain available; general-policy Q&A and cross-office
-text comparison are not implemented. Browser uploads and a live Slack listener are
-still separate frontend/integration work.
+text comparison are not implemented. A live Slack listener remains separate
+integration work; saved Slack messages can already be ingested through the API.
 
-## Findings workspace
+## Browser workspace
 
 Requires Node **22.13+** (or a newer supported Node release), in addition to the
 backend prerequisites below. Run from the repository root:
@@ -59,7 +60,8 @@ the source view are also restored from shared URLs. Downloads remain available.
 On desktop, click **Shortcuts**, or press `?` / `F1`,
 for the keyboard guide and the option to disable single-key shortcuts. `/` focuses
 search, `J` / `K` move through findings, and `A` / `R` / `D` open review forms.
-`Ctrl+Enter` / `⌘+Enter` submits a review after you enter a reason.
+`U` opens PDF upload when permitted.
+`Ctrl+Enter` / `⌘+Enter` submits the open review or upload form after validation.
 `Shift+R` toggles auto-refresh. The shortcuts button is hidden in the mobile layout.
 
 Use the header's **Theme** control for **Light**, **Dark**, or **System** appearance.
@@ -78,7 +80,7 @@ UI_ROLE=reader make frontend
 The principal is fixed on the server; there is no browser role selector. This is a
 loopback-only demo operator workspace, not a multi-user login system. Real user
 authentication is required before exposing it on an office network. The server
-forwards only the endpoints needed by findings, not federation or model APIs.
+forwards only the endpoints needed by findings and sources, not federation or model APIs.
 
 For a built version, run `make frontend-build`, then `npm start --prefix frontend`.
 The built server also listens on loopback port 5173; stop the dev server first.
@@ -92,6 +94,44 @@ ignored `frontend/public/pdfjs/` directory; no additional download is needed ons
 npm test --prefix frontend     # bridge security, presentation, URL state, source location
 make test                     # backend suite, including durable review history
 ```
+
+### Upload your own PDF
+
+Open **Sources → Upload PDF**. Choose a text-based PDF up to **20 MiB**, then enter
+its policy name, version, category, publication date and applicability. Add the
+effective date when known. Additional settings cover restricted access, an end date
+and categorical scope labels. These uploads use the general-policy path in **live**
+mode; the configured model must be available. Scans need OCR before upload.
+
+For the hosted demo, explicitly allow model processing in the form. Consent starts
+unchecked. Originals remain in the selected office; uploads disable cross-office
+export. For a local model, use an approved private/loopback endpoint with
+`LLM_LOCAL_ENDPOINT_APPROVED=1` (or the office-prefixed setting) on both the office
+and frontend server, then restart both.
+
+The frontend needs `DEMO_TOKEN_DHAKA_UPLOADER` and/or
+`DEMO_TOKEN_FRANKFURT_UPLOADER` in the private root `.env`, in addition to its reviewer
+token. These credentials stay on the Node server. Reader mode cannot upload even
+when an uploader credential is configured. Restart the office services and frontend
+when updating from an older checkout, so source details and job summaries match.
+
+After submission, recent uploads shows the actual queued, processing, processed,
+needs-review or failed state. Auto-refresh turns on with confirmation and checks
+every three seconds while work is active. Inspect the reasons for incomplete or
+failed processing; an empty Findings queue does not establish consistency. You can
+inspect accepted sources, open their findings, or explicitly retry a comparison.
+Failed extraction requires another upload. Failed requests keep the form and file;
+uncertain submissions are never automatically resent.
+
+For a complete policy replacement, choose the earlier version in **Version
+relationship**. The form keeps its name, category and scope and sends an explicit
+replacement declaration using its clause IDs. Supply a different version label and
+an effective date later than the earlier version's start. Partial replacements use
+the ingestion API. Merely uploading a higher version does not replace an old one.
+
+Sources search, type, sort, selected job and an open document's page/zoom are stored
+in the URL, so authorized teammates can restore the same view against the same
+backend. Unsent files, form text and consent stay out of shared URLs.
 
 The review-history addition preserves the existing finding response and adds a
 top-level `reviews` array. Review submissions can supply `expected_snapshot_id`;

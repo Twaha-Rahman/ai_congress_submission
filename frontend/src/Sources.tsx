@@ -93,6 +93,7 @@ export default function Sources({ office, session, view, navigate, shortcutsEnab
     refresh: () => navigate({ autoRefresh: !view.autoRefresh }),
   });
   function queued(job: UploadJob) {
+    if (!mounted.current) return;
     setOpenUpload(false); setJobs((current) => [job, ...current.filter((j) => j.job_id !== job.job_id)]);
     setSelectedJob(job); setNotice("PDF received. Processing is queued and auto-refresh is on.");
     navigate({ uploadJob: job.job_id, autoRefresh: true });
@@ -104,10 +105,12 @@ export default function Sources({ office, session, view, navigate, shortcutsEnab
     setRetrying(true); setJobError("");
     try {
       const result = await api<{ job: UploadJob }>(`${office}/sources/${encodeURIComponent(job.source_id)}/comparisons?mode=live`, { method: "POST" });
+      if (!mounted.current) return;
+      if (!result.job?.job_id) throw new Error("The office did not confirm a comparison job.");
       setJobs((current) => [result.job, ...current]); navigate({ uploadJob: result.job.job_id, autoRefresh: true });
       setNotice("Comparison queued. The original PDF and earlier assessments are preserved.");
-    } catch (e) { setJobError((e instanceof Error ? e.message : "Comparison could not be queued.") + " Check recent uploads before retrying."); }
-    finally { setRetrying(false); }
+    } catch (e) { if (mounted.current) setJobError((e instanceof Error ? e.message : "Comparison could not be queued.") + " Check recent uploads before retrying."); }
+    finally { if (mounted.current) setRetrying(false); }
   }
   return <>
     <div className="page-heading sources-heading"><h1>Sources</h1>
@@ -128,7 +131,8 @@ export default function Sources({ office, session, view, navigate, shortcutsEnab
           <div className="source-tools"><label className="search-input"><Search size={16} /><span className="sr-only">Search sources</span>
             <input ref={search} placeholder="Search policies, categories or versions…" aria-label="Search sources" value={view.sourceSearch} aria-keyshortcuts={shortcutsEnabled ? "/ Escape" : "Escape"}
               onChange={(e) => navigate({ sourceSearch: e.target.value })} onKeyDown={(e) => { if (e.key === "Escape" && !e.nativeEvent.isComposing && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) { e.preventDefault(); e.stopPropagation(); document.getElementById("source-library-title")?.focus(); } }} />
-            {view.sourceSearch ? <button className="icon-button" aria-label="Clear source search" onClick={() => { navigate({ sourceSearch: "" }); search.current?.focus(); }}><X size={14} /></button> : shortcutsEnabled && <ShortcutHint>/</ShortcutHint>}</label>
+            {shortcutsEnabled && <span className="search-shortcuts" aria-hidden="true"><ShortcutHint className="search-idle">/</ShortcutHint><ShortcutHint className="search-editing">Esc</ShortcutHint></span>}
+            <button className="icon-button" aria-label="Clear source search" tabIndex={view.sourceSearch ? 0 : -1} style={{ visibility: view.sourceSearch ? "visible" : "hidden" }} onClick={() => { navigate({ sourceSearch: "" }); search.current?.focus(); }}><X size={14} /></button></label>
             <Select label="Source type" value={view.sourceType} options={[{ value: "all", label: "All sources" }, { value: "pdf", label: "PDF documents" }, { value: "slack", label: "Slack messages" }]} onChange={(value) => navigate({ sourceType: value as View["sourceType"] })} />
             <Select label="Sort sources" compact icon={<ArrowDownWideNarrow size={15} />} value={view.sourceSort} triggerRef={sort} shortcut={shortcutsEnabled ? "S" : undefined}
               options={[{ value: "newest", label: "Newest first" }, { value: "name", label: "Policy name" }]} onChange={(value) => navigate({ sourceSort: value as View["sourceSort"] })} />
@@ -162,7 +166,7 @@ export default function Sources({ office, session, view, navigate, shortcutsEnab
               {selectedJob.source_id && <button className="text-button" onClick={() => navigate({ document: selectedJob.source_id!, page: 1, zoom: 100 })}>Inspect source</button>}
               {selectedJob.source_id && ["needs_review", "failed"].includes(selectedJob.status) && canUpload && sources.find((s) => s.source_id === selectedJob.source_id)?.subject === "general_policy" &&
                 <button className="button secondary" disabled={retrying || active} onClick={() => void retryComparison(selectedJob)}>{retrying ? <LoaderCircle size={14} className="spin" /> : <RefreshCw size={14} />}Retry comparison</button>}
-              {selectedJob.status === "failed" && !selectedJob.source_id && canUpload && <button className="button secondary" onClick={() => setOpenUpload(true)}>Revise upload</button>}
+              {selectedJob.status === "failed" && !selectedJob.source_id && canUpload && <button className="button secondary" onClick={() => setOpenUpload(true)}>Upload again</button>}
             </div>
             <details className="job-technical"><summary>Processing details</summary><dl><dt>Job</dt><dd>{selectedJob.job_id}</dd><dt>Model mode</dt><dd>{selectedJob.mode}</dd><dt>Submitted</dt><dd>{date(selectedJob.created_at, true)}</dd>{selectedJob.finished_at && <><dt>Finished</dt><dd>{date(selectedJob.finished_at, true)}</dd></>}{selectedJob.error_code && <><dt>Error</dt><dd>{selectedJob.error_code}</dd></>}</dl></details>
           </div>}

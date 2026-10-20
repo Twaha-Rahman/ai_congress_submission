@@ -33,7 +33,8 @@ test("replacement is explicit, binds clauses and requires compatible scope and a
   assert.deepEqual(next.supersedes?.replaced_clause_ids, target.clauses);
   assert.throws(() => buildPolicyManifest(draft(), target), /new version/);
   assert.throws(() => buildPolicyManifest({ ...draft(), version: "v2", effective: "" }, target), /effective date/);
-  assert.throws(() => buildPolicyManifest({ ...draft(), version: "v2", scope: "Different team" }, target), /scope/);
+  assert.throws(() => buildPolicyManifest({ ...draft(), version: "v2", effective: "2026-11-01", scope: "Different team" }, target), /scope/);
+  assert.throws(() => buildPolicyManifest({ ...draft(), version: "v2", effective: "2026-09-01" }, target), /after/);
 });
 test("source sorting/filtering never mutates data or selects a different document", () => {
   const sources = [

@@ -78,6 +78,7 @@ export default function UploadPdf({ open, office, sources, config, shortcutsEnab
     event.preventDefault();
     if (!canSubmit || !config?.enabled || saveLock.current) return;
     setError("");
+    let submitted = false;
     try {
       if (hosted && !draft.hosted) throw new Error("Allow hosted model processing to analyze this PDF with the configured model.");
       const manifest = buildPolicyManifest(draft, replacement ? {
@@ -86,13 +87,14 @@ export default function UploadPdf({ open, office, sources, config, shortcutsEnab
       const form = new FormData();
       form.set("file", file!); form.set("manifest", JSON.stringify(manifest));
       saveLock.current = true; setSaving(true);
+      submitted = true;
       const result = await api<{ job: UploadJob }>(`${office}/ingestions/pdf`, { method: "POST", body: form });
       if (!result.job?.job_id) throw new Error("The office did not confirm a processing job. Check recent uploads before trying again.");
       setFile(null); setDraft(blankDraft()); setReplaceId(""); savedNewDraft.current = null;
       onQueued(result.job);
     } catch (e) {
       setError((e instanceof Error ? e.message : "The upload could not be completed.") +
-        (!(e instanceof ApiError) || e.status >= 500 ? " Check recent uploads before retrying; the office may have received the file." : ""));
+        (submitted && (!(e instanceof ApiError) || e.status >= 500) ? " Check recent uploads before retrying; the office may have received the file." : ""));
       requestAnimationFrame(() => errorRef.current?.focus());
     } finally { saveLock.current = false; setSaving(false); }
   }
@@ -101,7 +103,7 @@ export default function UploadPdf({ open, office, sources, config, shortcutsEnab
     <form onSubmit={submit} onKeyDown={(e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter" && !e.nativeEvent.isComposing) { e.preventDefault(); if (canSubmit) e.currentTarget.requestSubmit(); }
     }}>
-      <fieldset disabled={saving} className="upload-fields">
+      <div className="upload-scroll"><fieldset disabled={saving} className="upload-fields">
         <div className="dialog-body upload-body">
           <div className="upload-office"><span className="small-dot dot-policy" />{office === "dhaka" ? "Dhaka" : "Frankfurt"} office<span>PDF · up to {Math.round(limit / (1024 * 1024))} MB</span></div>
           <input ref={input} type="file" accept=".pdf,application/pdf" className="sr-only" tabIndex={-1} aria-label="Choose PDF file"
@@ -185,9 +187,9 @@ export default function UploadPdf({ open, office, sources, config, shortcutsEnab
           </div>
           {error && <div className="notice warning" ref={errorRef} tabIndex={-1} role="alert"><AlertCircle size={17} /><span>{error}</span></div>}
         </div>
-      </fieldset>
+      </fieldset></div>
       <footer className="dialog-footer">
-        <span className="upload-save-status" role="status">{saving ? "Sending PDF to the office…" : "Your file uploads when you submit."}</span>
+        <span className="upload-save-status" role="status">{saving ? "Sending PDF to the office…" : "\u00a0"}</span>
         <button type="button" className="button secondary" disabled={saving} onClick={onClose}>Cancel</button>
         <button type="submit" className="button primary" disabled={!canSubmit || !config?.enabled} aria-keyshortcuts="Control+Enter Meta+Enter">
           {saving ? <LoaderCircle size={16} className="spin" /> : <ArrowUpFromLine size={16} />}Upload PDF

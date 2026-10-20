@@ -17,7 +17,7 @@
 .source-type-icon.authority-informal { color: var(--primary); background: var(--warning-surface); border-color: var(--warning-line); }
 .source-row-body { flex: 1; min-width: 0; }
 .source-row-top { display: flex; flex-wrap: wrap; align-items: center; gap: 7px 10px; }
-.source-name { padding: 0; text-align: left; font-size: 14px; font-weight: 500; border: 0; color: var(--ink); overflow-wrap: anywhere; }
+.source-name { padding: 0; text-align: left; font-size: 14px; font-weight: 500; border: 0; color: var(--ink); overflow-wrap: anywhere; max-width: 100%; }
 .source-name:hover { color: var(--primary); }
 .source-version { display: inline-flex; border: 1px solid var(--neutral-line); color: var(--neutral-ink); background: var(--neutral-surface); border-radius: 4px; padding: 1px 6px; font-size: 10px; font-weight: 500; overflow-wrap: anywhere; }
 .source-row-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 5px 11px; margin-top: 7px; color: var(--muted); font-size: 11px; }
@@ -60,11 +60,13 @@
 .job-technical dl { font-size: 10px; margin-bottom: 0; }
 .job-technical dt, .library-source-metadata dt { color: var(--muted); margin-top: 10px; }
 .job-technical dd, .library-source-metadata dd { margin: 3px 0 0; overflow-wrap: anywhere; }
-.dialog.upload-dialog { width: min(720px, calc(100vw - 32px)); }
-.upload-dialog form { display: flex; flex-direction: column; max-height: calc(100dvh - 130px); }
-.upload-fields { border: 0; padding: 0; margin: 0; min-width: 0; overflow: auto; overscroll-behavior: contain; }
+.dialog.upload-dialog { width: min(720px, calc(100vw - 32px)); overflow: hidden; }
+.dialog.upload-dialog[open] { display: flex; flex-direction: column; }
+.upload-dialog form { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.upload-scroll { min-height: 0; overflow: auto; overscroll-behavior: contain; }
+.upload-fields { border: 0; padding: 0; margin: 0; min-width: 0; }
 .upload-dialog .dialog-footer { flex-shrink: 0; flex-wrap: wrap; }
-.upload-dialog .dialog-header { padding-top: 17px; padding-bottom: 17px; }
+.upload-dialog .dialog-header { padding-top: 17px; padding-bottom: 17px; flex-shrink: 0; }
 .upload-body { padding: 22px 24px 24px; }
 .upload-office { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); margin-bottom: 14px; }
 .upload-office > span:last-child { margin-left: auto; }
@@ -142,8 +144,7 @@
   .source-tools .search-input { flex-basis: 100%; }
   .source-tools > .select-trigger { flex: 1; }
   .upload-job-list { grid-template-columns: minmax(0, 1fr); }
-  .upload-dialog { max-height: calc(100dvh - 24px); }
-  .upload-dialog form { max-height: calc(100dvh - 99px); }
+  .dialog.upload-dialog { max-height: calc(100dvh - 24px); }
   .upload-dialog .dialog-header { padding: 14px 16px; }
   .upload-body { padding: 16px; }
   .upload-form-grid { gap: 15px 12px; }

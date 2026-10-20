@@ -48,14 +48,18 @@ export function amountRange(interval: AmountInterval, currency = "USD") {
   return start || end || "All amounts";
 }
 export function scopeLabel(scope: Scope) {
+  if (scope.kind === "policy") return scope.description || "Policy applicability";
   if (scope.kind === "loan" && scope.amount_minor)
     return amountRange(scope.amount_minor, scope.currency);
   return `${humanize(scope.record_class || "records")} · ${humanize(scope.product || "all products")}`;
 }
 export function scopeContext(scope: Scope) {
+  if (scope.kind === "policy") {
+    return Object.entries(scope.attributes || {}).map(([key, value]) => `${humanize(key)}: ${value}`).join(" · ") || "See source passages for conditions and exceptions";
+  }
   return scope.kind === "loan"
-    ? `${humanize(scope.loan_type || "business")} loans · ${scope.currency || "USD"} · ${humanize(scope.origin_office.toLowerCase())} origin`
-    : `${humanize(scope.origin_office.toLowerCase())} → ${humanize((scope.processing_office || "").toLowerCase())} · From ${humanize(scope.starting_event || "loan closure").toLowerCase()}`;
+    ? `${humanize(scope.loan_type || "business")} loans · ${scope.currency || "USD"} · ${humanize((scope.origin_office || "").toLowerCase())} origin`
+    : `${humanize((scope.origin_office || "").toLowerCase())} → ${humanize((scope.processing_office || "").toLowerCase())} · From ${humanize(scope.starting_event || "loan closure").toLowerCase()}`;
 }
 export const typeLabels: Record<FindingType, string> = {
   stale_guidance: "Stale guidance",
@@ -68,6 +72,20 @@ export const typeLabels: Record<FindingType, string> = {
   needs_review: "Needs interpretation",
 };
 export function findingTitle(finding: Finding) {
+  if (finding.subject === "general_policy") {
+    if (finding.detail.assessment === "historical") return "Previous policy assessment";
+    const titles: Record<FindingType, string> = {
+      contradiction: "Policy statements may conflict",
+      incorrect_guidance: "Guidance may conflict with policy",
+      compliance_gap: "Procedure may fall short of policy",
+      stale_guidance: "Guidance may be out of date",
+      compatible_difference: "Policy statements appear compatible",
+      supersession: "Policy has been replaced",
+      not_comparable: "Statements need separate interpretation",
+      needs_review: "Policy comparison needs context",
+    };
+    return titles[finding.finding_type];
+  }
   const subject =
     finding.subject === "loan_approval" ? "Approval" : "Retention";
   const titles: Record<FindingType, string> = {
@@ -84,6 +102,9 @@ export function findingTitle(finding: Finding) {
 }
 export function explanation(finding: Finding) {
   const d = finding.detail;
+  if (finding.subject === "general_policy" && d.explanation) {
+    return d.explanation + (d.assessment === "model_assisted" ? " This is a model-assisted assessment; review the source passages before acting." : "");
+  }
   switch (finding.finding_type) {
     case "stale_guidance":
       return `The guidance matches a superseded requirement. ${d.required ? `The governing requirement is ${d.required}; ` : ""}${d.advised_value ? `the guidance says ${d.advised_value} is sufficient. ` : ""}The mismatch applies only to the scope below.`;
@@ -114,6 +135,7 @@ export function sourceTitle(source?: Pick<Source, "source_identity">) {
 }
 export function ruleSummary(claim?: Claim) {
   if (!claim) return "Rule metadata unavailable";
+  if (claim.rule.kind === "policy_statement") return claim.rule.statement || "Policy statement unavailable";
   const kinds: Record<string, string> = {
     required_minimum: "At least",
     maximum_allowed: "At most",

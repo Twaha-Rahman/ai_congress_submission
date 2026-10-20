@@ -19,6 +19,7 @@ import re
 from ..contracts.common import (
     VALIDATOR_VERSION,
     AmountScope,
+    PolicyRule,
     Rule,
     RuleKind,
     Scope,
@@ -571,7 +572,9 @@ def validate_proposal(
             )
             continue
         if len(matches) > 1:
-            hints = [clause for clause, _ in matches if rule.evidence.page is None or clause.page == rule.evidence.page]
+            hints = [(clause, offset) for clause, offset in matches
+                     if (rule.evidence.page is None or clause.page == rule.evidence.page)
+                     and (rule.evidence.section is None or clause.section == rule.evidence.section)]
             if len(hints) == 1:
                 matches = hints
             else:
@@ -627,6 +630,33 @@ def validate_proposal(
                 )
 
         # -------------------------------------------------------------- conditions
+        if isinstance(rule.rule, PolicyRule):
+            policy = rule.rule
+            fields = [policy.actor, policy.action, policy.object, policy.constraint,
+                      *policy.applies_to, *policy.conditions, *policy.exceptions, *rule.conditions]
+            if (policy.statement != rule.evidence.quote
+                    or rule.scope != manifest.scope
+                    or any(text is not None and (not text.strip() or text not in policy.statement)
+                           for text in fields)):
+                reviews.append(ReviewItem(
+                    reason_code="ungrounded_policy_statement",
+                    detail="policy fields must be exact excerpts of the evidence and use the trusted scope",
+                    subject=rule.subject, clause_id=clause.clause_id,
+                    quote=rule.evidence.quote, proposed=rule,
+                ))
+                continue
+            # Keep exceptions/conditions in the full statement and supply the full
+            # surrounding clause to comparison even if extraction omitted a field.
+            accepted.append(VerifiedRule(
+                proposed=rule, clause=clause, notes=["semantic interpretation requires review"],
+                evidence=VerifiedEvidence(
+                    clause_id=clause.clause_id, page=clause.page, section=clause.section,
+                    quote=rule.evidence.quote, start_char=start, end_char=end,
+                    leaf_hash=clause.leaf_hash, manifest_root=manifest_root,
+                ),
+            ))
+            continue
+
         condition_hit = _first_pattern(clause.text, CONDITION_PATTERNS)
         if condition_hit:
             reviews.append(
@@ -859,7 +889,9 @@ def _first_pattern_span(text: str, patterns: tuple[str, ...]) -> tuple[int, int]
     return None
 
 
-def rule_summary(rule: Rule) -> str:
+def rule_summary(rule: Rule | PolicyRule) -> str:
+    if isinstance(rule, PolicyRule):
+        return rule.statement
     from ..rules.values import describe, constraint_for
 
     if rule.kind in (RuleKind.ADVISED_SUFFICIENT, RuleKind.OPERATING_EXACT):

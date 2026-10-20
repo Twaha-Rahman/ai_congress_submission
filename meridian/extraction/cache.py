@@ -59,8 +59,9 @@ class CachedExtractionProvider:
 
     name = "cache"
 
-    def __init__(self, cache_dir: str | Path) -> None:
+    def __init__(self, cache_dir: str | Path, *, proposal_model=ExtractionProposal) -> None:
         self.cache_dir = Path(cache_dir)
+        self.proposal_model = proposal_model
 
     def path_for(self, cache_key: str) -> Path:
         return self.cache_dir / f"{cache_key}.json"
@@ -94,7 +95,7 @@ class CachedExtractionProvider:
             result.error_detail = "cached entry key does not match the requested key"
             return result
         try:
-            proposal = ExtractionProposal.model_validate(payload["proposal"])
+            proposal = self.proposal_model.model_validate(payload["proposal"])
         except Exception as exc:
             result.error_code = ErrorCode.SCHEMA_VIOLATION
             result.error_detail = f"cached output failed revalidation: {exc}"

@@ -1,6 +1,20 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { amountRange, money } from "./presentation.ts";
+import { amountRange, money, scopeLabel, scopeContext, findingTitle, explanation, ruleSummary } from "./presentation.ts";
+import type { Claim, Finding, Scope } from "./types";
+
+test("general policy findings describe evidence and uncertainty without numeric assumptions", () => {
+  const scope: Scope = { kind: "policy", description: "All employees", attributes: { country: "BD" } };
+  const finding = { subject: "general_policy", finding_type: "incorrect_guidance", detail: {
+    assessment: "model_assisted", explanation: "The stated deadlines differ.",
+  } } as unknown as Finding;
+  assert.equal(scopeLabel(scope), "All employees");
+  assert.equal(scopeContext(scope), "Country: BD");
+  assert.equal(findingTitle(finding), "Guidance may conflict with policy");
+  assert.match(explanation(finding), /model-assisted assessment/);
+  assert.equal(ruleSummary({ rule: { kind: "policy_statement", statement: "Submit expenses within 30 days." } } as Claim), "Submit expenses within 30 days.");
+  assert.equal(findingTitle({ ...finding, detail: { assessment: "historical" } }), "Previous policy assessment");
+});
 
 test("money uses cents without dropping boundary precision", () => {
   assert.equal(money(2500000), "$25,000");

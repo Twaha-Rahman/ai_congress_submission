@@ -34,6 +34,7 @@ from ..contracts.extraction import ExtractionProvenance, VerifiedEvidence
 from ..contracts.manifest import SourceManifest
 from ..extraction.provider import ClauseInput, ExtractionRequest, ProviderResult
 from ..extraction.service import ModelStageService
+from ..extraction.policy import POLICY_EXTRACTION_VERSION
 from ..extraction.validate import (
     Rejection,
     ReviewItem,
@@ -41,12 +42,14 @@ from ..extraction.validate import (
     ValidatorClause,
     VerifiedRule,
     validate_proposal,
+    rule_summary,
 )
 from ..integrity.bundles import SignedManifestPayload, claim_hash, clause_leaf_payload
 from ..integrity.canonical import canonical_json_bytes, sha256_hex
 from ..integrity.merkle import build_tree
 from ..integrity.signing import Signer
 from ..rules.publish import publish_findings, reevaluate_findings_for_revisions
+from ..rules.general import prepare_policy_comparisons, publish_policy_batch
 from ..storage.store import ClauseRow, OfficeStore, SourceRow, canonical_json_text, new_id
 from ..temporal.supersession import apply_manifest_supersession
 from .pdf import ParsedDocument, UnsupportedDocument, parse_pdf_bytes
@@ -439,7 +442,7 @@ def ingest_prepared(
         manifest_scope_summary=manifest.scope.model_dump_json(),
         clauses=clause_inputs,
         mode=mode,
-        prompt_version=PROMPT_VERSION,
+        prompt_version=POLICY_EXTRACTION_VERSION if manifest.subject is Subject.GENERAL_POLICY else PROMPT_VERSION,
         schema_version=SCHEMA_VERSION,
         request_id=request_id or new_id("req"),
         hosted_model_allowed=manifest.permissions.hosted_model,
@@ -508,6 +511,32 @@ def ingest_prepared(
     outcome.review_reasons = [reason for reason, _ in review_detail]
     outcome.rejection_reasons = [item.reason_code for item in validation.rejections]
 
+    if manifest.subject is Subject.GENERAL_POLICY and manifest.source_type is SourceType.SLACK:
+        # A saved batch may span many timestamps. Bind each extracted statement to
+        # its own message time rather than treating every message as the newest.
+        messages = parse_slack_payload(prepared.raw_bytes)
+        times = {clause.clause_id: message.ts for clause, message in zip(clauses, messages)}
+        for record in accepted_records + review_records:
+            if manifest.effective_from is None:
+                revision = record.payload.model_copy(update={
+                    "valid_from": times[record.payload.source_clause_id],
+                })
+                # Revalidate intervals before signing the corrected immutable claim.
+                record.payload = ClaimRevision.model_validate(revision.model_dump())
+                record.payload_hash = claim_hash(record.payload)
+                record.signature = signer.sign(canonical_json_bytes(record.payload))
+
+    policy_batch = prepare_policy_comparisons(
+        store, new_revisions=[record.payload for record in accepted_records],
+        new_clauses=clauses, manifest=manifest, service=service, mode=mode,
+        request_id=request.request_id,
+    )
+    if manifest.subject is Subject.GENERAL_POLICY:
+        outcome.stage_modes["policy_comparison"] = mode.value
+        if len(clauses) > clause_extension_max:
+            policy_batch.reviews.append(("policy_extraction_limit", "Not all source clauses were extracted; coverage is incomplete."))
+    outcome.review_reasons.extend(code for code, _ in policy_batch.reviews)
+
     if (
         not accepted_records
         and not validation.reviews
@@ -574,7 +603,7 @@ def ingest_prepared(
                 connection,
                 node_id=f"revision:{payload.revision_id}",
                 node_type="claim_revision",
-                label=f"{payload.subject.value} {payload.rule.kind.value} {payload.rule.value}",
+                label=f"{payload.subject.value}: {rule_summary(payload.rule)}",
                 attributes={
                     "claim_id": payload.claim_id,
                     "authority": payload.authority.value,
@@ -608,6 +637,11 @@ def ingest_prepared(
                 subject=review.subject.value if review.subject else None,
                 connection=connection,
                 created_at=moment,
+            )
+        for code, detail in policy_batch.reviews:
+            store.insert_claim_review(
+                source_id=source_id, reason_code=code, detail={"detail": detail},
+                subject=manifest.subject.value, connection=connection, created_at=moment,
             )
 
         supersession = apply_manifest_supersession(
@@ -654,6 +688,9 @@ def ingest_prepared(
             signer=signer,
             now=moment,
         )
+        finding_types.extend(publish_policy_batch(
+            connection, store, policy_batch, signer=signer, now=moment,
+        ))
         if supersession.closed_revision_ids:
             finding_types.extend(
                 reevaluate_findings_for_revisions(
@@ -684,6 +721,20 @@ def ingest_prepared(
             cache_key=result.cache_key,
             raw_output_sha256=result.raw_output_sha256,
         )
+        for comparison_request, comparison_result in policy_batch.calls:
+            store.record_model_call(
+                connection, call_id=new_id("call"), job_id=None, source_id=source_id,
+                mode=comparison_result.mode.value, provider=comparison_result.provider,
+                route=comparison_result.route, model=comparison_result.model,
+                prompt_version=comparison_request.prompt_version,
+                schema_version=comparison_request.schema_version,
+                attempts=comparison_result.attempts, latency_ms=comparison_result.latency_ms,
+                usage=comparison_result.usage,
+                status="succeeded" if comparison_result.ok else "failed",
+                error_code=comparison_result.error_code.value if comparison_result.error_code else None,
+                cache_key=comparison_result.cache_key,
+                raw_output_sha256=comparison_result.raw_output_sha256,
+            )
 
     outcome.created = True
     outcome.claim_revision_ids = [

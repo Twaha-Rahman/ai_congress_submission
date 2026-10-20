@@ -256,7 +256,7 @@ export default function App() {
   const needsAttention =
     data?.findings.filter(
       (f) =>
-        f.severity === "high" &&
+        ["high", "review"].includes(f.severity) &&
         !["resolved", "dismissed"].includes(f.review_state),
     ).length || 0;
   const reviewed =

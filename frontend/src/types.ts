@@ -17,8 +17,10 @@ export interface AmountInterval {
   upper_inclusive: boolean;
 }
 export interface Scope {
-  kind: "loan" | "record";
-  origin_office: string;
+  kind: "loan" | "record" | "policy";
+  origin_office?: string;
+  description?: string;
+  attributes?: Record<string, string>;
   amount_minor?: AmountInterval;
   currency?: string;
   loan_type?: string;
@@ -85,7 +87,7 @@ export interface Claim {
   valid_to: string | null;
   system_from: string;
   system_to: string | null;
-  rule: { kind: string; value: string | number; unit: string };
+  rule: { kind: string; value?: string | number; unit?: string; statement?: string; modality?: string };
   extraction_mode: "live" | "cached" | "replay";
 }
 export interface ReviewEvent {

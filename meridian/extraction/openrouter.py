@@ -53,10 +53,10 @@ USER_PROMPT_TEMPLATE = (
 RetryHook = Callable[[int, float], None]
 
 
-def strict_json_schema() -> dict:
+def strict_json_schema(proposal_model=ExtractionProposal) -> dict:
     """Generate a strict JSON schema from the contract model."""
 
-    schema = ExtractionProposal.model_json_schema()
+    schema = proposal_model.model_json_schema()
     schema["additionalProperties"] = False
 
     def force_required(node: object) -> None:
@@ -79,6 +79,7 @@ class OpenRouterExtractionProvider:
     """Small httpx adapter for an OpenAI-compatible chat completions endpoint."""
 
     name = "openrouter"
+    proposal_model = ExtractionProposal
 
     def __init__(
         self,
@@ -134,6 +135,10 @@ class OpenRouterExtractionProvider:
         return routing or None
 
     def build_body(self, request: ExtractionRequest) -> dict:
+        if request.subject.value == "general_policy":
+            from .policy import policy_extraction_body
+
+            return policy_extraction_body(self, request)
         source_text = "\n\n".join(
             f"[clause {clause.clause_id} | page {clause.page}"
             f"{' | section ' + clause.section if clause.section else ''}]\n{clause.text}"
@@ -193,14 +198,16 @@ class OpenRouterExtractionProvider:
         )
         attempts = 0
         started = time.monotonic()
+        job_budget = min(self.job_budget_seconds, request.model_budget_seconds) if request.model_budget_seconds is not None else self.job_budget_seconds
         last_error: tuple[ErrorCode, str, int | None] | None = None
         while attempts < self.max_attempts:
-            if time.monotonic() - started > self.job_budget_seconds:
+            remaining = job_budget - (time.monotonic() - started)
+            if remaining <= 0:
                 break
             attempts += 1
             try:
                 with httpx.Client(
-                    timeout=self.timeout_seconds, transport=self._transport
+                    timeout=min(self.timeout_seconds, remaining), transport=self._transport
                 ) as client:
                     response = client.post(
                         f"{self.base_url}/chat/completions",
@@ -314,7 +321,7 @@ class OpenRouterExtractionProvider:
                 (ErrorCode.SCHEMA_VIOLATION, f"model output was not valid JSON: {exc}"),
             )
         try:
-            proposal = ExtractionProposal.model_validate(data)
+            proposal = self.proposal_model.model_validate(data)
         except Exception as exc:
             return (
                 None,

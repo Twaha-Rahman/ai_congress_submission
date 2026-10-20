@@ -40,6 +40,8 @@ class TargetFacts(StrictModel):
 
     @model_validator(mode="after")
     def _required_fields(self) -> "TargetFacts":
+        if self.subject is Subject.GENERAL_POLICY:
+            raise ValueError("general policies support ingestion/findings; typed numeric Q&A requires loan_approval or record_retention")
         if self.subject is Subject.LOAN_APPROVAL:
             if self.amount_minor is None:
                 raise ValueError("loan_approval queries require amount_minor")

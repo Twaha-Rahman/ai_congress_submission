@@ -13,6 +13,7 @@ from typing import Callable
 from ..config import OfficeSettings, is_local_endpoint
 from ..contracts.common import PARSER_VERSION, PROMPT_VERSION, SCHEMA_VERSION, ErrorCode, Mode
 from ..contracts.federation import ModelCallMetadata
+from ..contracts.extraction import PolicyComparisonProposal
 from .cache import CachedExtractionProvider, compute_cache_key
 from .openrouter import OpenRouterExtractionProvider
 from .provider import (
@@ -21,6 +22,7 @@ from .provider import (
     ProviderResult,
 )
 from .replay import ReplayExtractionProvider
+from .policy import PolicyComparisonProvider, POLICY_COMPARISON_VERSION
 
 #: Callback receiving a dict describing one audited model transport event.
 EgressSink = Callable[[dict], None]
@@ -59,6 +61,20 @@ class ModelStageService:
             provider_preferences=settings.llm_provider_prefs,
             **kwargs,
         )
+        self.comparison_live = PolicyComparisonProvider(
+            base_url=settings.llm_base_url, model=settings.llm_model,
+            api_key=settings.llm_api_key, timeout_seconds=settings.llm_timeout_seconds,
+            max_attempts=settings.llm_max_attempts,
+            job_budget_seconds=settings.llm_job_model_budget_seconds,
+            temperature=settings.llm_temperature,
+            provider_preferences=settings.llm_provider_prefs, **kwargs,
+        )
+        self.comparison_cache = CachedExtractionProvider(
+            settings.cache_dir / "comparisons", proposal_model=PolicyComparisonProposal,
+        )
+        self.comparison_replay = ReplayExtractionProvider(
+            settings.replay_dir / "comparisons", proposal_model=PolicyComparisonProposal,
+        )
 
     # ------------------------------------------------------------------- helpers
     def cache_key_for(self, request: ExtractionRequest) -> str:
@@ -86,7 +102,7 @@ class ModelStageService:
                 "request_id": request.request_id,
                 "channel": "hosted_model",
                 "destination": self.settings.llm_base_url,
-                "payload_type": "extraction_request",
+                "payload_type": "policy_comparison" if request.prompt_version == POLICY_COMPARISON_VERSION else "extraction_request",
                 "payload_bytes": result.request_bytes,
                 "payload_sha256": "",
                 "raw_source_bytes": raw_source_bytes,
@@ -125,6 +141,15 @@ class ModelStageService:
 
     # -------------------------------------------------------------------- public
     def extract(self, request: ExtractionRequest) -> ProviderResult:
+        return self._execute(request)
+
+    def compare_policy(self, request: ExtractionRequest) -> ProviderResult:
+        return self._execute(request, comparison=True)
+
+    def _execute(self, request: ExtractionRequest, *, comparison: bool = False) -> ProviderResult:
+        live = self.comparison_live if comparison else self.live
+        cache = self.comparison_cache if comparison else self.cache
+        replay = self.comparison_replay if comparison else self.replay
         raw_source_bytes = sum(len(clause.text.encode("utf-8")) for clause in request.clauses)
         if request.mode is Mode.LIVE:
             if not self._live_processing_allowed(request):
@@ -143,11 +168,11 @@ class ModelStageService:
                 self._record(request, result, outcome="blocked", raw_source_bytes=0)
                 return result
             try:
-                result = self.live.extract(request)
+                result = live.extract(request)
             except ProviderPrerequisiteError as exc:
                 result = ProviderResult(
                     mode=Mode.LIVE,
-                    provider=self.live.name,
+                    provider=live.name,
                     error_code=exc.error_code,
                     error_detail=exc.detail,
                     model=self.settings.llm_model,
@@ -166,7 +191,7 @@ class ModelStageService:
                     "usage": {k: v for k, v in result.usage.items() if isinstance(v, int)},
                     "status_code": result.status_code,
                 }
-                self.cache.write(
+                cache.write(
                     key,
                     result,
                     model_metadata=metadata,
@@ -182,7 +207,7 @@ class ModelStageService:
 
         if request.mode is Mode.CACHED:
             key = self.cache_key_for(request)
-            result = self.cache.extract_with_key(request, key)
+            result = cache.extract_with_key(request, key)
             if result.ok is False:
                 # A cache miss is reported to the caller; it never triggers a live call.
                 pass
@@ -194,7 +219,7 @@ class ModelStageService:
             )
             return result
 
-        result = self.replay.extract(request)
+        result = replay.extract(request)
         self._record(
             request,
             result,

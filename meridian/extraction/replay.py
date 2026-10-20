@@ -19,8 +19,9 @@ from .provider import ExtractionRequest, ProviderResult
 class ReplayExtractionProvider:
     name = "replay-fixture"
 
-    def __init__(self, replay_dir: str | Path) -> None:
+    def __init__(self, replay_dir: str | Path, *, proposal_model=ExtractionProposal) -> None:
         self.replay_dir = Path(replay_dir)
+        self.proposal_model = proposal_model
 
     def path_for(self, request: ExtractionRequest) -> Path:
         return self.replay_dir / f"{request.source_identity}__{request.version_label}.json"
@@ -63,7 +64,7 @@ class ReplayExtractionProvider:
             return result
 
         try:
-            proposal = ExtractionProposal.model_validate(payload["proposal"])
+            proposal = self.proposal_model.model_validate(payload["proposal"])
         except Exception as exc:
             result.error_code = ErrorCode.SCHEMA_VIOLATION
             result.error_detail = f"replay proposal failed schema validation: {exc}"

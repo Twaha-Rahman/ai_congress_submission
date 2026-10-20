@@ -55,6 +55,7 @@ class OfficeRegion(str, Enum):
 class Subject(str, Enum):
     LOAN_APPROVAL = "loan_approval"
     RECORD_RETENTION = "record_retention"
+    GENERAL_POLICY = "general_policy"
 
 
 class ScopeKind(str, Enum):
@@ -245,6 +246,8 @@ class ExplanationCode(str, Enum):
     STARTING_EVENT_MISMATCH = "starting_event_mismatch"
     REVISION_NOT_CURRENT = "revision_not_current"
     INCOMPARABLE_RULE_KINDS = "incomparable_rule_kinds"
+    SEMANTIC_CONFLICT = "semantic_conflict"
+    SEMANTIC_UNCERTAINTY = "semantic_uncertainty"
 
 
 class QueryWarningCode(str, Enum):
@@ -481,7 +484,53 @@ class RecordScope(StrictModel):
     starting_event: StartingEvent
 
 
-Scope = Annotated[Union[AmountScope, RecordScope], Field(discriminator="kind")]
+class PolicyScope(StrictModel):
+    """Uploader-assigned applicability; textual applicability stays in the rule.
+
+    Attributes are explicit categorical boundaries (e.g. jurisdiction/team), not
+    model-inferred facts. Missing keys mean unspecified, never known equality.
+    """
+
+    kind: Literal["policy"] = "policy"
+    description: str = Field(min_length=1, max_length=1000)
+    attributes: dict[str, str] = Field(default_factory=dict, max_length=20)
+
+    @field_validator("description")
+    @classmethod
+    def _description(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("policy scope description must not be blank")
+        return value
+
+    @field_validator("attributes")
+    @classmethod
+    def _attributes(cls, value: dict[str, str]) -> dict[str, str]:
+        if any(not k.strip() or not v.strip() or len(k) > 128 or len(v) > 500
+               for k, v in value.items()):
+            raise ValueError("scope attributes must be nonempty bounded strings")
+        return value
+
+
+Scope = Annotated[Union[AmountScope, RecordScope, PolicyScope], Field(discriminator="kind")]
+
+
+class PolicyRule(StrictModel):
+    """Domain-independent statement. All text fields are source excerpts.
+
+    This is evidence-grounded extraction, not a proof that the model understood
+    the obligation correctly. Semantic findings always require human review.
+    """
+
+    kind: Literal["policy_statement"] = "policy_statement"
+    statement: str = Field(min_length=1, max_length=12000)
+    modality: Literal["required", "prohibited", "permitted", "advice", "assertion"]
+    actor: str | None = Field(default=None, min_length=1, max_length=1000)
+    action: str = Field(min_length=1, max_length=2000)
+    object: str | None = Field(default=None, min_length=1, max_length=2000)
+    constraint: str | None = Field(default=None, min_length=1, max_length=2000)
+    applies_to: list[str] = Field(default_factory=list, max_length=30)
+    conditions: list[str] = Field(default_factory=list, max_length=30)
+    exceptions: list[str] = Field(default_factory=list, max_length=30)
 
 
 class Rule(StrictModel):

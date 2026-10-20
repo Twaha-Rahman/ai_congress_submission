@@ -241,6 +241,14 @@ def compare_claims(
             authority_basis=f"{l_rev.authority.value}/{r_rev.authority.value}",
         )
 
+    if l_rev.subject is Subject.GENERAL_POLICY:
+        return _base_result(
+            left, right, finding_type=FindingType.NEEDS_REVIEW,
+            severity=Severity.REVIEW, explanation=ExplanationCode.SEMANTIC_UNCERTAINTY,
+            affected_scope=scope, affected_interval=interval,
+            detail={"reason": "general policies require the evidence-grounded semantic comparison stage"},
+        )
+
     lk, rk = l_rev.rule.kind, r_rev.rule.kind
 
     # ---------------------------------------------------- requirement vs requirement

@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from typing import Protocol, Sequence
 
 from ..contracts.common import ErrorCode, Mode, SourceType, Subject
-from ..contracts.extraction import ExtractionProposal
+from ..contracts.extraction import ExtractionProposal, PolicyComparisonProposal
 
 
 @dataclass(frozen=True)
@@ -36,6 +36,8 @@ class ExtractionRequest:
     #: Copied from the trusted manifest's ``permissions.hosted_model`` before any
     #: extraction run.  ``False`` forbids a hosted transport or cache persistence.
     hosted_model_allowed: bool = True
+    #: Optional remaining stage budget; it never affects cache identity.
+    model_budget_seconds: float | None = None
 
 
 @dataclass
@@ -44,7 +46,7 @@ class ProviderResult:
 
     mode: Mode
     provider: str
-    proposal: ExtractionProposal | None = None
+    proposal: ExtractionProposal | PolicyComparisonProposal | None = None
     error_code: ErrorCode | None = None
     error_detail: str | None = None
     model: str | None = None

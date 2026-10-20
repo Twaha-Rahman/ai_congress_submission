@@ -12,6 +12,7 @@ from ..contracts.common import (
     AmountInterval,
     AmountScope,
     RecordScope,
+    PolicyScope,
     Scope,
     TimeInterval,
     TimeInterval as _TimeInterval,
@@ -100,6 +101,18 @@ def scope_intersection(a: Scope, b: Scope) -> Scope | None:
     overlapping amount bands.  Record scopes are categorical: every field must match.
     """
 
+    if isinstance(a, PolicyScope) and isinstance(b, PolicyScope):
+        # Description equality is not semantic scope equality. Only explicit
+        # categorical conflicts can be ruled out here; the model checks the rest.
+        if any(key in b.attributes and b.attributes[key] != value
+               for key, value in a.attributes.items()):
+            return None
+        if a == b:
+            return a
+        return PolicyScope(
+            description=" / ".join(sorted({a.description, b.description}))[:1000],
+            attributes={**a.attributes, **b.attributes},
+        )
     if isinstance(a, AmountScope) and isinstance(b, AmountScope):
         if a.loan_type is not b.loan_type or a.currency is not b.currency:
             return None
@@ -136,6 +149,8 @@ def scope_intersection(a: Scope, b: Scope) -> Scope | None:
 def scope_matches_target(scope: Scope, target: TargetFacts) -> bool:
     """True when ``scope`` applies to the explicit typed target facts."""
 
+    if isinstance(scope, PolicyScope):
+        return False  # General policy Q&A is not part of the numeric answer engine.
     if isinstance(scope, AmountScope):
         if target.subject.value != "loan_approval":
             return False

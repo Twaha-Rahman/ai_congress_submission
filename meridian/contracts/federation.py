@@ -23,6 +23,7 @@ from .common import (
     RecordClass,
     Region,
     Rule,
+    PolicyScope,
     Scope,
     StartingEvent,
     StrictModel,
@@ -99,6 +100,12 @@ class ExportClaim(StrictModel):
     manifest_root: str
     source_ref: str
     source_kind: str
+
+    @model_validator(mode="after")
+    def _numeric_export_only(self) -> "ExportClaim":
+        if self.subject is Subject.GENERAL_POLICY or isinstance(self.scope, PolicyScope):
+            raise ValueError("general policy text is office-local and cannot use numeric federation exports")
+        return self
 
     @field_validator("valid_from", "valid_to", "system_from", "system_to")
     @classmethod

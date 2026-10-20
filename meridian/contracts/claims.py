@@ -12,6 +12,8 @@ from .common import (
     ClaimStatus,
     ClosureKind,
     OfficeRegion,
+    PolicyRule,
+    PolicyScope,
     Rule,
     Scope,
     StrictModel,
@@ -36,7 +38,7 @@ class ClaimRevision(StrictModel):
     revision_id: str
     subject: Subject
     scope: Scope
-    rule: Rule
+    rule: Rule | PolicyRule
     authority: Authority
     policy_family: str
     source_id: str
@@ -58,6 +60,9 @@ class ClaimRevision(StrictModel):
 
     @model_validator(mode="after")
     def _ordered(self) -> "ClaimRevision":
+        general = self.subject is Subject.GENERAL_POLICY
+        if general != isinstance(self.rule, PolicyRule) or general != isinstance(self.scope, PolicyScope):
+            raise ValueError("general_policy requires a policy rule and policy scope")
         if (
             self.valid_from is not None
             and self.valid_to is not None

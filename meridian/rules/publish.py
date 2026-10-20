@@ -11,7 +11,7 @@ import sqlite3
 from datetime import datetime
 from typing import Sequence
 
-from ..contracts.common import ExplanationCode, FindingType, utc_now
+from ..contracts.common import ExplanationCode, FindingType, Subject, utc_now
 from ..contracts.claims import ClaimRevision
 from ..contracts.findings import FindingEvidenceRef, FindingPayload, ComparisonResult
 from ..integrity.bundles import claim_hash
@@ -134,7 +134,7 @@ def publish_comparison(
     key = finding_key(result.finding_type, result.left_revision_id, result.right_revision_id)
     if key in existing_keys and not force_snapshot:
         return None
-    views = store.claim_views(connection=connection)
+    views = store.claim_views(connection=connection, limit=None)
     views_by_id = {view.revision_id: view for view in views}
     payload = build_finding_payload(store, result, views_by_id, now=now)
     payload_bytes = canonical_json_bytes(payload)
@@ -190,6 +190,8 @@ def publish_findings(
     existing_keys = store.finding_keys(connection=connection)
     created: list[str] = []
     for revision in new_revisions:
+        if revision.subject is Subject.GENERAL_POLICY:
+            continue  # General comparisons are retrieved and run before the write transaction.
         left = views_by_id.get(revision.revision_id)
         if left is None:
             continue
@@ -247,6 +249,13 @@ def reevaluate_findings_for_revisions(
         left = views_by_id.get(ids[0])
         right = views_by_id.get(ids[1])
         if left is None or right is None:
+            continue
+        if left.revision.subject is Subject.GENERAL_POLICY:
+            # Retain the finding identity/reviews while appending a signed snapshot
+            # explaining why the old semantic assessment is no longer current.
+            from .general import retire_policy_assessment
+
+            retire_policy_assessment(connection, store, record, signer=signer, now=moment)
             continue
         result = compare_pair(left, right, views)
         old_key = record.payload.finding_key

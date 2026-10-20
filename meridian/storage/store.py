@@ -561,7 +561,7 @@ class OfficeStore:
         *,
         subject: str | None = None,
         include_review: bool = False,
-        limit: int = 1000,
+        limit: int | None = 1000,
         connection: sqlite3.Connection | None = None,
     ) -> list[ClaimRevisionRecord]:
         sql = "SELECT * FROM claim_revisions WHERE tenant_id = ? AND region = ?"
@@ -572,8 +572,10 @@ class OfficeStore:
         if not include_review:
             sql += " AND status = ?"
             params.append(ClaimStatus.ACCEPTED.value)
-        sql += " ORDER BY system_from ASC LIMIT ?"
-        params.append(limit)
+        sql += " ORDER BY system_from ASC"
+        if limit is not None:
+            sql += " LIMIT ?"
+            params.append(limit)
         with self._read(connection) as conn:
             rows = conn.execute(sql, params).fetchall()
             closures = {
@@ -640,6 +642,7 @@ class OfficeStore:
         *,
         subject: str | None = None,
         include_remote: bool = True,
+        limit: int | None = 1000,
         connection: sqlite3.Connection | None = None,
     ) -> list[ClaimView]:
         views: list[ClaimView] = []
@@ -657,7 +660,7 @@ class OfficeStore:
                 carried_forward_ids.update(json.loads(row["carried_forward_revision_ids_json"]))
             except (TypeError, ValueError):
                 continue
-        for record in self.claim_rows(subject=subject, include_review=False, connection=connection):
+        for record in self.claim_rows(subject=subject, include_review=False, limit=limit, connection=connection):
             if not include_remote and record.origin is ClaimOrigin.REMOTE:
                 continue
             closure = closures.get(record.payload.revision_id)

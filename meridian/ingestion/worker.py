@@ -254,7 +254,9 @@ class OfficeWorker:
             for revision_id in outcome.claim_revision_ids
             if self._is_accepted(revision_id)
         ]
-        if accepted:
+        if outcome.stage_modes.get("policy_comparison") and (outcome.review_reasons or outcome.rejection_reasons):
+            status = JobStatus.NEEDS_REVIEW
+        elif accepted:
             status = JobStatus.SUCCEEDED
         elif outcome.review_reasons or outcome.rejection_reasons:
             status = JobStatus.NEEDS_REVIEW

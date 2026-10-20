@@ -14,6 +14,8 @@ from .common import (
     PROMPT_VERSION,
     SCHEMA_VERSION,
     Rule,
+    PolicyRule,
+    PolicyScope,
     Scope,
     StrictModel,
     Subject,
@@ -45,7 +47,7 @@ class EvidenceSpan(StrictModel):
 class ProposedRule(StrictModel):
     subject: Subject
     scope: Scope
-    rule: Rule
+    rule: Rule | PolicyRule
     evidence: EvidenceSpan
     conditions: list[str] = Field(default_factory=list)
     unsupported_conditions: list[str] = Field(default_factory=list)
@@ -54,6 +56,9 @@ class ProposedRule(StrictModel):
 
     @model_validator(mode="after")
     def _conditions_consistent(self) -> "ProposedRule":
+        general = self.subject is Subject.GENERAL_POLICY
+        if general != isinstance(self.rule, PolicyRule) or general != isinstance(self.scope, PolicyScope):
+            raise ValueError("general_policy proposals require a policy rule and policy scope")
         if self.ambiguous and not self.ambiguous_reason:
             raise ValueError("ambiguous proposals must carry ambiguous_reason")
         return self
@@ -81,12 +86,32 @@ class ExtractionProposal(StrictModel):
             Subject.RECORD_RETENTION: UnitKind.YEARS,
         }
         for rule in self.rules:
+            if rule.subject is Subject.GENERAL_POLICY:
+                continue
             if rule.rule.unit is not expected[rule.subject]:
                 raise ValueError(
                     f"subject {rule.subject.value} requires unit "
                     f"{expected[rule.subject].value}, got {rule.rule.unit.value}"
                 )
         return self
+
+
+class PolicyComparisonProposal(StrictModel):
+    """Semantic relationship only; the backend assigns severity, IDs and authority.
+
+    Quotes must exactly match the two claim statements. Context can be considered
+    but cannot be substituted as uncited primary evidence.
+    """
+
+    relationship: str = Field(pattern="^(conflict|consistent|unrelated|insufficient_context)$")
+    explanation: str = Field(min_length=1, max_length=3000)
+    left_quote: str = Field(min_length=1, max_length=12000)
+    right_quote: str = Field(min_length=1, max_length=12000)
+    same_action: bool
+    scope_overlap: bool | None
+    time_overlap: bool | None
+    exceptions_resolved: bool
+    evidence_sufficient: bool
 
 
 class VerifiedEvidence(StrictModel):

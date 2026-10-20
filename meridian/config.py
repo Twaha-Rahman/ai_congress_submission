@@ -120,6 +120,8 @@ class OfficeSettings:
     #: Never inferred from a URL: a public or otherwise non-local endpoint still
     #: requires ``permissions.hosted_model=true`` in the trusted manifest.
     llm_local_endpoint_approved: bool = False
+    policy_comparison_top_k: int = 6
+    policy_comparison_max_pairs: int = 24
 
     @property
     def cache_dir(self) -> Path:
@@ -211,6 +213,12 @@ class OfficeSettings:
                 "LLM_LOCAL_ENDPOINT_APPROVED",
                 default=False,
             ),
+            policy_comparison_top_k=max(1, min(50, _get_int(
+                f"{prefix}POLICY_COMPARISON_TOP_K", "POLICY_COMPARISON_TOP_K", default=6,
+            ))),
+            policy_comparison_max_pairs=max(1, min(200, _get_int(
+                f"{prefix}POLICY_COMPARISON_MAX_PAIRS", "POLICY_COMPARISON_MAX_PAIRS", default=24,
+            ))),
         )
 
 

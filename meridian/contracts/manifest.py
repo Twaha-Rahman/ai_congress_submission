@@ -14,6 +14,7 @@ from pydantic import Field, field_validator, model_validator
 from .common import (
     Authority,
     OfficeRegion,
+    PolicyScope,
     Region,
     Scope,
     Sensitivity,
@@ -84,6 +85,12 @@ class SourceManifest(StrictModel):
 
     @model_validator(mode="after")
     def _consistency(self) -> "SourceManifest":
+        if (self.subject is Subject.GENERAL_POLICY) != isinstance(self.scope, PolicyScope):
+            raise ValueError("general_policy manifests require a policy scope")
+        if self.supersedes and isinstance(self.supersedes.replaced_scope, PolicyScope):
+            # Free-text scopes cannot safely establish subset/partial replacement.
+            if self.supersedes.replaced_scope != self.scope:
+                raise ValueError("general policy replacements require the same explicit scope")
         if (
             self.effective_from is not None
             and self.effective_to is not None

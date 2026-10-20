@@ -27,6 +27,7 @@ import {
   ReviewBadge,
 } from "./components";
 import FindingDetail from "./FindingDetail";
+import Highlight, { QueueMatchContext } from "./Highlight";
 import Select from "./Select";
 import ThemeSelect from "./ThemeSelect";
 import {
@@ -726,16 +727,28 @@ export default function App() {
                               {f.severity === "high" && (
                                 <span className="small-dot" />
                               )}
-                              {typeLabels[f.finding_type]}
+                              <Highlight
+                                text={typeLabels[f.finding_type]}
+                                query={view.search}
+                              />
                             </span>
                             <ArrowRight size={14} />
                           </div>
-                          <h3>{findingTitle(f)}</h3>
-                          <p>{scopeLabel(f.affected_scope)}</p>
+                          <h3>
+                            <Highlight text={findingTitle(f)} query={view.search} />
+                          </h3>
+                          <p>
+                            <Highlight text={scopeLabel(f.affected_scope)} query={view.search} />
+                          </p>
+                          <QueueMatchContext finding={f} query={view.search} />
                           <div className="list-item-footer">
                             <ReviewBadge state={f.review_state} />
                             <span className="queue-finding-tag">
-                              {findingTag(f)}
+                              <Highlight
+                                text={findingTag(f)}
+                                query={view.search}
+                                identifier
+                              />
                             </span>
                             <time dateTime={f.created_at}>
                               {date(f.created_at).replace(/ \d{4}$/, "")}
@@ -831,6 +844,7 @@ export default function App() {
                     <FindingDetail
                       key={`${view.office}-${selectedId}`}
                       finding={current.finding}
+                      search={view.search}
                       reviews={current.reviews}
                       sources={data.sources}
                       claims={data.claims}

@@ -23,6 +23,8 @@
   --popover-shadow: #18171518;
   --dialog-shadow: #18171526;
   --backdrop: #18171566;
+  --search-match-surface: #f2d89a;
+  --search-match-ink: #463315;
   --serif: "Cormorant Garamond", Georgia, serif;
   --sans: "Inter", system-ui, sans-serif;
   font-family: var(--sans);
@@ -57,6 +59,8 @@
   --popover-shadow: #00000040;
   --dialog-shadow: #00000080;
   --backdrop: #080705a6;
+  --search-match-surface: #725723;
+  --search-match-ink: #fff5d4;
   color-scheme: dark;
 }
 * {
@@ -210,6 +214,12 @@ svg {
 }
 .muted {
   color: var(--muted);
+}
+.search-match {
+  color: var(--search-match-ink);
+  background: var(--search-match-surface);
+  border-radius: 2px;
+  padding: 0;
 }
 .eyebrow {
   display: block;
@@ -735,6 +745,15 @@ textarea::placeholder {
   color: var(--muted);
   font-size: 12px;
   line-height: 1.5;
+}
+.finding-list-item > .queue-id-match,
+.finding-list-item > .queue-quote-match {
+  margin-top: 8px;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.queue-id-match {
+  font-family: ui-monospace, monospace;
 }
 .list-item-footer {
   display: flex;

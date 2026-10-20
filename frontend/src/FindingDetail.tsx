@@ -41,11 +41,13 @@ import {
   typeLabels,
 } from "./presentation";
 import { Loading, Modal, ReviewBadge, SeverityBadge } from "./components";
+import Highlight from "./Highlight";
 import type { DetailTab } from "./viewState";
 const SourcePreview = lazy(() => import("./SourcePreview"));
 
 interface Props {
   finding: Finding;
+  search: string;
   sources: Source[];
   claims: Claim[];
   reviews: ReviewEvent[];
@@ -70,6 +72,7 @@ interface Props {
 
 export default function FindingDetail({
   finding,
+  search,
   sources,
   claims,
   reviews,
@@ -133,7 +136,9 @@ export default function FindingDetail({
       aria-busy={busy}
     >
       <div className="finding-kicker">
-        <span>{typeLabels[finding.finding_type]}</span>
+        <span>
+          <Highlight text={typeLabels[finding.finding_type]} query={search} />
+        </span>
         <div className="finding-tag-group">
           <button
             className={`finding-tag copy-${copyStatus}`}
@@ -160,7 +165,7 @@ export default function FindingDetail({
                 <Copy size={14} />
               )}
             </span>
-            {findingTag(finding)}
+            <Highlight text={findingTag(finding)} query={search} identifier />
           </button>
           <span role="status" className="sr-only">
             {copyStatus === "copied"
@@ -173,7 +178,7 @@ export default function FindingDetail({
       </div>
       <div className="detail-heading">
         <h2 id="finding-title" tabIndex={-1}>
-          {findingTitle(finding)}
+          <Highlight text={findingTitle(finding)} query={search} />
         </h2>
         <div className="badge-row">
           <SeverityBadge severity={finding.severity} />
@@ -198,7 +203,9 @@ export default function FindingDetail({
         </div>
         <div>
           <span className="eyebrow">Affected scope</span>
-          <strong>{scopeLabel(finding.affected_scope)}</strong>
+          <strong>
+            <Highlight text={scopeLabel(finding.affected_scope)} query={search} />
+          </strong>
           <p>{scopeContext(finding.affected_scope)}</p>
         </div>
         <div className="scope-date">
@@ -276,6 +283,7 @@ export default function FindingDetail({
                 <EvidenceCard
                   key={`${evidence.clause_id}-${index}`}
                   evidence={evidence}
+                  search={search}
                   source={sourceMap.get(evidence.source_id)}
                   claim={claimMap.get(evidence.claim_revision_id)}
                   onInspect={() =>
@@ -426,7 +434,9 @@ export default function FindingDetail({
         </summary>
         <dl>
           <dt>Finding</dt>
-          <dd>{finding.finding_id}</dd>
+          <dd>
+            <Highlight text={finding.finding_id} query={search} identifier />
+          </dd>
           <dt>Snapshot</dt>
           <dd>{finding.snapshot_id}</dd>
           <dt>Snapshot hash</dt>
@@ -531,7 +541,7 @@ export default function FindingDetail({
             ) : (
               <>
                 <blockquote className="source-quote">
-                  {sourceEvidence.quote}
+                  <Highlight text={sourceEvidence.quote} query={search} />
                 </blockquote>
                 <dl className="source-facts">
                   <dt>Location</dt>
@@ -611,12 +621,14 @@ export default function FindingDetail({
 
 function EvidenceCard({
   evidence,
+  search,
   source,
   claim,
   onInspect,
   onViewOriginal,
 }: {
   evidence: Evidence;
+  search: string;
   source?: Source;
   claim?: Claim;
   onInspect: () => void;
@@ -658,7 +670,9 @@ function EvidenceCard({
         </div>
       </header>
       <div className="rule-summary">{ruleSummary(claim)}</div>
-      <blockquote>{evidence.quote}</blockquote>
+      <blockquote>
+        <Highlight text={evidence.quote} query={search} />
+      </blockquote>
       <div className="evidence-card-bottom">
         <span>
           {source?.source_type === "slack" ? "Published" : "Effective"}{" "}

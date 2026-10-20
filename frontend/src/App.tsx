@@ -364,7 +364,8 @@ export default function App() {
     navigate({ pane: "detail", tab }, true);
     requestAnimationFrame(() => {
       const button = document.getElementById(`tab-${tab}`);
-      button?.click();
+      // Direct shortcuts use the selected tab's underline as the focus cue.
+      if (button) button.dataset.shortcutFocus = "true";
       button?.focus();
     });
   }
@@ -515,6 +516,7 @@ export default function App() {
               >
                 <Keyboard size={16} />
                 <span>Shortcuts</span>
+                <ShortcutHint>F1</ShortcutHint>
               </button>
               <button
                 className="button secondary refresh-button"
@@ -530,6 +532,7 @@ export default function App() {
               >
                 <RefreshCw size={15} className={loading ? "spin" : ""} />
                 Auto-refresh {view.autoRefresh ? "on" : "off"}
+                {shortcutsEnabled && <ShortcutHint>Shift+R</ShortcutHint>}
               </button>
             </div>
           </div>

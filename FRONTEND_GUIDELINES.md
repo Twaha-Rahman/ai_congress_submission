@@ -151,6 +151,10 @@ The viewer, worker, fonts, character maps and WebAssembly resources are self-hos
   the dialog dismisses it; clicks inside and drags from inside must not. Preserve
   pending-save guards. Reserve the root scrollbar gutter to keep background content
   stationary when opening or closing a dialog. Tab panels support arrow/Home/End keys.
+  Direct E/T/H shortcuts focus and select the tab using its active underline,
+  without the rectangular outline. Restore the normal focus ring when using Tab,
+  arrow/Home/End navigation, or returning focus later; do not suppress tab focus
+  indicators globally.
 - Provide visible focus indicators, a skip link, labels on all controls, text with
   semantic colors, status/error announcements, and reduced-motion support.
   Queue cards use an inset focus outline so scrolling and J/K navigation never
@@ -162,6 +166,8 @@ The viewer, worker, fonts, character maps and WebAssembly resources are self-hos
   result count. Use the shared `ShortcutHint` component; hide these hints on mobile
   and when single-key shortcuts are disabled. Keep accessible control labels free
   of decorative keycap text and expose shortcuts through `aria-keyshortcuts`.
+  The header also shows `F1` for Shortcuts and `Shift+R` for Auto-refresh. F1 remains
+  available, with its hint, when single-key shortcuts are disabled.
   Hide the header keyboard button at mobile widths; do not replace it with an
   unexplained keyboard icon. Physical-keyboard shortcuts remain available.
   Single-key shortcuts can be disabled in that panel; save only this boolean

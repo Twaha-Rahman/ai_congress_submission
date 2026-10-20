@@ -1180,6 +1180,9 @@ kbd {
   color: var(--ink);
   border-bottom-color: var(--primary);
 }
+.detail-tabs button[data-shortcut-focus="true"]:focus {
+  outline: none;
+}
 .tab-count {
   min-width: 15px;
   height: 15px;

@@ -243,7 +243,14 @@ export default function FindingDetail({
                 : undefined
             }
             tabIndex={tab === key ? 0 : -1}
+            onBlur={(event) => {
+              delete event.currentTarget.dataset.shortcutFocus;
+            }}
+            onPointerDown={(event) => {
+              delete event.currentTarget.dataset.shortcutFocus;
+            }}
             onKeyDown={(event) => {
+              delete event.currentTarget.dataset.shortcutFocus;
               let next = index;
               if (event.key === "ArrowRight") next = (index + 1) % all.length;
               else if (event.key === "ArrowLeft")

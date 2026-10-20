@@ -177,7 +177,8 @@ def classify_policy(left: ClaimView, right: ClaimView, result: ProviderResult) -
         separate = (not proposal.same_action or proposal.scope_overlap is False
                     or proposal.time_overlap is False)
         if ((proposal.relationship == "consistent" and complete)
-                or (proposal.relationship == "unrelated" and separate and proposal.evidence_sufficient)):
+                or (proposal.relationship in {"consistent", "unrelated"}
+                    and separate and proposal.evidence_sufficient)):
             return base.model_copy(update={
                 "finding_type": FindingType.NOT_COMPARABLE, "severity": Severity.INFO,
                 "detail": detail,

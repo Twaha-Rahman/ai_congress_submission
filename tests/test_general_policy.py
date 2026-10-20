@@ -492,3 +492,25 @@ def test_multiple_review_claims_in_one_passage_have_distinct_signed_ids(dhaka, m
                                 signer=dhaka.signer, now=NOW)
     assert duplicate.duplicate and duplicate.source_id == result.source_id
     assert len(dhaka.store.claims_for_source(result.source_id)) == 3
+
+
+@pytest.mark.parametrize("relationship", ["consistent", "unrelated"])
+def test_clearly_different_actions_do_not_create_spurious_context_reviews(dhaka, relationship):
+    service, _ = model_service(dhaka, relationship=relationship, comparison_changes={
+        "same_action": False, "scope_overlap": None, "time_overlap": None,
+        "exceptions_resolved": False, "evidence_sufficient": True,
+    })
+    _, outcome = pair(dhaka, service=service,
+        policy="Visitors must wear identification badges inside the office.",
+        message="Employees must use passwords of at least 12 characters.")
+    assert dhaka.store.list_findings() == []
+    assert "insufficient_context" not in outcome.review_reasons
+
+
+def test_consistency_with_unknown_exception_still_requires_review(dhaka):
+    service, _ = model_service(dhaka, relationship="consistent", comparison_changes={
+        "same_action": True, "exceptions_resolved": False,
+    })
+    _, outcome = pair(dhaka, service=service)
+    assert "insufficient_context" in outcome.review_reasons
+    assert dhaka.store.list_findings()[0].payload.finding_type.value == "needs_review"

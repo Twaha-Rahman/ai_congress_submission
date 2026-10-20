@@ -53,8 +53,8 @@ extraction does not establish conflict-detection accuracy.
 
 Select `mode=live` on ingestion to process your own new documents. `cached` and
 `replay` stay explicit and never fall back to paid model calls. General extraction
-uses prompt version `general-extract-v1`; semantic comparison uses
-`general-compare-v1`. General comparison cache/replay records are separate from
+uses prompt version `general-extract-v2`; semantic comparison uses
+`general-compare-v2`. General comparison cache/replay records are separate from
 extraction records, under the office's `comparisons/` subdirectory.
 
 Every source included in a hosted comparison must allow hosted processing. A

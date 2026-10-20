@@ -9,8 +9,9 @@ applying these rules to the remaining workflows.
 The first slice is **Findings and investigation**: an office-scoped queue,
 evidence comparison, source inspection, chronology, and reviewer decisions. The
 second slice is **Sources and PDF ingestion**: a source library, trusted upload
-metadata, processing status and whole-version replacement. Questions, verification
-and cross-office audit remain later slices.
+metadata, processing status and whole-version replacement. The third slice is **Verification and lineage**: source-copy checks, signed answer
+bundles and authorized evidence connections. Questions and cross-office audit remain
+later slices.
 Do not add navigation destinations until their workflows exist.
 
 `DESIGN.md` was installed using `npx getdesign@latest add claude`. Use its warm
@@ -312,3 +313,56 @@ and 320px/390px/768px layouts in the shared light/dark palette. A failure check 
 found and fixed premature staged-file deletion during model retries, with regression
 coverage for recovery and exhausted attempts. Physical-projector and actual hosted
 model quality still require rehearsal.
+
+
+## Verification and lineage
+
+- Use the shared navigation, themed controls, Select, Modal, source viewer and key
+  hints. Keep the page heading to “Verification.” The heading wraps at narrow widths;
+  do not squeeze the Share button outside the viewport.
+- Entry points are Trace evidence from a finding and Verify source from source
+  inspection. The workspace also opens source copies, stored answers by ID and
+  imported answer bundles. Do not imply that a source-copy check verifies a finding
+  snapshot signature or an answer, or that general-policy Q&A now exists.
+- Keep Passed, Failed and Not checked independent, with a labelled icon, semantic
+  fill and consistent badge height. Counts summarize these categories, not an
+  aggregate claim of correctness. Disclose skipped/withheld evidence even when a
+  broader check reports Passed. Lineage nodes remain neutral recorded provenance.
+- Verification is explicit. Do not poll, replace a selected file, flash disabled
+  controls during background reads, or silently submit a check after selecting a
+  file. Pending checks prevent duplicate submissions; changing evidence aborts the
+  obsolete request and discards its result. Keep errors and selected files available
+  for retry. Report export preserves the actual server result.
+- Group the trace into conclusions, statements, passages and sources, with a selected
+  node inspector and direct connections. Keep long lists bounded and scrollable.
+  Keyboard focus rings stay inside node cards. Show a source name and version as
+  distinct elements; render quotations verbatim without search highlights. A selected
+  node persists when searching, including when it is outside the filtered nodes.
+- Source inspection opens at the recorded page and passage; store its passage node
+  in the URL independently of the selected graph node. Outside click/Escape close
+  inspection, preserve the page width and restore focus. Uploaded-bundle topology is
+  explicitly supplied data, not verified local history, and cannot open local source
+  records through a claimed ID.
+- URL state includes kind/target, node, passage, search, check filter and source
+  location. File bytes, filenames, unsaved answer IDs and check results stay out of
+  shared links. Explain that imported files need to be selected again after reload.
+- `/` searches lineage, Escape leaves search, J/K move visible nodes in visual order,
+  L focuses lineage, and V runs a ready check (or opens the current finding's trace
+  from Findings). Show keycaps for the primary actions on desktop only. Preserve
+  F1, theme/office shortcuts and the existing shortcut preference.
+- Header finding tags and Share view copy with a fixed-size in-button icon animation
+  and a screen-reader announcement. Clipboard success/failure must not insert visible
+  text beneath controls or move the layout.
+- The bridge uses the configured reader/reviewer principal for verification, never
+  an uploader/service credential. Verification POSTs are read operations but still
+  require the workspace origin/header. Allowlist only the source/bundle and lineage
+  routes; bound bodies to 20 MiB and keep bearer credentials on the server.
+
+Verification was checked against a separate replay-backed office with real signed
+records and real HTTP verification: original, metadata-only and changed PDFs;
+original, altered-answer and undisclosed-passage bundles; stored answer export;
+reader access; invalid files/IDs; shared source inspection; clipboard confirmation;
+keyboard search/navigation; modal dismissal and stable page width; cancelled
+checks discarding late responses; long filenames and clipboard-denial feedback. Both themes fit
+320, 390, 760, 1024 and 1440px widths. No paid calls or resets of the working office
+sources were needed for these checks.

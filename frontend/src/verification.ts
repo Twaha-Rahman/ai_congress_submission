@@ -39,9 +39,17 @@ export function bundleLineage(bundle: Record<string, unknown>): LineageGraph {
   const answer = jsonObject(bundle.answer);
   const root = `answer:${text(answer.answer_id)}`;
   const nodes = new Map<string, LineageNode>();
-  const edges: LineageGraph["edges"] = [];
-  const add = (id: string, type: string, label: string, attributes: Record<string, string> = {}) => nodes.set(id, { node_id: id, node_type: type, label, attributes, restricted: false });
-  const link = (from: string, to: string, type: string) => edges.push({ edge_id: `${type}:${from}:${to}`, edge_type: type, from_node_id: from, to_node_id: to, attributes: {} });
+  const edges = new Map<string, LineageGraph["edges"][number]>();
+  let truncated = false;
+  const add = (id: string, type: string, label: string, attributes: Record<string, string> = {}) => {
+    if (nodes.size >= 400 && !nodes.has(id)) { truncated = true; return; }
+    nodes.set(id, { node_id: id, node_type: type, label, attributes, restricted: false });
+  };
+  const link = (from: string, to: string, type: string) => {
+    const id = `${type}:${from}:${to}`;
+    if (edges.size >= 1200 && !edges.has(id)) { truncated = true; return; }
+    edges.set(id, { edge_id: id, edge_type: type, from_node_id: from, to_node_id: to, attributes: {} });
+  };
   add(root, "answer", text(answer.question) || "Supplied answer", { quote: text(answer.answer_text), valid_at: text(answer.valid_at), known_at: text(answer.known_at) });
   for (const value of array(bundle.manifests)) {
     const manifest = jsonObject(value); const id = text(manifest.source_id); if (!id) continue;
@@ -66,7 +74,7 @@ export function bundleLineage(bundle: Record<string, unknown>): LineageGraph {
       add(revision, "remote_reference", "Undisclosed remote statement", { reference: id, disclosure: "Source passage not supplied" });
     if (nodes.has(revision)) link(root, revision, "CITES");
   }
-  return { root_id: root, nodes: [...nodes.values()], edges, truncated: false };
+  return { root_id: root, nodes: [...nodes.values()], edges: [...edges.values()].filter(edge => nodes.has(edge.from_node_id) && nodes.has(edge.to_node_id)), truncated };
 }
 export const lineageGroups = [
   { label: "Conclusions", types: ["answer", "finding"] },

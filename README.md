@@ -9,7 +9,8 @@ and produces signed evidence bundles that an independent verifier can check.
 The repository also contains the synthetic demo corpus, replay proposals, evaluation
 labels, command-line demos and an offline test suite. The frontend includes a
 Claude-inspired findings workspace with persisted reviews and a Sources workspace
-for PDF uploads, processing status and original-document inspection.
+for PDF uploads, processing status and original-document inspection, plus a Verification
+workspace for source-copy checks, signed answer bundles and evidence lineage.
 
 For your own policy subjects, use `subject: "general_policy"`. This path retrieves
 relevant statements, checks source quotations, and publishes model-assisted conflict
@@ -82,7 +83,7 @@ UI_ROLE=reader make frontend
 The principal is fixed on the server; there is no browser role selector. This is a
 loopback-only demo operator workspace, not a multi-user login system. Real user
 authentication is required before exposing it on an office network. The server
-forwards only the endpoints needed by findings and sources, not federation or model APIs.
+forwards only the endpoints needed by findings, sources and verification, not federation or model APIs.
 
 For a built version, run `make frontend-build`, then `npm start --prefix frontend`.
 The built server also listens on loopback port 5173; stop the dev server first.
@@ -96,6 +97,46 @@ ignored `frontend/public/pdfjs/` directory; no additional download is needed ons
 npm test --prefix frontend     # bridge security, presentation, URL state, source location
 make test                     # backend suite, including durable review history
 ```
+
+### Verify evidence and inspect lineage
+
+Open **http://127.0.0.1:5173/verification**, use **Trace evidence** (`V`) from a
+finding, or **Verify source** from source inspection. Choose an evidence type:
+
+- **Source copy:** select an authorized source, choose its PDF or saved Slack JSON
+  copy, then run verification. File bytes, normalized text, passage text and the
+  commitment tree are checked independently. A metadata-only PDF edit can fail
+  file identity while its text checks pass. The immutable original is never changed.
+- **Finding lineage:** follow the finding's statements, passages and source versions;
+  inspect exact passages and open the source at its location. Source-copy and
+  answer-bundle checks do not verify finding snapshot signatures.
+- **Stored answer:** enter an answer ID from an API response or demo. Inspect its
+  answer and authorized lineage, export its signed bundle, and check that bundle.
+  Creating answers remains an API/demo workflow; a Questions page is not built yet.
+- **Uploaded bundle:** choose an exported JSON bundle (a bare bundle or a
+  `{ "bundle": ... }` response). Inspect supplied connections and check its
+  signatures, evidence bindings and disclosed passage proofs against pinned keys.
+  Changed answer text fails its text hash and signature. Undisclosed passages remain
+  **Not checked**; they are never presented as verified because another check passed.
+
+Readers can run verification using their existing read access. Verification does not
+require uploader privileges or make model calls. The UI sends copies only to the
+selected local office backend. Files are limited to 20 MiB. Neither uploaded copies,
+imported bundles nor verification reports are published as sources or stored in URL
+state; export a report if you need to keep it.
+
+The lineage view groups conclusions, statements, passages and sources. Selecting a
+node shows its direct connections and recorded passage. Connections represent stored
+provenance, not an integrity result. Uploaded-bundle connections are explicitly
+labelled as supplied data. Server-authorized traces omit inaccessible nodes and
+dangling edges; a bounded trace warns when it reaches the node limit.
+
+`/` focuses lineage search; `Escape` leaves it without clearing the query. `J`/`K`
+move through visible nodes, `L` focuses lineage, and `V` runs a ready verification
+form. `Ctrl+Enter` / `⌘+Enter` also submits that form. Share view preserves office,
+evidence type/ID, selected node, search, result filter and source page/zoom/passage.
+Local files and check results must be supplied or rerun after reload. Browser history
+restores the evidence view, with explicit unavailable states for missing IDs.
 
 ### Upload your own PDF
 
@@ -332,6 +373,7 @@ POST /v1/ingestions/slack            saved event(s) + manifest + mode
 GET  /v1/jobs, /v1/jobs/{id}
 GET  /v1/sources, /v1/sources/{id}, /v1/sources/{id}/content
 GET  /v1/claims, /v1/claims/reviews
+GET  /v1/sources/{id}/lineage, /v1/findings/{id}/lineage
 GET  /v1/findings, /v1/findings/{id}
 POST /v1/findings/{id}/reviews
 POST /v1/queries
@@ -440,10 +482,10 @@ verification unless the old public keys remain pinned.
 
 ## Known limitations / external prerequisites
 
-- **Live extraction has not been executed here**: no `OPENROUTER_API_KEY` / model was
-  available. The adapter is covered by fake-transport tests; `make demo-live` fails
-  visibly instead of substituting fixtures. The exact model, route, latency and usage
-  of a genuine live call remain to be recorded by the operator.
+- **Live PDF extraction has been exercised on synthetic fixtures**, including paid
+  comparison calls; see [the measured verification report](docs/pdf_api_verification.md).
+  Those results do not establish exhaustive coverage of arbitrary policies or a
+  successful live Slack-listener rehearsal. A new model or route needs fresh testing.
 - The identity map and bearer tokens are a demo mechanism, not production SSO/OIDC.
 - Storage is single-node SQLite (WAL) per office; it is not a horizontally scaled
   deployment. The worker is one per service process by design.

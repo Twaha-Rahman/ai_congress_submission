@@ -18,9 +18,16 @@ export default function Lineage({ graph, nodeId, search, onSelect, onInspect, on
   const visible = graph.nodes.filter(node => !query || `${lineageNodeTitle(node)} ${node.node_id} ${Object.values(node.attributes).join(" ")}`.toLowerCase().includes(query));
   const related = graph.edges.filter(edge => edge.from_node_id === selectedId || edge.to_node_id === selectedId);
   const sourceId = selected?.attributes.source_id;
+  function recordLink(node: LineageNode) {
+    return <button onClick={() => onSelect(node.node_id)}><span>{lineageNodeTitle(node)}</span>
+      {node.attributes.version_label && <span className="source-version">{node.attributes.version_label}</span>}
+      {node.node_type === "finding" && <span className="lineage-finding-tag">#{node.node_id.slice(-8).toUpperCase()}</span>}
+      {node.attributes.quote && <span className="lineage-relation-excerpt">{node.attributes.quote}</span>}
+    </button>;
+  }
   return <>
     {supplied && <p className="lineage-supplied"><ShieldQuestion size={15} />Connections shown here come from the supplied bundle. Check the results above before relying on them.</p>}
-    {graph.truncated && <div className="notice warning" role="status">This trace reached the server’s node limit. Some connections are not shown.</div>}
+    {graph.truncated && <div className="notice warning" role="status">This trace reached its display limit. Some connections are not shown.</div>}
     <div className="lineage-map" aria-label="Evidence connections">
       {lineageGroups.map((group, index) => {
         const nodes = visible.filter(node => group.types.includes(node.node_type));
@@ -51,7 +58,7 @@ export default function Lineage({ graph, nodeId, search, onSelect, onInspect, on
         </div>
         <div className="lineage-relations"><h4>Direct connections <span>{related.length}</span></h4>{related.length ? <ul>{related.map(edge => {
           const from = graph.nodes.find(node => node.node_id === edge.from_node_id)!; const to = graph.nodes.find(node => node.node_id === edge.to_node_id)!;
-          return <li key={edge.edge_id}><button onClick={() => onSelect(from.node_id)}>{lineageNodeTitle(from)}</button><span><ArrowDown size={12} />{relationLabels[edge.edge_type] || humanize(edge.edge_type)}</span><button onClick={() => onSelect(to.node_id)}>{lineageNodeTitle(to)}</button></li>;
+          return <li key={edge.edge_id}>{recordLink(from)}<span><ArrowDown size={12} />{relationLabels[edge.edge_type] || humanize(edge.edge_type)}</span>{recordLink(to)}</li>;
         })}</ul> : <p>No direct connections were returned for this node.</p>}</div>
         <details className="lineage-technical"><summary>Record details</summary><dl><dt>Node</dt><dd>{selected.node_id}</dd>{Object.entries(selected.attributes).filter(([key]) => !["quote", "source_identity", "version_label"].includes(key)).map(([key, value]) => <div key={key}><dt>{humanize(key)}</dt><dd>{value || "Not recorded"}</dd></div>)}</dl></details>
       </> : <div className="lineage-unavailable"><Network size={22} /><h3 id="lineage-inspector-title">Node unavailable</h3><p>The linked node is not part of this authorized trace.</p><button className="button secondary" onClick={() => onSelect(graph.root_id)}>Return to the start</button></div>}

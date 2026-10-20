@@ -5,7 +5,7 @@ import { readView, viewSearch } from "./viewState.ts";
 
 test("verification URLs retain target, selected node, filters and original-source location", () => {
   const view = { ...readView(""), office: "frankfurt" as const, verifyKind: "finding" as const,
-    verifyId: "find_a", verifyNode: "revision:r#1", verifySearch: "policy & procedures", verifyChecks: "failed" as const,
+    verifyId: "find_a", verifyPassage: "revision:r#1", verifyNode: "revision:r#1", verifySearch: "policy & procedures", verifyChecks: "failed" as const,
     document: "src_1", page: 4, zoom: 125 };
   assert.deepEqual(readView(viewSearch(view)), view);
   const invalid = readView("?verify=admin&checks=verified");
@@ -35,4 +35,16 @@ test("imported lineage connects only explicit citations and keeps remote evidenc
     assert.ok(!graph.edges.some(e => e.to_node_id === "revision:extra" && e.edge_type === "CITES"));
   }
   for (const raw of ["invalid", "null", "[]", '{"target_id":"b","checks":[]}']) assert.throws(() => parseEvidenceBundle(raw));
+});
+
+test("large supplied traces are bounded without changing the evidence sent for verification", () => {
+  const bundle = { bundle_id: "b", answer: { answer_id: "a", citations: [] }, manifests: [{ source_id: "s" }],
+    claims: Array.from({ length: 500 }, (_, i) => ({ claim: { revision_id: `r${i}`, source_id: "s", evidence: { clause_id: `c${i}`, quote: "Source text" } } })) };
+  const before = JSON.stringify(bundle);
+  const graph = bundleLineage(bundle);
+  assert.equal(graph.truncated, true);
+  assert.ok(graph.nodes.length <= 400); assert.ok(graph.edges.length <= 1200);
+  const ids = new Set(graph.nodes.map(node => node.node_id));
+  assert.ok(graph.edges.every(edge => ids.has(edge.from_node_id) && ids.has(edge.to_node_id)));
+  assert.equal(JSON.stringify(bundle), before);
 });

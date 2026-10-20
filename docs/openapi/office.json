@@ -3007,6 +3007,52 @@
         "summary": "Get Finding"
       }
     },
+    "/v1/findings/{finding_id}/lineage": {
+      "get": {
+        "operationId": "finding_lineage_v1_findings__finding_id__lineage_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "finding_id",
+            "required": true,
+            "schema": {
+              "title": "Finding Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Finding Lineage V1 Findings  Finding Id  Lineage Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Finding Lineage"
+      }
+    },
     "/v1/findings/{finding_id}/reviews": {
       "post": {
         "operationId": "review_finding_v1_findings__finding_id__reviews_post",
@@ -3465,6 +3511,52 @@
           }
         ],
         "summary": "Get Source Content"
+      }
+    },
+    "/v1/sources/{source_id}/lineage": {
+      "get": {
+        "operationId": "source_lineage_v1_sources__source_id__lineage_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "title": "Source Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Source Lineage V1 Sources  Source Id  Lineage Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Source Lineage"
       }
     },
     "/v1/verifications/bundle": {

@@ -424,7 +424,7 @@ export default function App() {
     reviews: () => switchTab("reviews"),
     sort: () => openSelect(sortRef),
     refresh: toggleAutoRefresh,
-    verify: () => { if (current && !detailError) openScreen("verification", { verifyKind: "finding", verifyId: current.id, verifyNode: "", verifySearch: "", verifyChecks: "all", document: "" }); },
+    verify: () => { if (current && !detailError) openScreen("verification", { verifyKind: "finding", verifyId: current.id, verifyNode: "", verifyPassage: "", verifySearch: "", verifyChecks: "all", document: "" }); },
     } : {}),
     office: () => openSelect(officeRef),
     upload: openUpload,
@@ -535,7 +535,7 @@ export default function App() {
                     document: "",
                     uploadJob: "",
                     forSource: "",
-                    verifyId: "", verifyNode: "", verifySearch: "", verifyChecks: "all",
+                    verifyId: "", verifyNode: "", verifyPassage: "", verifySearch: "", verifyChecks: "all",
                   });
                   setNotice("");
                 }}
@@ -570,7 +570,7 @@ export default function App() {
             shortcutsEnabled={shortcutsEnabled} onHelp={() => setShowShortcuts(true)}
             uploadRequest={uploadRequest}
             onUploadOpened={() => setUploadRequest(0)}
-            onVerify={(id) => openScreen("verification", { verifyKind: "source", verifyId: id, verifyNode: "", verifySearch: "", verifyChecks: "all", document: "" })}
+            onVerify={(id) => openScreen("verification", { verifyKind: "source", verifyId: id, verifyNode: "", verifyPassage: "", verifySearch: "", verifyChecks: "all", document: "" })}
             onFindings={(sourceId) => openScreen("findings", { forSource: sourceId, finding: "", tag: "", search: "", state: "all", type: "all", severity: "all", source: "", pane: "queue" })}
           /> : <>
           <div className="page-heading">
@@ -929,7 +929,7 @@ export default function App() {
                       office={view.office}
                       session={session}
                       onReview={setReviewAction}
-                      onVerify={() => openScreen("verification", { verifyKind: "finding", verifyId: current.id, verifyNode: "", verifySearch: "", verifyChecks: "all", document: "" })}
+                      onVerify={() => openScreen("verification", { verifyKind: "finding", verifyId: current.id, verifyNode: "", verifyPassage: "", verifySearch: "", verifyChecks: "all", document: "" })}
                       shortcutsEnabled={shortcutsEnabled}
                       tab={view.tab}
                       onTabChange={(tab) => navigate({ tab }, true)}

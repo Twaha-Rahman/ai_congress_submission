@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent, type ChangeEvent } from "react";
-import { AlertCircle, ArrowDownToLine, ArrowRight, Braces, Check, CircleDot, ClipboardCheck, FileCheck2, FileText, GitBranch, Keyboard, Link, LoaderCircle, Network, Search, ShieldCheck, X } from "lucide-react";
+import { AlertCircle, ArrowDownToLine, ArrowRight, Braces, Check, CircleDot, ClipboardCheck, Copy, FileCheck2, FileText, GitBranch, Keyboard, Link, LoaderCircle, Network, Search, ShieldCheck, X } from "lucide-react";
 import { api, getFinding } from "./api";
 import { EmptyState, ErrorState, Loading, ShortcutHint } from "./components";
 import Select from "./Select";
@@ -8,7 +8,7 @@ import { DocumentDialog } from "./Sources";
 import { date, findingTag, findingTitle, humanize, sourceTitle } from "./presentation";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 import { bundleLineage, checkCounts, checkLabels, checkStatusLabels, downloadJson, evidenceFileError, jsonObject, lineageGroups, lineageNodeTitle, parseEvidenceBundle } from "./verification";
-import type { Finding, LineageGraph, LineageNode, Office, Source, StoredAnswer, VerificationReport } from "./types";
+import type { Finding, LineageGraph, Office, Source, StoredAnswer, VerificationReport } from "./types";
 import type { View } from "./viewState";
 import "./verification.css";
 
@@ -34,7 +34,7 @@ export default function Verification({ office, view, navigate, shortcutsEnabled,
   const [checkError, setCheckError] = useState("");
   const [checking, setChecking] = useState(false);
   const [copied, setCopied] = useState<"idle" | "copied" | "failed">("idle");
-  const [passage, setPassage] = useState<LineageNode | null>(null);
+  const [tagCopy, setTagCopy] = useState<"idle" | "copied" | "failed">("idle");
   const form = useRef<HTMLFormElement>(null);
   const input = useRef<HTMLInputElement>(null);
   const search = useRef<HTMLInputElement>(null);
@@ -50,7 +50,7 @@ export default function Verification({ office, view, navigate, shortcutsEnabled,
     return finding ? { ...node, label: findingTitle(finding) } : node;
   }) } : rawGraph;
   const selectedId = view.verifyNode || graph?.root_id;
-  const inspectedPassage = passage || graph?.nodes.find(node => node.node_id === selectedId);
+  const inspectedPassage = graph?.nodes.find(node => node.node_id === view.verifyPassage);
   const canCheck = view.verifyKind === "source" ? !!current?.source && !!file && !fileError : view.verifyKind === "answer" ? !!current?.bundle : view.verifyKind === "bundle" ? !!imported && !fileError : false;
 
   useEffect(() => {
@@ -66,7 +66,7 @@ export default function Verification({ office, view, navigate, shortcutsEnabled,
   }, [library, view.verifyId, view.verifyKind]);
   useEffect(() => {
     verificationRequest.current?.abort(); fileGeneration.current++;
-    setFile(null); setFileError(""); setImported(null); setReport(null); setCheckError(""); setChecking(false); setReading(false); setPassage(null);
+    setFile(null); setFileError(""); setImported(null); setReport(null); setCheckError(""); setChecking(false); setReading(false); setTagCopy("idle");
     if (input.current) input.current.value = "";
     if (view.verifyKind === "answer") setAnswerDraft(view.verifyId);
     return () => { verificationRequest.current?.abort(); fileGeneration.current++; };
@@ -84,13 +84,13 @@ export default function Verification({ office, view, navigate, shortcutsEnabled,
     return () => controller.abort();
   }, [key, contextRevision]);
   useEffect(() => {
-    if (copied === "idle") return;
-    const timer = window.setTimeout(() => setCopied("idle"), 1800);
+    if (copied === "idle" && tagCopy === "idle") return;
+    const timer = window.setTimeout(() => { setCopied("idle"); setTagCopy("idle"); }, 1800);
     return () => window.clearTimeout(timer);
-  }, [copied]);
+  }, [copied, tagCopy]);
 
   function choose(kind: View["verifyKind"], id = "") {
-    navigate({ verifyKind: kind, verifyId: id, verifyNode: "", verifySearch: "", verifyChecks: "all", document: "", page: 1, zoom: 100 }, false);
+    navigate({ verifyKind: kind, verifyId: id, verifyNode: "", verifyPassage: "", verifySearch: "", verifyChecks: "all", document: "", page: 1, zoom: 100 }, false);
   }
   function selectNode(id: string) { navigate({ verifyNode: id }, true); }
   function moveNode(direction: number) {
@@ -139,6 +139,10 @@ export default function Verification({ office, view, navigate, shortcutsEnabled,
   async function share() {
     try { await navigator.clipboard.writeText(window.location.href); setCopied("copied"); } catch { setCopied("failed"); }
   }
+  async function copyTag() {
+    if (!current?.finding) return;
+    try { await navigator.clipboard.writeText(findingTag(current.finding)); setTagCopy("copied"); } catch { setTagCopy("failed"); }
+  }
   const targetOptions = view.verifyKind === "source" ? [...library?.sources || []].sort((a, b) => sourceTitle(a).localeCompare(sourceTitle(b))).map(source => ({ value: source.source_id, label: `${sourceTitle(source)} · ${source.version_label}` })) : (library?.findings || []).map(finding => ({ value: finding.finding_id, label: `${findingTag(finding)} · ${findingTitle(finding)}` }));
   const targetExists = targetOptions.some(option => option.value === view.verifyId);
   const bundleAnswer = jsonObject(imported?.answer);
@@ -148,7 +152,7 @@ export default function Verification({ office, view, navigate, shortcutsEnabled,
       <input ref={input} type="file" id="verification-file" className="sr-only" tabIndex={-1} accept={view.verifyKind === "bundle" ? ".json,application/json" : current?.source?.source_type === "pdf" ? ".pdf,application/pdf" : ".json,application/json"} onChange={(event: ChangeEvent<HTMLInputElement>) => void chooseFile(event.target.files?.[0] || null)} />
       <div className={`evidence-file ${file ? "has-file" : ""}`}>
         <button type="button" onClick={() => input.current?.click()} aria-label={view.verifyKind === "bundle" ? "Choose evidence bundle" : "Choose source copy"} aria-describedby="verification-file-help" onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); void chooseFile(event.dataTransfer.files[0] || null); }}>
-          {view.verifyKind === "bundle" ? <Braces size={23} /> : <FileText size={23} />}<span><strong>{file?.name || (view.verifyKind === "bundle" ? "Choose a JSON bundle" : "Choose a source copy")}</strong><span>{file ? `${new Intl.NumberFormat().format(Math.ceil(file.size / 1024))} KB · Click to change` : "Click or drop a file · up to 20 MB"}</span></span>
+          {view.verifyKind === "bundle" ? <Braces size={23} /> : <FileText size={23} />}<span><strong title={file?.name}>{file?.name || (view.verifyKind === "bundle" ? "Choose a JSON bundle" : "Choose a source copy")}</strong><span>{file ? `${new Intl.NumberFormat().format(Math.ceil(file.size / 1024))} KB · Click to change` : "Click or drop a file · up to 20 MB"}</span></span>
         </button>
         {file && <button type="button" className="icon-button" aria-label="Remove selected file" onClick={() => { if (input.current) input.current.value = ""; void chooseFile(null); }}><X size={16} /></button>}
       </div>
@@ -174,16 +178,16 @@ export default function Verification({ office, view, navigate, shortcutsEnabled,
     </section>
     {libraryError && <div className="notice warning" role="alert"><AlertCircle size={17} /><span>{libraryError}</span><button className="text-button" onClick={() => setLibraryRevision(n => n + 1)}>Retry</button></div>}
     {contextError ? <ErrorState title="Evidence unavailable" error={contextError} retry={() => setContextRevision(n => n + 1)} /> : view.verifyKind !== "bundle" && view.verifyId && !current ? <Loading label="Opening evidence and lineage…" /> : <>
-      {title && <section className="verification-record-heading"><div><h2>{title}</h2><div>{current?.source && <><span className="source-version">{current.source.version_label}</span><span>{humanize(current.source.authority)}</span></>}{current?.finding && <span className="verification-finding-tag">{findingTag(current.finding)}</span>}{current?.answer && <><span>{humanize(current.answer.status)}</span><span>Effective {date(current.answer.valid_at)}</span><span>Known {date(current.answer.known_at, true)}</span></>}</div></div>{current?.source && <button className="button secondary" onClick={() => navigate({ document: current.source!.source_id, page: 1, zoom: 100 })}><FileText size={15} />Inspect source</button>}{current?.finding && <button className="button secondary" onClick={() => onFinding(current.finding!.finding_id)}>Open finding<ArrowRight size={15} /></button>}</section>}
-      {current?.answer && <blockquote className="verification-answer-text">{current.answer.answer_text}</blockquote>}
+      {title && <section className="verification-record-heading"><div><h2>{title}</h2><div>{current?.source && <><span className="source-version">{current.source.version_label}</span><span>{humanize(current.source.authority)}</span></>}{current?.finding && <><button className={`verification-finding-tag copy-${tagCopy}`} title={tagCopy === "copied" ? "Tag copied" : tagCopy === "failed" ? "Could not copy tag" : "Copy finding tag"} aria-label={`Copy finding tag ${findingTag(current.finding)}`} onClick={() => void copyTag()}>{findingTag(current.finding)}{tagCopy === "copied" ? <Check size={13} /> : tagCopy === "failed" ? <AlertCircle size={13} /> : <Copy size={13} />}</button><span className="sr-only" role="status">{tagCopy === "copied" ? "Finding tag copied" : tagCopy === "failed" ? "Could not copy the finding tag" : ""}</span></>}{current?.answer && <><span>{humanize(current.answer.status)}</span><span>Effective {date(current.answer.valid_at)}</span><span>Known {date(current.answer.known_at, true)}</span></>}</div></div>{current?.source && <button className="button secondary" onClick={() => navigate({ document: current.source!.source_id, verifyPassage: "", page: 1, zoom: 100 })}><FileText size={15} />Inspect source</button>}{current?.finding && <button className="button secondary" onClick={() => onFinding(current.finding!.finding_id)}>Open finding<ArrowRight size={15} /></button>}</section>}
+      {current?.answer && <><blockquote className="verification-answer-text">{current.answer.answer_text}</blockquote><div className="verification-answer-modes" aria-label="Recorded answer execution modes">{Object.entries(current.answer.modes || {}).map(([stage, mode]) => <span key={stage}><CircleDot size={12} />{humanize(stage)} · {humanize(mode)}</span>)}</div></>}
       {view.verifyKind === "finding" && current?.finding ? <section className="verification-finding-sources"><h3><GitBranch size={17} />Trace the evidence</h3><p>The connections below show the stored provenance. To check a source’s bytes and passages, choose its copy check.</p><div>{[...new Set(current.finding.evidence.map(item => item.source_id))].map(id => { const source = library?.sources.find(s => s.source_id === id); return <button className="button secondary" key={id} onClick={() => choose("source", id)}><FileCheck2 size={15} /><span>{source ? sourceTitle(source) : "Source"}</span>{source && <span className="source-version">{source.version_label}</span>}<ArrowRight size={14} /></button>; })}</div><p className="verification-help">Finding snapshot signatures are not checked by the source-copy or answer-bundle verifier.</p></section> : (current || view.verifyKind === "bundle") ? <div className="verification-check-layout"><section className="verification-input-panel" aria-labelledby="verification-input-title"><h2 id="verification-input-title">{view.verifyKind === "source" ? "Check a copy" : "Check signed evidence"}</h2>{checkForm}{view.verifyKind === "bundle" && <p className="verification-local-file-note">The file and its result are not saved in shared links. Select the file again after reloading.</p>}{imported && <div className="bundle-preview"><span className="eyebrow">Supplied answer</span><h3>{typeof bundleAnswer.question === "string" ? bundleAnswer.question : "Question not recorded"}</h3><p>{typeof bundleAnswer.answer_text === "string" ? bundleAnswer.answer_text : "Answer text not recorded"}</p></div>}</section>
         <section className="verification-results-panel" aria-labelledby="verification-results-title"><h2 id="verification-results-title">Check results</h2>{report ? <CheckResults report={report} filter={view.verifyChecks} onFilter={value => navigate({ verifyChecks: value }, true)} /> : <div className="verification-not-run"><ShieldCheck size={27} /><strong>{checking ? "Verification in progress" : "No checks run yet"}</strong><p>{view.verifyKind === "source" ? "File identity, document text and passage commitments are checked separately." : "Signatures, evidence bindings and passage proofs are checked separately."}</p></div>}</section></div> : !library && !libraryError ? <Loading label="Loading available evidence…" /> : <EmptyState title={view.verifyKind === "answer" ? "Open a stored answer" : "No evidence selected"} icon={<ShieldCheck size={28} />}>{view.verifyKind === "answer" ? "Enter the answer ID from an API response or demo export, or choose Uploaded bundle." : "Choose a source or finding available to your office."}</EmptyState>}
       {graph && <section className="verification-lineage" ref={lineage} id="evidence-lineage" tabIndex={-1} aria-labelledby="evidence-lineage-title"><div className="verification-lineage-header"><div><h2 id="evidence-lineage-title"><Network size={19} />Evidence lineage{shortcutsEnabled && <ShortcutHint>L</ShortcutHint>}</h2><p>Choose a node to read its passage and follow its connections. Lineage alone does not establish integrity.</p></div><button className="button secondary" onClick={() => downloadJson(graph, "evidence-lineage.json")}><ArrowDownToLine size={15} />Export trace</button></div>
         <div className="lineage-toolbar"><label className="search-input"><Search size={16} /><span className="sr-only">Search lineage</span><input ref={search} aria-label="Search lineage" placeholder="Search nodes or passages…" value={view.verifySearch} onChange={event => navigate({ verifySearch: event.target.value }, true)} onKeyDown={event => { if (event.key === "Escape" && !event.nativeEvent.isComposing && !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey) { event.preventDefault(); lineage.current?.focus({ preventScroll: true }); } }} />{view.verifySearch ? <button className="icon-button" aria-label="Clear lineage search" onClick={() => navigate({ verifySearch: "" }, true)}><X size={14} /></button> : shortcutsEnabled && <ShortcutHint>/</ShortcutHint>}</label><span>{graph.nodes.length} nodes · {graph.edges.length} connections{shortcutsEnabled && <span className="lineage-navigation-hint"><ShortcutHint>J</ShortcutHint><ShortcutHint>K</ShortcutHint></span>}</span></div>
-        <Lineage graph={graph} nodeId={view.verifyNode} search={view.verifySearch} onSelect={selectNode} supplied={view.verifyKind === "bundle"} onInspect={node => { setPassage(node); navigate({ document: node.attributes.source_id, page: Math.max(1, Number(node.attributes.page) || 1), zoom: 100 }, false); }} onCheckSource={id => choose("source", id)} onFinding={onFinding} />
+        <Lineage graph={graph} nodeId={view.verifyNode} search={view.verifySearch} onSelect={selectNode} supplied={view.verifyKind === "bundle"} onInspect={node => { navigate({ document: node.attributes.source_id, verifyPassage: node.node_id, page: Math.max(1, Number(node.attributes.page) || 1), zoom: 100 }, false); }} onCheckSource={id => choose("source", id)} onFinding={onFinding} />
       </section>}
     </>}
-    {view.document && <DocumentDialog office={office} sourceId={view.document} view={view} navigate={navigate} onClose={() => navigate({ document: "" })} onVerify={id => choose("source", id)} evidence={inspectedPassage?.attributes.source_id === view.document && inspectedPassage.attributes.quote ? { source_id: view.document, quote: inspectedPassage.attributes.quote, page: Math.max(1, Number(inspectedPassage.attributes.page) || 1), section: inspectedPassage.attributes.section || null } : undefined} />}
+    {view.document && <DocumentDialog office={office} sourceId={view.document} view={view} navigate={navigate} onClose={() => navigate({ document: "", verifyPassage: "" })} onVerify={id => choose("source", id)} evidence={inspectedPassage?.attributes.source_id === view.document && inspectedPassage.attributes.quote ? { source_id: view.document, quote: inspectedPassage.attributes.quote, page: Math.max(1, Number(inspectedPassage.attributes.page) || 1), section: inspectedPassage.attributes.section || null } : undefined} />}
   </div>;
 }
 
@@ -196,6 +200,6 @@ function CheckResults({ report, filter, onFilter }: { report: VerificationReport
     <ul className="verification-check-list">{checks.map((check, index) => { const Icon = check.status === "passed" ? Check : check.status === "failed" ? AlertCircle : CircleDot; const skipped = Number(check.detail?.skipped_not_disclosed || check.detail?.not_supplied || 0); return <li key={`${check.check}-${index}`}><div><strong>{checkLabels[check.check] || humanize(check.check)}</strong><span className={`check-badge check-${check.status}`}><Icon size={13} />{checkStatusLabels[check.status]}</span></div>{check.reason && <p>{check.reason}</p>}{skipped > 0 && <p className="check-undisclosed"><CircleDot size={13} />{skipped} undisclosed {skipped === 1 ? "passage or reference was" : "passages or references were"} not checked.</p>}{Object.keys(check.detail || {}).length > 0 && <details><summary>Check details</summary><dl>{Object.entries(check.detail).map(([key, value]) => <div key={key}><dt>{humanize(key)}</dt><dd>{value}</dd></div>)}</dl></details>}</li>; })}</ul>
     {!checks.length && <p className="verification-help">No {filter === "all" ? "checks were returned" : `${checkStatusLabels[filter].toLowerCase()} checks in this result`}.</p>}
     {report.generated_at && <p className="verification-report-date">Checked {date(report.generated_at, true)}</p>}
-    <p className="verification-help">These checks establish integrity against recorded commitments and pinned keys. They do not establish that a policy or interpretation is correct.</p>
+    <p className="verification-help">{report.target_type === "source" ? "Source-copy checks compare bytes and passages with stored commitments. They do not check manifest or finding signatures." : "Signatures are checked against the office’s pinned public keys; passage checks require disclosed evidence."} Integrity checks do not establish that a policy or interpretation is correct.</p>
   </>;
 }

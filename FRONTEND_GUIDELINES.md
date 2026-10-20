@@ -32,7 +32,7 @@ Tokens live in `frontend/src/styles.css`; use variables when extending component
   coral `#a9583e` so small light labels remain readable.
 - Warning ink `#93482f` on `#f6e9e0`; resolved/success ink `#356454` on `#e9efea`.
   These are semantic accents, not alternative page backgrounds.
-- Light/dark/system appearance is selected in the header. Default to System and
+- Light/dark/system appearance is selected in the sidebar. Default to System and
   persist only the preference in local storage. Apply it before the first paint;
   follow system changes while System is selected. Dark mode uses neutral charcoal
   surfaces and warm cream text. Navigation is `#171719`, the workspace `#1e1e20`,
@@ -60,8 +60,17 @@ Tokens live in `frontend/src/styles.css`; use variables when extending component
 
 ## Layout and reusable patterns
 
-- Desktop: quiet persistent navigation, compact office/role header, queue on the
-  left, investigation on the right. Source passages sit side by side where readable.
+- Desktop: quiet persistent navigation with office, theme and role at the bottom of
+  the sidebar; queue on the left, investigation on the right. The page heading identifies
+  the current screen without a separate breadcrumb/top bar. Source passages sit side
+  by side where readable. Remove the old “Office workspace / Access follows your role”
+  footer copy.
+- At medium widths the sidebar becomes an icon rail; office and theme retain labelled
+  combobox semantics and native tooltips, while role remains available through the
+  account group's accessible name. At mobile widths the same sidebar becomes a compact
+  header with one instance of each control, followed by the existing page navigation.
+  Keep O and Shift+T shortcuts working in every layout. Dropdowns must flip into view,
+  and short laptop windows must allow the sidebar to scroll to its controls.
 - Medium widths: reduce navigation, then stack evidence cards rather than shrinking
   quotes. At 760px and below, show either the queue or selected finding, with an
   explicit back action. Never require horizontal page scrolling.
@@ -366,3 +375,10 @@ keyboard search/navigation; modal dismissal and stable page width; cancelled
 checks discarding late responses; long filenames and clipboard-denial feedback. Both themes fit
 320, 390, 760, 1024 and 1440px widths. No paid calls or resets of the working office
 sources were needed for these checks.
+
+
+The sidebar-controls refinement passed all 49 frontend tests and the production
+build. Browser checks covered all three workspaces in light/dark themes at 320–1440px,
+short-window control access, office/theme persistence, keyboard dropdowns, outside
+modal dismissal and stable page width. The removed top bar and helper footer are
+absent, and each office/theme control has one responsive instance.

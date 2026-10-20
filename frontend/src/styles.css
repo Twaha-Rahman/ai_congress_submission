@@ -266,6 +266,8 @@ svg {
   padding: 27px 16px 20px;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .brand {
   display: flex;
@@ -344,57 +346,21 @@ svg {
   border-radius: 5px;
   color: var(--muted);
 }
-.sidebar-footer {
-  margin-top: auto;
-  border-top: 1px solid var(--line);
-  padding: 18px 8px 0;
+/* Office and appearance controls stay with navigation on every screen. */
+.sidebar-context {
   display: flex;
+  flex-direction: column;
   gap: 9px;
-  color: var(--muted);
-  align-items: center;
+  width: 100%;
+  margin-top: auto;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
 }
-.sidebar-footer strong,
-.sidebar-footer span {
-  display: block;
-  font-size: 10px;
-  font-weight: 400;
-}
-.sidebar-footer strong {
-  color: var(--body);
-  margin-bottom: 2px;
-}
+.sidebar-context .select-trigger { width: 100%; min-width: 0; font-size: 12px; }
+.sidebar-account { display: flex; flex-direction: row-reverse; justify-content: flex-end; align-items: center; gap: 10px; padding: 8px 4px 0; font-size: 12px; }
 .main-shell {
   margin-left: 216px;
   min-width: 0;
-}
-.topbar {
-  height: 69px;
-  background: var(--header-surface);
-  border-bottom: 1px solid var(--line);
-  padding: 0 36px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.breadcrumb,
-.topbar-context {
-  display: flex;
-  align-items: center;
-  gap: 17px;
-  font-size: 12px;
-}
-.breadcrumb {
-  color: var(--muted);
-}
-.breadcrumb strong {
-  color: var(--body);
-  font-weight: 500;
-}
-.breadcrumb-chevron {
-  transform: rotate(-90deg);
-}
-.topbar-context {
-  gap: 13px;
 }
 .office-select {
   display: flex;
@@ -403,12 +369,6 @@ svg {
 }
 .theme-select .select-trigger {
   min-width: 104px;
-}
-.topbar-divider {
-  height: 20px;
-  width: 1px;
-  background: var(--line);
-  margin: 0 3px;
 }
 .role-label {
   color: var(--muted);
@@ -422,9 +382,6 @@ svg {
   background: var(--card);
   font-size: 9px;
   font-weight: 500;
-}
-.mobile-brand {
-  display: none;
 }
 .workspace {
   max-width: 1660px;
@@ -1838,9 +1795,6 @@ textarea {
   .workspace {
     padding: 28px 24px 18px;
   }
-  .topbar {
-    padding: 0 24px;
-  }
   .investigation-layout {
     grid-template-columns: 235px minmax(0, 1fr);
     gap: 22px;
@@ -1911,17 +1865,16 @@ textarea {
   .brand > span,
   .sidebar-workspace,
   .sidebar-label,
-  .nav-item > span,
-  .sidebar-footer > div {
+  .nav-item > span {
     display: none;
   }
   .nav-item {
     padding: 12px;
   }
-  .sidebar-footer {
-    margin-top: auto;
-    padding: 15px 10px 0;
-  }
+  .sidebar-context { align-items: center; }
+  .sidebar-context .select-trigger { width: 40px; min-width: 40px; height: 40px; padding: 10px; justify-content: center; }
+  .sidebar-context .select-trigger > span, .sidebar-context .select-trigger .shortcut-hint, .sidebar-context .select-chevron, .sidebar-context .role-label { display: none; }
+  .sidebar-account { padding: 8px 0 0; }
   .main-shell {
     margin-left: 69px;
   }
@@ -1959,55 +1912,31 @@ textarea {
     padding: 16px;
   }
   .sidebar {
-    display: none;
+    position: static;
+    inset: auto;
+    width: 100%;
+    padding: 12px 18px;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    overflow: visible;
   }
-  .main-shell {
-    margin-left: 0;
-  }
-  .topbar {
-    height: 60px;
-    padding: 0 18px;
-  }
-  .mobile-brand {
-    display: flex;
-  }
-  .breadcrumb {
-    gap: 8px;
-  }
-  .breadcrumb > span:not(.mobile-brand),
-  .breadcrumb-chevron {
-    display: none;
-  }
-  .topbar-context {
-    gap: 6px;
-  }
-  .theme-select .select-trigger {
-    width: 36px;
-    min-width: 36px;
-    height: 36px;
-    padding: 8px;
-    justify-content: center;
-  }
-  .theme-select .select-trigger > span,
-  .theme-select .select-chevron {
-    display: none;
-  }
-  .role-label {
-    font-size: 10px;
-  }
-  .office-select {
-    gap: 5px;
-    font-size: 11px;
-  }
-  .office-select .select-trigger > svg:first-child {
-    display: none;
-  }
-  .avatar {
-    display: none;
-  }
-  .topbar-divider {
-    margin: 0 2px;
-  }
+  .sidebar > nav { display: none; }
+  .sidebar .brand { margin: 0; flex-shrink: 0; }
+  .sidebar .brand img { width: 28px; height: 28px; }
+  .sidebar-context { flex: 1; flex-direction: row; gap: 8px; width: auto; min-width: 0; padding: 0; margin: 0; border: 0; }
+  .sidebar-context .office-select { flex: 1; min-width: 0; }
+  .sidebar-context .office-select .select-trigger { width: 100%; min-width: 0; height: 36px; min-height: 36px; padding: 8px; font-size: 11px; justify-content: flex-start; gap: 6px; }
+  .sidebar-context .office-select .select-trigger > span:not(.shortcut-hint), .sidebar-context .office-select .select-chevron { display: block; }
+  .sidebar-context .office-select .select-trigger > svg { flex-shrink: 0; }
+  .sidebar-context .theme-select { flex-shrink: 0; }
+  .sidebar-context .theme-select .select-trigger { width: 36px; min-width: 36px; min-height: 36px; height: 36px; padding: 8px; }
+  .sidebar-context .sidebar-account { flex-shrink: 0; padding: 0; }
+  .sidebar-context .role-label { display: block; font-size: 10px; white-space: nowrap; }
+  .sidebar-context .avatar { display: none; }
+  .main-shell { margin-left: 0; }
   .workspace {
     padding: 25px 18px 18px;
   }
@@ -2019,10 +1948,6 @@ textarea {
   }
   .shortcuts-button > span {
     display: none;
-  }
-  .office-select .select-trigger {
-    font-size: 11px;
-    padding: 8px;
   }
   .refresh-button {
     font-size: 0;
@@ -2230,9 +2155,6 @@ textarea {
   }
 }
 @media (max-width: 420px) {
-  .breadcrumb > strong {
-    display: none;
-  }
   .review-actions .button {
     gap: 5px;
     padding: 9px 8px;

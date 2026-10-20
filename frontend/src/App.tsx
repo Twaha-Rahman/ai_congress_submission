@@ -5,7 +5,6 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
-  ChevronDown,
   CircleCheck,
   Globe2,
   Inbox,
@@ -495,57 +494,38 @@ export default function App() {
             <Shield size={18} /><span>Verification</span>
           </a>
         </nav>
-        <footer className="sidebar-footer">
-          <Shield size={16} />
-          <div>
-            <strong>Office workspace</strong>
-            <span>Access follows your role</span>
+        <div className="sidebar-context">
+          <div className="office-select">
+            <Select
+              label="Office"
+              icon={<Globe2 size={16} />}
+              triggerRef={officeRef}
+              shortcut={shortcutsEnabled ? "O" : undefined}
+              value={view.office}
+              onChange={(value) => {
+                navigate({
+                  office: value as Office,
+                  finding: "",
+                  tag: "",
+                  source: "",
+                  tab: "evidence",
+                  pane: "queue",
+                  page: 1,
+                  document: "",
+                  uploadJob: "",
+                  forSource: "",
+                  verifyId: "", verifyNode: "", verifyPassage: "", verifySearch: "", verifyChecks: "all",
+                });
+                setNotice("");
+              }}
+              options={[
+                { value: "dhaka", label: "Dhaka office" },
+                { value: "frankfurt", label: "Frankfurt office" },
+              ]}
+            />
           </div>
-        </footer>
-      </aside>
-
-      <div className="main-shell">
-        <header className="topbar">
-          <div className="breadcrumb">
-            <span className="mobile-brand">
-              <img src="/meridian.svg" width="28" height="28" alt="Meridian" />
-            </span>
-            <span>Workspace</span>
-            <ChevronDown className="breadcrumb-chevron" size={12} />
-            <strong>{isSources ? "Sources" : isVerification ? "Verification" : "Findings"}</strong>
-          </div>
-          <div className="topbar-context">
-            <ThemeSelect shortcutsEnabled={shortcutsEnabled} />
-            <div className="office-select">
-              <Select
-                label="Office"
-                icon={<Globe2 size={16} />}
-                triggerRef={officeRef}
-                shortcut={shortcutsEnabled ? "O" : undefined}
-                value={view.office}
-                onChange={(value) => {
-                  navigate({
-                    office: value as Office,
-                    finding: "",
-                    tag: "",
-                    source: "",
-                    tab: "evidence",
-                    pane: "queue",
-                    page: 1,
-                    document: "",
-                    uploadJob: "",
-                    forSource: "",
-                    verifyId: "", verifyNode: "", verifyPassage: "", verifySearch: "", verifyChecks: "all",
-                  });
-                  setNotice("");
-                }}
-                options={[
-                  { value: "dhaka", label: "Dhaka office" },
-                  { value: "frankfurt", label: "Frankfurt office" },
-                ]}
-              />
-            </div>
-            <span className="topbar-divider" />
+          <ThemeSelect shortcutsEnabled={shortcutsEnabled} />
+          <div className="sidebar-account" role="group" aria-label={session ? `${humanize(session.role)} access` : "Connecting"} title={session ? `${humanize(session.role)} access` : "Connecting"}>
             <span className="role-label">
               {session ? humanize(session.role) : "Connecting…"}
             </span>
@@ -553,8 +533,10 @@ export default function App() {
               {session?.role === "reader" ? "AN" : "CR"}
             </span>
           </div>
-        </header>
+        </div>
+      </aside>
 
+      <div className="main-shell">
         <nav className="mobile-workspace-nav" aria-label="Workspace">
           <a href={`/findings${viewSearch(view)}`} aria-current={isFindings ? "page" : undefined} onClick={(e) => { e.preventDefault(); openScreen("findings"); }}><LayoutList size={16} />Findings</a>
           <a href={`/sources${viewSearch(view)}`} aria-current={isSources ? "page" : undefined} onClick={(e) => { e.preventDefault(); openScreen("sources"); }}><Files size={16} />Sources</a>

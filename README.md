@@ -67,7 +67,8 @@ search, `J` / `K` move through findings, and `A` / `R` / `D` open review forms.
 explicit on/off switch indicator on desktop and mobile. Key hints and the shortcuts
 button are hidden in the mobile layout.
 
-Use the header's **Theme** control for **Light**, **Dark**, or **System** appearance.
+Use the sidebar's **Theme** control for **Light**, **Dark**, or **System** appearance.
+Office, theme and role sit below navigation; on mobile they share a compact header.
 System is the default and follows device changes; your choice is saved locally.
 Copy confirmation animates inside the finding tag without moving the page. Dialogs
 close with an outside click, the close button, or Escape, and preserve the page's

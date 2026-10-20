@@ -153,6 +153,10 @@ The viewer, worker, fonts, character maps and WebAssembly resources are self-hos
   preference in local storage. Pause them while typing, during composition, in
   dropdowns and in open dialogs. Preserve browser/assistive modifier combinations.
   `F1` can also open help from a focused search/filter control.
+  Escape in search returns focus to the selected queue card without clearing the
+  query or changing the URL. If no result is selected, focus the workspace instead.
+  Keep this available when single-key shortcuts are disabled; preserve composition
+  and modified key combinations.
 - Shortcuts: `/` search, `J`/`K` next/previous finding, `A` acknowledge, `R` resolve,
   `D` dismiss, `E` evidence, `T` chronology, `H` review history, `S` sort, `O` office,
   and `Shift+R` toggles auto-refresh. Navigation moves keyboard focus to the selected item.

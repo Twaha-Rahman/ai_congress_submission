@@ -9,7 +9,7 @@ export const shortcutDescriptions = [
   { keys: "O", label: "Open office options" },
   { keys: "Shift + R", label: "Toggle auto-refresh" },
   { keys: "Ctrl / ⌘ + Enter", label: "Submit a review with a reason" },
-  { keys: "Esc", label: "Close a dropdown or dialog" },
+  { keys: "Esc", label: "Leave search or close a dropdown or dialog" },
   { keys: "? / F1", label: "Show keyboard shortcuts" },
 ];
 export type ShortcutAction =

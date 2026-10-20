@@ -613,11 +613,31 @@ export default function App() {
                       ref={searchRef}
                       placeholder="Search findings or #ID…"
                       aria-label="Search findings"
-                      aria-keyshortcuts={shortcutsEnabled ? "/" : undefined}
+                      aria-keyshortcuts={shortcutsEnabled ? "/ Escape" : "Escape"}
                       value={view.search}
                       onChange={(event) =>
                         filter({ search: event.target.value })
                       }
+                      onKeyDown={(event) => {
+                        if (
+                          event.key !== "Escape" ||
+                          event.nativeEvent.isComposing ||
+                          event.ctrlKey ||
+                          event.metaKey ||
+                          event.altKey ||
+                          event.shiftKey
+                        )
+                          return;
+                        event.preventDefault();
+                        event.stopPropagation();
+                        const target =
+                          document.querySelector<HTMLElement>(
+                            ".finding-list-item.selected",
+                          ) || document.getElementById("workspace");
+                        target?.focus({ preventScroll: true });
+                        if (target?.matches(".finding-list-item"))
+                          target.scrollIntoView({ block: "nearest" });
+                      }}
                     />
                     {view.search && (
                       <button

@@ -19,6 +19,8 @@ Extract requirements, prohibitions, permissions, advice and operational assertio
 across any subject. Do not turn questions, hypotheticals, jokes or quoted/rejected
 suggestions into asserted rules: report ambiguous cases with their source quote.
 For each rule, statement and evidence.quote must be the SAME exact source passage.
+Supply only quote and page/section hints for evidence. Do not generate character
+offsets; the backend locates exact quotations in the preserved source text.
 Use enough verbatim text to preserve who/what it applies to, deadlines, units,
 conditions, exceptions, negations and dates. Include qualifications in the same
 clause, even when they appear in another sentence. Copy actor, action, object,

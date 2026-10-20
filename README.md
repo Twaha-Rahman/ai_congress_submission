@@ -144,6 +144,9 @@ the API returns a conflict if the finding changed before the decision was record
 - **Evidence-grounded extraction:** strict JSON schema; exact quotes are resolved in
   preserved parser text; hallucinated quotes, unsupported conditions, unsupported
   negation, scope escapes and number mismatches are rejected or sent to review.
+  Hosted extraction requests ask for exact quotations and page/section hints only.
+  Character offsets are computed from preserved source text; legacy model-provided
+  offsets are ignored without relaxing quote or location validation.
 - **Durable office state:** SQLite with append-only migrations, transactional
   publication, immutable originals, durable jobs and restart recovery.
 - **Temporal history:** separate effective (`valid_from`/`valid_to`) and system

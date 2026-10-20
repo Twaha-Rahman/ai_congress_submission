@@ -22,7 +22,7 @@ from typing import Callable
 import httpx
 
 from ..contracts.common import PROMPT_VERSION, SCHEMA_VERSION, ErrorCode, Mode
-from ..contracts.extraction import ExtractionProposal
+from ..contracts.extraction import ExtractionProposal, HostedExtractionProposal
 from ..integrity.canonical import canonical_json_bytes, sha256_hex
 from ..integrity.signing import SignatureError  # noqa: F401  (re-exported for callers)
 from .provider import (
@@ -54,7 +54,7 @@ USER_PROMPT_TEMPLATE = (
 RetryHook = Callable[[int, float], None]
 
 
-def strict_json_schema(proposal_model=ExtractionProposal) -> dict:
+def strict_json_schema(proposal_model=HostedExtractionProposal) -> dict:
     """Generate a strict JSON schema from the contract model."""
 
     schema = proposal_model.model_json_schema()
@@ -170,7 +170,10 @@ class OpenRouterExtractionProvider:
             "model": self.model,
             "temperature": self.temperature,
             "messages": [
-                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "system", "content": SYSTEM_PROMPT + (
+                    " Supply an exact evidence.quote and page/section hints only."
+                    " Do not generate character offsets; the backend locates quotations in the source."
+                )},
                 {"role": "user", "content": user_prompt},
             ],
             "response_format": {
@@ -333,6 +336,17 @@ class OpenRouterExtractionProvider:
                 model_used,
                 (ErrorCode.SCHEMA_VIOLATION, f"model output was not valid JSON: {exc}"),
             )
+        # Character positions are backend-derived, never model authority. Older
+        # providers may still emit offsets (often 0/0); discard these redundant
+        # hints before schema validation, keeping quote/page/section validation.
+        if issubclass(self.proposal_model, ExtractionProposal) and isinstance(data, dict):
+            rules = data.get("rules")
+            if isinstance(rules, list):
+                for rule in rules:
+                    evidence = rule.get("evidence") if isinstance(rule, dict) else None
+                    if isinstance(evidence, dict):
+                        evidence.pop("start_char", None)
+                        evidence.pop("end_char", None)
         try:
             proposal = self.proposal_model.model_validate(data)
         except Exception as exc:

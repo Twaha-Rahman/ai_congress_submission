@@ -14,7 +14,10 @@ exhaustive coverage of every policy.
    applicability, conditions and exceptions. Trusted authority, permissions and
    replacement links continue to come only from the uploader's manifest.
 3. The backend checks quotations and extracted excerpts against preserved parser
-   text. Invented text and scope changes are rejected or held for review.
+   text. Invented text and scope changes are rejected or held for review. Character
+   offsets are calculated by the backend from exact quote matches. The hosted
+   schema does not ask the model to count characters, and any legacy model offsets
+   are ignored; quote and page/section checks still apply.
 4. For each accepted new statement, local lexical retrieval ranks relevant current
    general statements. Policy-family equality is not required: team chat can be
    checked against several policy families. Statements within the same PDF can

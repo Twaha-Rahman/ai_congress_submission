@@ -25,12 +25,17 @@ from .common import (
 )
 
 
-class EvidenceSpan(StrictModel):
-    """Model-proposed evidence locator; offsets are re-resolved by the backend."""
+class EvidenceQuote(StrictModel):
+    """Hosted models supply a quote and location hints, not character counts."""
 
     page: int | None = None
     section: str | None = None
     quote: str
+
+
+class EvidenceSpan(EvidenceQuote):
+    """Legacy proposal offsets are optional; verified offsets come from source text."""
+
     start_char: int | None = None
     end_char: int | None = None
 
@@ -98,7 +103,15 @@ class ExtractionProposal(StrictModel):
         return self
 
 
-class GeneralPolicyProposedRule(ProposedRule):
+class HostedProposedRule(ProposedRule):
+    evidence: EvidenceQuote
+
+
+class HostedExtractionProposal(ExtractionProposal):
+    rules: list[HostedProposedRule]
+
+
+class GeneralPolicyProposedRule(HostedProposedRule):
     """Constrain hosted structured output to this ingestion subject's types."""
 
     subject: Literal[Subject.GENERAL_POLICY] = Subject.GENERAL_POLICY

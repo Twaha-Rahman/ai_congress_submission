@@ -20,7 +20,9 @@ reference is inspiration, not a claim of affiliation with Claude or Anthropic.
 
 Tokens live in `frontend/src/styles.css`; use variables when extending components.
 
-- Canvas `#faf9f5`, soft surface `#f5f0e8`, selected/card surface `#efe9de`.
+- Light canvas `#faf9f5`, soft surface `#f5f0e8`, and inset/card surface `#efe9de`.
+  Queue cards use `#f7f4ee`, raised evidence/dialogs `#fffdf8`, selected findings
+  pale coral `#f9ece2`, and keycaps `#f1ede6`.
 - Warm ink `#141413`, body `#3d3d3a`, secondary text `#6c6a64`.
 - Hairlines `#e6dfd8`; functional input borders `#8d877c` for stronger contrast.
 - Coral `#cc785c` for small accents. Primary buttons use the reference's darker
@@ -41,6 +43,10 @@ Tokens live in `frontend/src/styles.css`; use variables when extending component
   Policy evidence gets a teal header/icon/top edge; informal evidence gets coral.
   Keep authority labels explicit and retain neutral styling for procedures or
   unavailable metadata. These accents do not indicate integrity verification.
+- Both themes share the full inset selection marker, quieter navigation counter,
+  authority-colored evidence headers/icons/top edges, 10px authority/version labels and
+  27px rule summaries (increasing on wide screens). Keep these component rules
+  outside theme selectors; vary palette tokens between themes.
 - Cormorant Garamond 500 for display headings and rule summaries, as the reference's
   public substitute for its licensed display face. Inter 400/500/600 for controls
   and body. Both are bundled locally; no runtime font network dependency.

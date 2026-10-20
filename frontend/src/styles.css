@@ -27,15 +27,15 @@
   --search-match-ink: #463315;
   --chrome-surface: var(--surface);
   --header-surface: transparent;
-  --queue-surface: transparent;
-  --selected-surface: var(--surface);
+  --queue-surface: #f7f4ee;
+  --selected-surface: #f9ece2;
   --scope-surface: var(--surface);
   --field-surface: var(--canvas);
-  --raised-surface: var(--canvas);
+  --raised-surface: #fffdf8;
   --secondary-surface: var(--canvas);
   --primary-fill: var(--primary);
   --primary-pressed: var(--warning-ink);
-  --key-surface: var(--surface);
+  --key-surface: #f1ede6;
   --key-line: var(--line);
   --serif: "Cormorant Garamond", Georgia, serif;
   --sans: "Inter", system-ui, sans-serif;
@@ -340,8 +340,9 @@ svg {
   height: 21px;
   display: grid;
   place-items: center;
-  border: 1px solid var(--control-line);
+  border: 1px solid var(--line);
   border-radius: 5px;
+  color: var(--muted);
 }
 .sidebar-footer {
   margin-top: auto;
@@ -757,13 +758,13 @@ textarea::placeholder {
 }
 .finding-list-item.selected::before {
   content: "";
-  height: 25px;
   width: 3px;
   border-radius: 2px;
   background: var(--primary);
   position: absolute;
-  left: -1px;
-  top: 17px;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
 }
 .list-item-meta {
   display: flex;
@@ -1242,24 +1243,37 @@ kbd {
 }
 .evidence-card {
   border: 1px solid var(--line);
+  border-top: 2px solid var(--evidence-accent-line, var(--line));
   border-radius: 8px;
+  background: var(--raised-surface);
   padding: 17px;
   display: flex;
   flex-direction: column;
   min-width: 0;
 }
-.formal-evidence {
-  background: var(--surface);
+.evidence-policy {
+  --evidence-accent: var(--teal);
+  --evidence-accent-surface: var(--teal-surface);
+  --evidence-accent-line: var(--teal-line);
+}
+.evidence-informal {
+  --evidence-accent: var(--primary);
+  --evidence-accent-surface: var(--warning-surface);
+  --evidence-accent-line: var(--warning-line);
 }
 .evidence-role {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 500;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 5px;
-  color: var(--muted);
+  color: var(--evidence-accent, var(--body));
   margin-bottom: 18px;
+}
+.evidence-procedure .small-dot,
+.evidence-unknown .small-dot {
+  color: var(--muted);
 }
 .evidence-role > span {
   display: flex;
@@ -1273,9 +1287,9 @@ kbd {
   margin-bottom: 19px;
 }
 .source-file-icon {
-  color: var(--muted);
-  border: 1px solid var(--line);
-  background: var(--canvas);
+  color: var(--evidence-accent, var(--body));
+  border: 1px solid var(--evidence-accent-line, var(--line));
+  background: var(--evidence-accent-surface, var(--surface));
   padding: 7px;
   border-radius: 6px;
   display: flex;
@@ -1285,7 +1299,7 @@ kbd {
   line-height: 1.5;
 }
 .evidence-card header p {
-  font-size: 9px;
+  font-size: 10px;
   margin-top: 3px;
   color: var(--muted);
 }
@@ -1294,7 +1308,8 @@ kbd {
 }
 .rule-summary {
   font-family: var(--serif);
-  font-size: 25px;
+  font-size: 27px;
+  color: var(--ink);
   font-weight: 500;
   line-height: 1.2;
   letter-spacing: -0.4px;
@@ -1744,52 +1759,6 @@ textarea {
 }
 .source-facts dd {
   margin: 0;
-}
-
-/* Dark surfaces have distinct jobs; authority colors stay confined to evidence. */
-:root[data-theme="dark"] .finding-list-item.selected::before {
-  top: 10px;
-  bottom: 10px;
-  left: 0;
-  height: auto;
-}
-:root[data-theme="dark"] .nav-count {
-  border-color: var(--line);
-  color: var(--muted);
-}
-:root[data-theme="dark"] .evidence-card {
-  background: var(--raised-surface);
-  border-top: 2px solid var(--evidence-accent-line, var(--line));
-}
-:root[data-theme="dark"] .evidence-policy {
-  --evidence-accent: var(--teal);
-  --evidence-accent-surface: var(--teal-surface);
-  --evidence-accent-line: var(--teal-line);
-}
-:root[data-theme="dark"] .evidence-informal {
-  --evidence-accent: var(--primary);
-  --evidence-accent-surface: var(--warning-surface);
-  --evidence-accent-line: var(--warning-line);
-}
-:root[data-theme="dark"] .evidence-card .evidence-role {
-  color: var(--evidence-accent, var(--body));
-  font-size: 10px;
-}
-:root[data-theme="dark"] .evidence-procedure .small-dot,
-:root[data-theme="dark"] .evidence-unknown .small-dot {
-  color: var(--muted);
-}
-:root[data-theme="dark"] .evidence-card .source-file-icon {
-  color: var(--evidence-accent, var(--body));
-  background: var(--evidence-accent-surface, var(--surface));
-  border-color: var(--evidence-accent-line, var(--line));
-}
-:root[data-theme="dark"] .evidence-card header p {
-  font-size: 10px;
-}
-:root[data-theme="dark"] .evidence-card .rule-summary {
-  color: var(--ink);
-  font-size: 27px;
 }
 
 @media (min-width: 1550px) {

@@ -1,13 +1,64 @@
 # Meridian — verifiable institutional memory
 
-Meridian is a non-UI backend for two bank offices (Dhaka and Frankfurt) plus a
+Meridian has a backend for two bank offices (Dhaka and Frankfurt) plus a
 metadata-only gateway. It ingests PDFs and saved Slack events, extracts typed policy
 claims with evidence, keeps effective-time and knowledge-time history, detects
 stale/contradictory/incomplete guidance, answers scoped questions deterministically,
 and produces signed evidence bundles that an independent verifier can check.
 
 The repository also contains the synthetic demo corpus, replay proposals, evaluation
-labels, command-line demos and an offline test suite. There is no custom frontend.
+labels, command-line demos and an offline test suite. The first frontend slice is a
+Claude-inspired findings workspace with evidence comparison and persisted reviews.
+
+## Findings workspace
+
+Requires Node **22.12+** (or a newer supported Node release), in addition to the
+backend prerequisites below. Run from the repository root:
+
+```bash
+make setup                    # only needed on a new checkout
+make local-up                 # starts existing office databases without resetting them
+make frontend-install         # npm ci with the committed lockfile
+make frontend                 # http://127.0.0.1:5173
+```
+
+Open **http://127.0.0.1:5173/findings**. If there are no findings yet, use
+`make demo-replay` to prepare the synthetic demo (this resets demo databases). Do
+not run that command during an investigation you want to preserve.
+
+The workspace includes office selection, search and filters, exact evidence quotes,
+source downloads, effective/knowledge chronology, and acknowledge/resolve/dismiss
+decisions with required reasons and durable history. Finding selection and filters
+are stored in the URL. `DESIGN.md` is the installed Claude design reference;
+[FRONTEND_GUIDELINES.md](FRONTEND_GUIDELINES.md) records the Meridian adaptations
+and a review checklist for this first slice.
+
+The frontend server reads the root `.env` and keeps bearer tokens on the server.
+It runs as the configured demo reviewer by default. To inspect read-only access:
+
+```bash
+UI_ROLE=reader make frontend
+```
+
+The principal is fixed on the server; there is no browser role selector. This is a
+loopback-only demo operator workspace, not a multi-user login system. Real user
+authentication is required before exposing it on an office network. The server
+forwards only the endpoints needed by findings, not federation or model APIs.
+
+For a built version, run `make frontend-build`, then `npm start --prefix frontend`.
+The built server also listens on loopback port 5173; stop the dev server first.
+`UI_PORT` changes the built server port, and `DHAKA_BASE_URL` / `FRANKFURT_BASE_URL`
+change office connections. Restart the frontend server after changing these values.
+Fonts are bundled locally, so viewing the built UI makes no font/CDN/model requests.
+
+```bash
+npm test --prefix frontend     # bridge security and amount-boundary presentation
+make test                     # backend suite, including durable review history
+```
+
+The review-history addition preserves the existing finding response and adds a
+top-level `reviews` array. Review submissions can supply `expected_snapshot_id`;
+the API returns a conflict if the finding changed before the decision was recorded.
 
 ## What is implemented
 
@@ -40,6 +91,7 @@ labels, command-line demos and an offline test suite. There is no custom fronten
 ```
 meridian/              application packages (contracts, rules, storage, ingestion,
                        extraction, temporal, queries, federation, office/gateway APIs)
+frontend/              React/TypeScript findings workspace and local API bridge
 scripts/               setup, stack supervisor, seed/reset, demos, evaluation
 fixtures/              demo + evaluation sources, manifests, replay and cache material
 config/principals.json static identity/permission map (tokens come from env)

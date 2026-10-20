@@ -1,8 +1,20 @@
 PYTHON := .venv/bin/python
 COMPOSE := docker compose
+.DEFAULT_GOAL := help
 
 .PHONY: setup test schemas openapi up down local-up local-down local-status \
 	seed demo-replay demo-cached demo-live evaluate reset-demo help
+
+.PHONY: frontend-install frontend frontend-build
+
+frontend-install:
+	npm ci --prefix frontend
+
+frontend:
+	npm run dev --prefix frontend
+
+frontend-build:
+	npm run build --prefix frontend
 
 help:
 	@echo "Meridian targets"
@@ -19,6 +31,9 @@ help:
 	@echo "  make demo-live    require credentials; live Slack extraction + demos"
 	@echo "  make evaluate     run the labeled end-to-end evaluation"
 	@echo "  make reset-demo   delete demo databases/sources (keeps keys and evidence)"
+	@echo "  make frontend-install install the locked frontend dependencies"
+	@echo "  make frontend     start the local findings workspace on :5173"
+	@echo "  make frontend-build build the findings workspace for npm start"
 
 setup:
 	@test -x $(PYTHON) || python3.11 -m venv .venv

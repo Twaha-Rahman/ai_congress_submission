@@ -4,6 +4,22 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#faf9f5" />
+    <script>
+      // Apply the saved appearance before styles paint to avoid a light flash.
+      (() => {
+        let theme = "system";
+        try {
+          const saved = localStorage.getItem("meridian-theme");
+          if (saved === "light" || saved === "dark") theme = saved;
+        } catch {}
+        const resolved = theme === "system"
+          ? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+          : theme;
+        document.documentElement.dataset.theme = resolved;
+        document.documentElement.dataset.themePreference = theme;
+        document.querySelector('meta[name="theme-color"]').content = resolved === "dark" ? "#1f1e1b" : "#faf9f5";
+      })();
+    </script>
     <meta
       name="description"
       content="Meridian — investigate policy findings with their original evidence."

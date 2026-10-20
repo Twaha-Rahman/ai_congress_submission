@@ -28,6 +28,7 @@ import {
 } from "./components";
 import FindingDetail from "./FindingDetail";
 import Select from "./Select";
+import ThemeSelect from "./ThemeSelect";
 import {
   useKeyboardShortcuts,
   useShortcutPreference,
@@ -463,6 +464,7 @@ export default function App() {
             <strong>Findings</strong>
           </div>
           <div className="topbar-context">
+            <ThemeSelect />
             <div className="office-select">
               <Select
                 label="Office"
@@ -551,20 +553,18 @@ export default function App() {
           ) : (
             <>
               <section className="summary-strip" aria-label="Findings overview">
-                <div>
+                <div className="summary-metric metric-attention">
                   <span className="summary-icon attention">
                     <AlertCircle size={18} />
                   </span>
                   <strong>{needsAttention}</strong>
                   <span>need attention</span>
                 </div>
-                <span className="summary-divider" />
-                <div>
+                <div className="summary-metric">
                   <strong>{data.findings.length}</strong>
                   <span>total findings</span>
                 </div>
-                <span className="summary-divider" />
-                <div>
+                <div className="summary-metric metric-reviewed">
                   <strong>{reviewed}</strong>
                   <span>reviewed</span>
                 </div>

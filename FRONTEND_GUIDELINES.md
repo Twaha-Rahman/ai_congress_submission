@@ -27,6 +27,12 @@ Tokens live in `frontend/src/styles.css`; use variables when extending component
   coral `#a9583e` so small light labels remain readable.
 - Warning ink `#93482f` on `#f6e9e0`; resolved/success ink `#356454` on `#e9efea`.
   These are semantic accents, not alternative page backgrounds.
+- Light/dark/system appearance is selected in the header. Default to System and
+  persist only the preference in local storage. Apply it before the first paint;
+  follow system changes while System is selected. Dark mode uses warm charcoal
+  canvas/surfaces and cream text, with brighter coral/teal semantic inks. Use the
+  shared variables for controls, popups, dialogs and scrollbars. Original PDF pages
+  retain their document colors. Theme preference stays out of shared finding URLs.
 - Cormorant Garamond 500 for display headings and rule summaries, as the reference's
   public substitute for its licensed display face. Inter 400/500/600 for controls
   and body. Both are bundled locally; no runtime font network dependency.
@@ -49,6 +55,10 @@ Tokens live in `frontend/src/styles.css`; use variables when extending component
   Notices, shortcut preferences, and unsaved review text stay out of shared URLs.
 - Keep the page heading to “Findings.” Avoid promotional sidebar copy, explanatory
   taglines and duplicate footer slogans in the workspace.
+- Summary counts use compact bordered surfaces, 24px numbers and readable labels.
+  Emphasize attention in coral and reviewed in teal. On mobile, use three equal
+  columns. Severity/review badges use 12px semibold labels, semantic fills and
+  visible borders; keep queue variants compact without losing their status color.
 - Office and filter controls use `Select.tsx`, a shared select-only combobox with
   styled trigger and option surfaces. Keep the native keyboard conventions:
   arrows/Home/End move the active option, typing finds a label, Enter/Space selects,
@@ -63,7 +73,10 @@ Tokens live in `frontend/src/styles.css`; use variables when extending component
   Tags use `#` plus the final eight ID characters in uppercase. Search accepts tags
   with or without `#`, full IDs, partial IDs and ordinary evidence text, regardless
   of case. Clicking the header tag copies it and announces success without changing
-  search or selection. Report clipboard failures honestly. Share URLs contain both
+  search or selection. Animate the fixed-width icon inside the button and tint it
+  on success; announce the result to screen readers without adding visible text
+  below the tag or moving content. Respect reduced motion. Report clipboard
+  failures with an alert icon, tooltip and live announcement. Share URLs contain both
   tag and full ID. Tag-only links resolve against authorized results; ambiguous or
   inaccessible tags must not silently open a different finding.
 - Use named, real icons from Lucide. Icon-only actions need accessible labels.
@@ -96,7 +109,9 @@ Keep these concepts distinct in both copy and appearance:
   supersession links; it must not infer replacement from a higher version number.
 
 Render money from integer cents and preserve inclusive/exclusive boundaries. The
-stale-guidance example is **above $25,000, up to $50,000**. Do not shorten it to an
+stale-guidance example is **above $25,000 and up to $50,000**. Join bounds with words
+instead of a comma after the amount (for example, **above $0 and up to $25,000**).
+Do not shorten it to an
 ambiguous “$25k–$50k” or include exactly $25,000.
 
 Source quotations stay verbatim. Clearly identify their version and location. The
@@ -122,7 +137,10 @@ The viewer, worker, fonts, character maps and WebAssembly resources are self-hos
   Restricted findings are absent from unauthorized results, not shown as redacted
   teasers. Office changes clear previous-office evidence while loading.
 - Dialogs use native modal semantics, trap focus, support Escape, restore focus on
-  close, and prevent background scrolling. Tab panels support arrow/Home/End keys.
+  close, and prevent background scrolling. A click that starts and ends outside
+  the dialog dismisses it; clicks inside and drags from inside must not. Preserve
+  pending-save guards. Reserve the root scrollbar gutter to keep background content
+  stationary when opening or closing a dialog. Tab panels support arrow/Home/End keys.
 - Provide visible focus indicators, a skip link, labels on all controls, text with
   semantic colors, status/error announcements, and reduced-motion support.
 - Keyboard shortcuts are discoverable through the header button, `?`, or `F1`.
@@ -188,3 +206,10 @@ shared filters/tabs/source location and zoom, tag-only and unknown-tag links,
 overflow. Original PDF and saved Slack previews were checked in the built server,
 including the locally served PDF worker and citation highlights. These checks used
 read-only requests against the existing demo data.
+
+The appearance/dialog refinement passed the production build and all 21 frontend
+tests. Browser checks covered saved theme reload, keyboard theme selection,
+simulated system theme changes, dark-mode PDF rendering, 320px/390px mobile
+layouts, fixed-size copy success/failure feedback, outside-click dismissal,
+inside-click/drag protection, focus restoration and zero horizontal movement of
+the workspace when the shortcuts dialog opens.

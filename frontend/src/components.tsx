@@ -110,6 +110,7 @@ export function Modal({
   const ref = useRef<HTMLDialogElement>(null);
   const close = useRef(onClose);
   const isBusy = useRef(busy);
+  const pressedBackdrop = useRef(false);
   close.current = onClose;
   isBusy.current = busy;
   useEffect(() => {
@@ -136,6 +137,34 @@ export function Modal({
       className={`dialog ${className}`}
       aria-labelledby="dialog-title"
       aria-busy={busy}
+      onPointerDown={(event) => {
+        const rect = event.currentTarget.getBoundingClientRect();
+        pressedBackdrop.current =
+          event.target === event.currentTarget &&
+          (event.clientX < rect.left ||
+            event.clientX > rect.right ||
+            event.clientY < rect.top ||
+            event.clientY > rect.bottom);
+      }}
+      onPointerCancel={() => {
+        pressedBackdrop.current = false;
+      }}
+      onClick={(event) => {
+        const rect = event.currentTarget.getBoundingClientRect();
+        const outside =
+          event.clientX < rect.left ||
+          event.clientX > rect.right ||
+          event.clientY < rect.top ||
+          event.clientY > rect.bottom;
+        if (
+          pressedBackdrop.current &&
+          event.target === event.currentTarget &&
+          outside &&
+          !isBusy.current
+        )
+          close.current();
+        pressedBackdrop.current = false;
+      }}
     >
       <header className="dialog-header">
         <h2 id="dialog-title">{title}</h2>

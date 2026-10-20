@@ -54,6 +54,12 @@ search, `J` / `K` move through findings, and `A` / `R` / `D` open review forms.
 `Ctrl+Enter` / `⌘+Enter` submits a review after you enter a reason.
 `Shift+R` toggles auto-refresh. The shortcuts button is hidden in the mobile layout.
 
+Use the header's **Theme** control for **Light**, **Dark**, or **System** appearance.
+System is the default and follows device changes; your choice is saved locally.
+Copy confirmation animates inside the finding tag without moving the page. Dialogs
+close with an outside click, the close button, or Escape, and preserve the page's
+width while background scrolling is locked.
+
 The frontend server reads the root `.env` and keeps bearer tokens on the server.
 It runs as the configured demo reviewer by default. To inspect read-only access:
 

@@ -44,7 +44,8 @@ export function amountRange(interval: AmountInterval, currency = "USD") {
     upper === null
       ? null
       : `${ui ? "up to" : "below"} ${money(upper, currency)}`;
-  return [start, end].filter(Boolean).join(", ") || "All amounts";
+  if (start && end) return `${start}${li ? (ui ? " " : " to ") : " and "}${end}`;
+  return start || end || "All amounts";
 }
 export function scopeLabel(scope: Scope) {
   if (scope.kind === "loan" && scope.amount_minor)

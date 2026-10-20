@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import {
   ArrowDownToLine,
   ArrowRight,
+  AlertCircle,
   BookOpen,
   Check,
   ChevronRight,
@@ -88,12 +89,14 @@ export default function FindingDetail({
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">(
     "idle",
   );
+  const [copyAttempt, setCopyAttempt] = useState(0);
   useEffect(() => {
     if (copyStatus === "idle") return;
     const timer = window.setTimeout(() => setCopyStatus("idle"), 3500);
     return () => window.clearTimeout(timer);
   }, [copyStatus]);
   async function copyTag() {
+    setCopyAttempt((attempt) => attempt + 1);
     try {
       await navigator.clipboard.writeText(findingTag(finding));
       setCopyStatus("copied");
@@ -133,15 +136,33 @@ export default function FindingDetail({
         <span>{typeLabels[finding.finding_type]}</span>
         <div className="finding-tag-group">
           <button
-            className="finding-tag"
-            title={`Copy ${findingTag(finding)}`}
+            className={`finding-tag copy-${copyStatus}`}
+            title={
+              copyStatus === "copied"
+                ? "Tag copied"
+                : copyStatus === "failed"
+                  ? "Couldn’t copy. Select the tag and copy manually."
+                  : `Copy ${findingTag(finding)}`
+            }
             aria-label={`Copy finding tag ${findingTag(finding)}`}
             onClick={copyTag}
           >
-            {copyStatus === "copied" ? <Check size={14} /> : <Copy size={14} />}
+            <span
+              key={`${copyStatus}-${copyAttempt}`}
+              className="tag-copy-icon"
+              aria-hidden="true"
+            >
+              {copyStatus === "copied" ? (
+                <Check size={14} />
+              ) : copyStatus === "failed" ? (
+                <AlertCircle size={14} />
+              ) : (
+                <Copy size={14} />
+              )}
+            </span>
             {findingTag(finding)}
           </button>
-          <span role="status" className="tag-copy-status">
+          <span role="status" className="sr-only">
             {copyStatus === "copied"
               ? "Tag copied"
               : copyStatus === "failed"

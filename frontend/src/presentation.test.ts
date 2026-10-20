@@ -14,7 +14,7 @@ test("scope descriptions preserve open and closed amount boundaries", () => {
       upper: 5000000,
       upper_inclusive: true,
     }),
-    "Above $25,000, up to $50,000",
+    "Above $25,000 and up to $50,000",
   );
   assert.equal(
     amountRange({
@@ -23,7 +23,25 @@ test("scope descriptions preserve open and closed amount boundaries", () => {
       upper: 2500000,
       upper_inclusive: false,
     }),
-    "From $0, below $25,000",
+    "From $0 to below $25,000",
+  );
+  assert.equal(
+    amountRange({
+      lower: 0,
+      lower_inclusive: false,
+      upper: 2500000,
+      upper_inclusive: true,
+    }),
+    "Above $0 and up to $25,000",
+  );
+  assert.equal(
+    amountRange({
+      lower: 0,
+      lower_inclusive: true,
+      upper: 2500000,
+      upper_inclusive: true,
+    }),
+    "From $0 up to $25,000",
   );
   assert.equal(
     amountRange({

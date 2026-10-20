@@ -222,3 +222,38 @@ test("an approval flag cannot describe a public hosted endpoint as a local model
   const local = await bridge(t, { env: { LLM_LOCAL_ENDPOINT_APPROVED: "1", LLM_BASE_URL: "http://127.0.0.1:9000/v1" } });
   assert.equal((await (await fetch(`${local.url}/api/session`)).json()).uploads.dhaka.processing, "local");
 });
+
+test("readers can verify evidence with their own credential, without gaining write access", async (t) => {
+  const { url, calls } = await bridge(t, { env: { UI_ROLE: "reader", DEMO_TOKEN_DHAKA_READER: "reader-token" } });
+  const source = new FormData(); source.set("source_id", "src_1");
+  source.set("file", new Blob(["modified bytes"]), "copy.pdf");
+  const response = await fetch(`${url}/api/dhaka/verifications/source`, {
+    method: "POST", headers: { "X-Meridian-UI": "1" }, body: source,
+  });
+  assert.equal(response.status, 200);
+  assert.equal(calls[0].headers.Authorization, "Bearer reader-token");
+  assert.equal(calls[0].body.get("source_id"), "src_1");
+  assert.equal(await calls[0].body.get("file").text(), "modified bytes");
+  assert.equal(calls[0].body.get("mode"), null); // Verification must not ingest or call a model.
+  const bundle = JSON.stringify({ bundle: { answer: { answer_text: "tampered" } } });
+  assert.equal((await fetch(`${url}/api/dhaka/verifications/bundle`, {
+    method: "POST", headers: { "X-Meridian-UI": "1" }, body: bundle,
+  })).status, 200);
+  assert.equal(calls[1].body.toString(), bundle);
+});
+
+test("verification and lineage expose only the intended methods and enforce origin and payload limits", async (t) => {
+  const { url, calls } = await bridge(t);
+  for (const path of ["findings/find_1/lineage", "sources/src_1/lineage", "answers/ans_1", "answers/ans_1/lineage", "answers/ans_1/bundle"])
+    assert.equal((await fetch(`${url}/api/dhaka/${path}`)).status, 200);
+  calls.length = 0;
+  for (const path of ["verifications/source", "verifications/bundle"]) {
+    assert.equal((await fetch(`${url}/api/dhaka/${path}`)).status, 404);
+    assert.equal((await fetch(`${url}/api/dhaka/${path}`, { method: "POST", body: "{}" })).status, 403);
+    assert.equal((await fetch(`${url}/api/dhaka/${path}`, { method: "POST", headers: { Origin: "https://attacker.example", "X-Meridian-UI": "1" }, body: "{}" })).status, 403);
+  }
+  assert.equal((await fetch(`${url}/api/dhaka/verifications/source`, { method: "POST", headers: { "X-Meridian-UI": "1" }, body: "{}" })).status, 422);
+  assert.equal((await fetch(`${url}/api/dhaka/verifications/bundle`, { method: "POST", headers: { "X-Meridian-UI": "1" }, body: "[invalid JSON]" })).status, 422);
+  assert.equal((await fetch(`${url}/api/dhaka/verifications/bundle`, { method: "POST", headers: { "X-Meridian-UI": "1" }, body: '"' + "x".repeat(20 * 1024 * 1024) + '"' })).status, 413);
+  assert.equal(calls.length, 0);
+});

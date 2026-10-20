@@ -75,18 +75,20 @@ export function createApiHandler({
       });
     }
     const match =
-      /^\/api\/(dhaka|frankfurt)\/(findings(?:\/[\w:.-]+(?:\/reviews)?)?|sources(?:\/[\w:.-]+(?:\/(?:content|comparisons))?)?|claims(?:\/reviews)?|jobs(?:\/[\w.-]+)?|ingestions\/pdf)$/.exec(
+      /^\/api\/(dhaka|frankfurt)\/(findings(?:\/[\w:.-]+(?:\/(?:reviews|lineage))?)?|sources(?:\/[\w:.-]+(?:\/(?:content|comparisons|lineage))?)?|answers\/[\w:.-]+(?:\/(?:lineage|bundle))?|verifications\/(?:source|bundle)|claims(?:\/reviews)?|jobs(?:\/[\w.-]+)?|ingestions\/pdf)$/.exec(
         url.pathname,
       );
     const path = match?.[2];
     const isReview = path && /^findings\/[\w:.-]+\/reviews$/.test(path);
     const isUpload = path === "ingestions/pdf";
     const isComparison = path && /^sources\/[\w:.-]+\/comparisons$/.test(path);
+    const isVerification = path?.startsWith("verifications/");
+    const isSourceVerification = path === "verifications/source";
     if (
       !match ||
       !(
-        (req.method === "GET" && !isReview && !isUpload && !isComparison) ||
-        (req.method === "POST" && (isReview || isUpload || isComparison))
+        (req.method === "GET" && !isReview && !isUpload && !isComparison && !isVerification) ||
+        (req.method === "POST" && (isReview || isUpload || isComparison || isVerification))
       )
     ) {
       return json(res, 404, {
@@ -113,7 +115,7 @@ export function createApiHandler({
           },
         });
       }
-      if (role !== "reviewer")
+      if (role !== "reviewer" && !isVerification)
         return json(res, 403, {
           error: {
             code: "forbidden",
@@ -142,11 +144,11 @@ export function createApiHandler({
         let size = 0;
         for await (const chunk of req) {
           size += chunk.length;
-          if (size > (isUpload ? MAX_PDF_BYTES + 65536 : 65536))
+          if (size > (isUpload || isSourceVerification ? MAX_PDF_BYTES + 65536 : isVerification ? MAX_PDF_BYTES : 65536))
             return json(res, 413, {
               error: {
                 code: "invalid_input",
-                message: isUpload ? "Choose a PDF smaller than 20 MB." : "The request is too large.",
+                message: isUpload ? "Choose a PDF smaller than 20 MB." : isVerification ? "Choose evidence smaller than 20 MB." : "The request is too large.",
               },
             });
           chunks.push(chunk);
@@ -186,6 +188,32 @@ export function createApiHandler({
               error.message && !error.message.includes("formData") ? error.message : "The upload form is invalid.",
             } });
           }
+        } else if (isSourceVerification) {
+          try {
+            const header = req.headers["content-type"] || "";
+            if (!header.toLowerCase().startsWith("multipart/form-data;")) throw new Error();
+            const form = await new Request("http://localhost/verification", {
+              method: "POST", headers: { "Content-Type": header }, body,
+            }).formData();
+            const file = form.get("file");
+            const sourceId = form.get("source_id");
+            if (!(file instanceof Blob) || !file.size || file.size > MAX_PDF_BYTES ||
+                typeof sourceId !== "string" || !/^[\w:.-]+$/.test(sourceId)) throw new Error();
+            const forwarded = new FormData();
+            forwarded.set("source_id", sourceId);
+            forwarded.set("file", file, file.name || "source-copy");
+            body = forwarded;
+            contentType = undefined;
+          } catch {
+            return json(res, 422, { error: { code: "invalid_input", message: "Choose a source and a nonempty copy up to 20 MB." } });
+          }
+        } else if (isVerification) {
+          try {
+            const evidence = JSON.parse(body.toString("utf8"));
+            if (!evidence || typeof evidence !== "object" || Array.isArray(evidence)) throw new Error();
+          } catch {
+            return json(res, 422, { error: { code: "invalid_input", message: "Choose a JSON evidence bundle." } });
+          }
         }
       }
       const upstream = await fetchImpl(
@@ -198,7 +226,7 @@ export function createApiHandler({
           },
           body,
           redirect: "error",
-          signal: AbortSignal.timeout(isUpload ? 60000 : 15000),
+          signal: AbortSignal.timeout(isUpload || isVerification ? 60000 : 15000),
         },
       );
       const headers = {

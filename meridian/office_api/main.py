@@ -414,6 +414,15 @@ def create_app(settings: OfficeSettings | None = None) -> FastAPI:
                         for clause in store.clauses_for_source(source_id)],
         }
 
+    @app.get("/v1/sources/{source_id}/lineage")
+    def source_lineage(source_id: str, principal=Depends(authenticate)) -> dict[str, Any]:
+        _require_office_scope(principal, Permission.READ_LOCAL)
+        if not _source_readable(principal, store.get_source(source_id)):
+            raise ApiError(ErrorCode.NOT_FOUND, "no such source")
+        graph = lineage_for_node(store, f"source:{source_id}",
+                                 allowed_restricted=principal.has(Permission.READ_RESTRICTED))
+        return {"lineage": graph.model_dump(mode="json")}
+
     @app.post("/v1/sources/{source_id}/comparisons", status_code=202)
     def recheck_source(source_id: str, mode: str | None = None,
                        principal=Depends(authenticate)) -> dict[str, Any]:
@@ -564,6 +573,16 @@ def create_app(settings: OfficeSettings | None = None) -> FastAPI:
                 for event in store.review_events(finding_id)
             ],
         }
+
+    @app.get("/v1/findings/{finding_id}/lineage")
+    def finding_lineage(finding_id: str, principal=Depends(authenticate)) -> dict[str, Any]:
+        _require_office_scope(principal, Permission.READ_LOCAL)
+        record = store.get_finding(finding_id)
+        if record is None or not _finding_readable(principal, record):
+            raise ApiError(ErrorCode.NOT_FOUND, "no such finding")
+        graph = lineage_for_node(store, f"finding:{finding_id}",
+                                 allowed_restricted=principal.has(Permission.READ_RESTRICTED))
+        return {"lineage": graph.model_dump(mode="json")}
 
     @app.post("/v1/findings/{finding_id}/reviews", status_code=201)
     async def review_finding(

@@ -29,22 +29,26 @@ def _node_authorized(store: OfficeStore, row: dict, *, allowed_restricted: bool)
         source = store.get_source(source_id)
         return source is not None and (allowed_restricted or not source.restricted)
 
-    if node_type == "source":
+    if node_type in {"source", "version"}:
         return source_allowed(node_id.removeprefix("source:"))
-    if node_type == "clause":
+    if node_type in {"clause", "message"}:
         clause = store.get_clause(node_id.removeprefix("clause:"))
         return (
             clause is not None
             and (allowed_restricted or not clause.restricted)
             and source_allowed(clause.source_id)
         )
-    if node_type == "revision":
+    if node_type in {"revision", "claim_revision"}:
         revision_id = node_id.removeprefix("revision:")
         record = store.get_claim(revision_id)
         if record is None:
             # Remote revisions are separately namespaced and contain no source text.
             return False
         return source_allowed(record.payload.source_id)
+    if node_type == "document":
+        identity = node_id.removeprefix("document:")
+        return any(source.source_identity == identity and source_allowed(source.source_id)
+                   for source in store.list_sources())
     if node_type == "finding":
         finding = store.get_finding(node_id.removeprefix("finding:"))
         if finding is None:
@@ -97,6 +101,29 @@ def lineage_for_node(
             # disclosed to this caller, even if its graph row was marked public.
             continue
         attributes = json.loads(row["attributes_json"] or "{}")
+        # Only enrich after provenance authorization. These are stored passages,
+        # not model-written explanations or verification results.
+        node_id = row["node_id"]
+        if node_id.startswith("revision:"):
+            record = store.get_claim(node_id.removeprefix("revision:"))
+            if record:
+                claim = record.payload
+                attributes.update(source_id=claim.source_id, source_identity=claim.source_identity,
+                                  version_label=claim.source_version_label, quote=claim.evidence.quote,
+                                  page=claim.evidence.page, section=claim.evidence.section or "",
+                                  clause_id=claim.evidence.clause_id,
+                                  start_char=claim.evidence.start_char, end_char=claim.evidence.end_char,
+                                  extraction_mode=claim.extraction.mode)
+        elif node_id.startswith("clause:"):
+            clause = store.get_clause(node_id.removeprefix("clause:"))
+            if clause:
+                attributes.update(source_id=clause.source_id, quote=clause.text,
+                                  page=clause.page, section=clause.section or "")
+        elif node_id.startswith("source:"):
+            source = store.get_source(node_id.removeprefix("source:"))
+            if source:
+                attributes.update(source_id=source.source_id, source_identity=source.source_identity,
+                                  version_label=source.version_label)
         nodes[row["node_id"]] = LineageNode(
             node_id=row["node_id"],
             node_type=row["node_type"],

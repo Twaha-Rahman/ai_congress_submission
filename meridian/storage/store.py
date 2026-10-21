@@ -270,6 +270,15 @@ class OfficeStore:
             ).fetchall()
         return [self._source_from_row(row) for row in rows]
 
+    def source_versions(self, source_identity: str) -> list[SourceRow]:
+        with self.db.reader() as connection:
+            rows = connection.execute(
+                "SELECT * FROM sources WHERE tenant_id = ? AND region = ? "
+                "AND source_identity = ? ORDER BY ingested_at DESC, source_id DESC",
+                (self.tenant_id, self.region, source_identity),
+            ).fetchall()
+        return [self._source_from_row(row) for row in rows]
+
     def _source_from_row(self, row: sqlite3.Row) -> SourceRow:
         return SourceRow(
             source_id=row["source_id"],

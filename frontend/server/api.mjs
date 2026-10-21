@@ -68,6 +68,7 @@ export function createApiHandler({
         role,
         canReview: role === "reviewer",
         demo: true,
+        activity: role === "reviewer",
         comparisons: { rules: role === "reviewer" && !!env.DEMO_TOKEN_GATEWAY_SERVICE },
         queries: Object.fromEntries(["dhaka", "frankfurt"].map(office => [office,
           !!env[`DEMO_TOKEN_${office.toUpperCase()}_${role.toUpperCase()}`],
@@ -80,11 +81,12 @@ export function createApiHandler({
       });
     }
     const match =
-      /^\/api\/(dhaka|frankfurt|gateway)\/(findings(?:\/[\w:.-]+(?:\/(?:reviews|lineage))?)?|sources(?:\/[\w:.-]+(?:\/(?:content|comparisons|lineage))?)?|answers(?:\/[\w:.-]+(?:\/(?:lineage|bundle))?)?|queries(?:\/gw_\d{8}T\d{12})?|verifications\/(?:source|bundle)|claims(?:\/reviews)?|jobs(?:\/[\w.-]+)?|ingestions\/(?:pdf|slack)|integrations\/slack)$/.exec(
-        url.pathname,
+      /^\/api\/(dhaka|frankfurt|gateway)\/(findings(?:\/[\w:.-]+(?:\/(?:reviews|lineage))?)?|sources(?:\/[\w:.-]+(?:\/(?:content|comparisons|lineage|versions|diff))?)?|answers(?:\/[\w:.-]+(?:\/(?:lineage|bundle))?)?|queries(?:\/gw_\d{8}T\d{12})?|verifications\/(?:source|bundle)|claims(?:\/reviews)?|jobs(?:\/[\w.-]+)?|ingestions\/(?:pdf|slack)|integrations\/slack|activity(?:\/[\w:.-]+)?)$/.exec(
+        url.pathname.replace(/%3a/gi, ":"),
       );
     const path = match?.[2];
     const isGateway = match?.[1] === "gateway";
+    const isActivity = path === "activity" || path?.startsWith("activity/");
     const isReview = path && /^findings\/[\w:.-]+\/reviews$/.test(path);
     const isUpload = path === "ingestions/pdf";
     const isSavedSlack = path === "ingestions/slack";
@@ -109,6 +111,8 @@ export function createApiHandler({
     }
     // Federation can import signed claims at another office. Only the configured
     // reviewer workspace exposes this explicit service-backed operation.
+    if (isActivity && role !== "reviewer")
+      return json(res, 403, { error: { code: "forbidden", message: "Activity requires audit access." } });
     if (isSlack && role !== "reviewer")
       return json(res, 403, { error: { code: "forbidden", message: "Slack connection settings require an authorized workspace." } });
     if (isGateway && role !== "reviewer")

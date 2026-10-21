@@ -17,6 +17,7 @@ import {
   X,
   Files,
   MessageSquare,
+  Activity as ActivityIcon,
 } from "lucide-react";
 import { api, ApiError, getFinding, reviewFinding } from "./api";
 import {
@@ -36,6 +37,7 @@ import Sources from "./Sources";
 import Verification from "./Verification";
 import Questions from "./Questions";
 import Comparisons from "./Comparisons";
+import Activity from "./Activity";
 import {
   useKeyboardShortcuts,
   useShortcutPreference,
@@ -90,7 +92,8 @@ function readBrowserView() {
 }
 
 export default function App() {
-  const [screen, setScreen] = useState<"findings" | "sources" | "verification" | "questions" | "comparisons">(() => window.location.pathname === "/comparisons" ? "comparisons" : window.location.pathname === "/questions" ? "questions" : window.location.pathname === "/sources" ? "sources" : window.location.pathname === "/verification" ? "verification" : "findings");
+  const [screen, setScreen] = useState<"findings" | "sources" | "verification" | "questions" | "comparisons" | "activity">(() => window.location.pathname === "/activity" ? "activity" : window.location.pathname === "/comparisons" ? "comparisons" : window.location.pathname === "/questions" ? "questions" : window.location.pathname === "/sources" ? "sources" : window.location.pathname === "/verification" ? "verification" : "findings");
+  const isActivity = screen === "activity";
   const isComparisons = screen === "comparisons";
   const isQuestions = screen === "questions";
   const isSources = screen === "sources";
@@ -127,7 +130,7 @@ export default function App() {
     window.history[replace ? "replaceState" : "pushState"]({}, "", url);
     setView(next);
   }
-  function openScreen(nextScreen: "findings" | "sources" | "verification" | "questions" | "comparisons", patch: Partial<View> = {}) {
+  function openScreen(nextScreen: "findings" | "sources" | "verification" | "questions" | "comparisons" | "activity", patch: Partial<View> = {}) {
     const next = { ...pinSelection(view, selectedRecord), ...patch };
     const url = new URL(window.location.href);
     url.pathname = `/${nextScreen}`;
@@ -141,14 +144,14 @@ export default function App() {
   }
   function openUpload() {
     if (session?.uploads?.[view.office]?.enabled) {
-      if (!isSources) openScreen("sources", { source: "", document: "" });
+      if (!isSources) openScreen("sources", { source: "", document: "", versionSource: "" });
       setUploadRequest((n) => n + 1);
     }
   }
   useEffect(() => {
     const handler = () => {
       const next = readBrowserView();
-      setScreen(window.location.pathname === "/comparisons" ? "comparisons" : window.location.pathname === "/questions" ? "questions" : window.location.pathname === "/sources" ? "sources" : window.location.pathname === "/verification" ? "verification" : "findings");
+      setScreen(window.location.pathname === "/activity" ? "activity" : window.location.pathname === "/comparisons" ? "comparisons" : window.location.pathname === "/questions" ? "questions" : window.location.pathname === "/sources" ? "sources" : window.location.pathname === "/verification" ? "verification" : "findings");
       setView(next);
       setNotice("");
       setReviewAction(null);
@@ -158,7 +161,7 @@ export default function App() {
     return () => window.removeEventListener("popstate", handler);
   }, []);
   useEffect(() => {
-    document.title = `${isComparisons ? "Cross-office" : isQuestions ? "Questions" : isSources ? "Sources" : isVerification ? "Verification" : "Findings"} · Meridian`;
+    document.title = `${isActivity ? "Activity" : isComparisons ? "Cross-office" : isQuestions ? "Questions" : isSources ? "Sources" : isVerification ? "Verification" : "Findings"} · Meridian`;
   }, [screen]);
   useEffect(() => {
     const controller = new AbortController();
@@ -509,6 +512,7 @@ export default function App() {
             onClick={(event) => { event.preventDefault(); openScreen("verification"); }}>
             <Shield size={18} /><span>Verification</span>
           </a>
+          {session?.activity && <a className={`nav-item ${isActivity ? "active" : ""}`} href={`/activity${viewSearch(view)}`} aria-current={isActivity ? "page" : undefined} onClick={event => { event.preventDefault(); openScreen("activity"); }}><ActivityIcon size={18}/><span>Activity</span></a>}
         </nav>
         <div className="sidebar-context">
           <div className="office-select">
@@ -529,6 +533,7 @@ export default function App() {
                   page: 1,
                   document: "",
                   uploadJob: "",
+                  activityId: "", versionSource: "", versionBase: "", versionNext: "", versionSearch: "",
                   forSource: "",
                   questionId: "", questionSearch: "", questionPane: "compose", questionPanel: "ask", questionCitation: "",
                   verifyId: "", verifyNode: "", verifyPassage: "", verifySearch: "", verifyChecks: "all",
@@ -560,9 +565,15 @@ export default function App() {
           <a href={`/comparisons${viewSearch(view)}`} aria-current={isComparisons ? "page" : undefined} onClick={e => { e.preventDefault(); openScreen("comparisons", { document: "", compareCitation: "" }); }}><Globe2 size={16} />Cross-office</a>
           <a href={`/sources${viewSearch(view)}`} aria-current={isSources ? "page" : undefined} onClick={(e) => { e.preventDefault(); openScreen("sources"); }}><Files size={16} />Sources</a>
           <a href={`/verification${viewSearch(view)}`} aria-current={isVerification ? "page" : undefined} onClick={(e) => { e.preventDefault(); openScreen("verification"); }}><Shield size={16} />Verification</a>
+          {session?.activity && <a href={`/activity${viewSearch(view)}`} aria-current={isActivity ? "page" : undefined} onClick={event=>{event.preventDefault();openScreen("activity");}}><ActivityIcon size={16}/>Activity</a>}
         </nav>
         <main id="workspace" className="workspace" tabIndex={-1}>
-          {isComparisons ? <Comparisons key={view.office} view={view} session={session} sessionError={sessionError}
+          {isActivity ? <Activity key={view.office} office={view.office} view={view} session={session} sessionError={sessionError} shortcutsEnabled={shortcutsEnabled}
+            navigate={(patch,replace=true)=>navigate(patch,replace)} onHelp={()=>setShowShortcuts(true)}
+            onSource={id=>openScreen("sources",{document:id,page:1,zoom:100,activityId:"",versionSource:""})}
+            onJob={id=>openScreen("sources",{uploadJob:id,document:"",activityId:"",versionSource:""})}
+            onFinding={id=>openScreen("findings",{finding:id,tag:"",source:"",pane:"detail",activityId:"",document:""})}
+          /> : isComparisons ? <Comparisons key={view.office} view={view} session={session} sessionError={sessionError}
             navigate={(patch, replace = true) => navigate(patch, replace)} shortcutsEnabled={shortcutsEnabled} onHelp={() => setShowShortcuts(true)}
             onVerify={(office, id) => openScreen("verification", { office, verifyKind: "answer", verifyId: id, verifyTab: "check", verifyScope: "focused", verifyPane: "browse", verifyGroup: "", verifyNode: "", verifyPassage: "", verifySearch: "", verifyChecks: "all", document: "" })}
             onAnswer={(office, id) => openScreen("questions", { office, questionId: id || "", questionPanel: "recent", questionPane: id ? "answer" : "compose", questionCitation: "", document: "" })}

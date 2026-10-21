@@ -246,6 +246,17 @@ supplied or rerun after reload. Browser history restores the evidence view, with
 lineage, and bundle requests fail independently: a trace failure does not prevent a
 source-copy check, and a bundle failure does not hide a saved answer’s trace.
 
+### View activity and compare source versions
+
+Open **Activity** to search office transfer records, processing snapshots, source
+publication/withdrawal and review decisions. Filter by type, outcome or UTC date,
+inspect a record, or export/share the current view. Audit access is required.
+
+In **Sources**, choose **Compare versions** on a source row or in its inspector.
+Compare preserved text and metadata, swap the base/compared versions, search changes,
+and inspect either original. Both versions must be accessible and belong to the
+same source. See [the workflow and API guide](docs/activity_versions.md).
+
 ### Connect live Slack channels
 
 Open **Sources → Live Slack** in an authorized workspace to monitor public channels,

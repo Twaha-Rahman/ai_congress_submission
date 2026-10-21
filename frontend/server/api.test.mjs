@@ -33,7 +33,7 @@ async function bridge(t, options = {}) {
 test("session contains capabilities, never credentials; browser authorization cannot select a principal", async (t) => {
   const { url, calls } = await bridge(t);
   const session = await (await fetch(`${url}/api/session`)).json();
-  assert.deepEqual(session, { role: "reviewer", canReview: true, demo: true, comparisons: { rules: false }, queries: { dhaka: true, frankfurt: true }, uploads: {
+  assert.deepEqual(session, { role: "reviewer", canReview: true, activity: true, demo: true, comparisons: { rules: false }, queries: { dhaka: true, frankfurt: true }, uploads: {
     dhaka: { enabled: false, maxBytes: 20 * 1024 * 1024, processing: "hosted" },
     frankfurt: { enabled: false, maxBytes: 20 * 1024 * 1024, processing: "hosted" },
   } });
@@ -380,4 +380,23 @@ test("malformed, unsupported and oversized saved Slack imports fail before any o
   }
   assert.equal((await fetch(`${url}/api/dhaka/ingestions/slack`, { method: "POST", headers: { "X-Meridian-UI": "1" }, body: " ".repeat(5 * 1024 * 1024 + 65537) })).status, 413);
   assert.equal(calls.length, 0);
+});
+
+test("activity is a reviewer-only office read; source version reads retain the configured reader", async(t)=>{
+  const reviewer=await bridge(t);
+  for(const path of ["activity?category=transfer&limit=2", "activity/transfer:egress_1", "activity/transfer%3Aegress_2", "sources/src_one/versions", "sources/src_one/diff?other=src_two"]) {
+    assert.equal((await fetch(`${reviewer.url}/api/dhaka/${path}`)).status,200);
+    assert.equal(reviewer.calls.at(-1).headers.Authorization,"Bearer server-only-secret");
+    assert.match(reviewer.calls.at(-1).url,/127\.0\.0\.1:8081\/v1\//);
+  }
+  for(const path of ["activity", "sources/src_one/diff", "sources/src_one/versions"])
+    assert.equal((await fetch(`${reviewer.url}/api/dhaka/${path}`,{method:"POST",headers:{"X-Meridian-UI":"1"}})).status,404);
+  assert.equal((await fetch(`${reviewer.url}/api/gateway/activity`)).status,404);
+  const reader=await bridge(t,{env:{UI_ROLE:"reader",DEMO_TOKEN_DHAKA_READER:"limited-reader"}});
+  assert.equal((await fetch(`${reader.url}/api/dhaka/activity`)).status,403);
+  assert.equal((await fetch(`${reader.url}/api/dhaka/activity/review:event_1`)).status,403);
+  assert.equal(reader.calls.length,0);
+  assert.equal((await fetch(`${reader.url}/api/dhaka/sources/src_one/diff?other=src_two`)).status,200);
+  assert.equal(reader.calls[0].headers.Authorization,"Bearer limited-reader");
+  assert.equal((await (await fetch(`${reader.url}/api/session`)).json()).activity,false);
 });

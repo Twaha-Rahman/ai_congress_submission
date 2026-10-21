@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertCircle, ArrowDownToLine, ArrowRight, ArrowUpFromLine, ArrowDownWideNarrow, Check, Clock3, FileText, Files, Keyboard, LockKeyhole, MessageSquare, Search, X } from "lucide-react";
+import { AlertCircle, ArrowDownToLine, ArrowRight, ArrowUpFromLine, ArrowDownWideNarrow, Check, Clock3, FileText, Files, Keyboard, LockKeyhole, MessageSquare, GitCompareArrows, Search, X } from "lucide-react";
 import { api } from "./api";
 import { EmptyState, ErrorState, Loading, Modal, ShortcutHint, AutoRefreshButton } from "./components";
 import { date, humanize, scopeLabel, sourceTitle } from "./presentation";
@@ -14,6 +14,7 @@ import type { Evidence, Office, Session, Source, SourceDetail, UploadJob } from 
 import type { View } from "./viewState";
 import "./sources.css";
 
+const SourceComparison = lazy(() => import("./SourceComparison"));
 const SourcePreview = lazy(() => import("./SourcePreview"));
 
 export default function Sources({ office, session, view, navigate, shortcutsEnabled, onHelp, onFindings, onVerify, uploadRequest, onUploadOpened }: {
@@ -100,6 +101,9 @@ export default function Sources({ office, session, view, navigate, shortcutsEnab
     sort: () => { sort.current?.focus(); sort.current?.click(); },
     refresh: () => navigate({ autoRefresh: !view.autoRefresh }),
   });
+  function compareVersions(sourceId: string) {
+    navigate({versionSource: sourceId, versionBase: "", versionNext: "", versionFilter: "changes", versionSearch: "", document: ""}, false);
+  }
   function queued(job: UploadJob) {
     if (!mounted.current) return;
     setOpenUpload(false); setSavedSlackOpen(false); setJobs((current) => [job, ...current.filter((j) => j.job_id !== job.job_id)]);
@@ -153,7 +157,7 @@ export default function Sources({ office, session, view, navigate, shortcutsEnab
                 <div className="source-row-meta">{source.status === "withdrawn" && <span>Withdrawn</span>}<span>{humanize(source.authority)}</span>{source.policy_family && <span>{humanize(source.policy_family)}</span>}{source.sensitivity === "restricted" && <span className="restricted-source"><LockKeyhole size={12} />Restricted</span>}</div>
                 <p className="source-row-date">Effective {date(source.effective_from)} <span>· Added {date(source.ingested_at)}</span></p>
               </div>
-              <div className="source-row-actions"><button className="button secondary" aria-label={`Inspect ${source.source_identity} ${source.version_label}`} onClick={() => navigate({ document: source.source_id, page: 1, zoom: 100 }, false)}>Inspect</button><button className="icon-button" aria-label={`Findings for ${source.source_identity} ${source.version_label}`} title="View findings for this source" onClick={() => onFindings(source.source_id)}><ArrowRight size={17} /></button></div>
+              <div className="source-row-actions"><button className="icon-button" aria-label={`Compare versions of ${source.source_identity}`} title="Compare source versions" onClick={()=>compareVersions(source.source_id)}><GitCompareArrows size={17}/></button><button className="button secondary" aria-label={`Inspect ${source.source_identity} ${source.version_label}`} onClick={() => navigate({ document: source.source_id, page: 1, zoom: 100 }, false)}>Inspect</button><button className="icon-button" aria-label={`Findings for ${source.source_identity} ${source.version_label}`} title="View findings for this source" onClick={() => onFindings(source.source_id)}><ArrowRight size={17} /></button></div>
             </li>)}
           </ul> : <EmptyState icon={<Files size={27} />} title={sources.length ? "No sources match" : "No sources yet"}
             action={sources.length ? <button className="button secondary" onClick={() => navigate({ sourceSearch: "", sourceType: "all" })}>Clear filters</button> : canUpload ? <button className="button secondary" onClick={() => setOpenUpload(true)}><ArrowUpFromLine size={16} />Upload a PDF</button> : undefined}>
@@ -170,7 +174,7 @@ export default function Sources({ office, session, view, navigate, shortcutsEnab
         </aside>
       </div>
     </>}
-    {view.uploadJob && !openUpload && !savedSlackOpen && !slackOpen && !view.document && <Modal title="Upload status" className="upload-status-dialog" onClose={() => navigate({ uploadJob: "" })}>
+    {view.uploadJob && !openUpload && !savedSlackOpen && !slackOpen && !view.versionSource && !view.document && <Modal title="Upload status" className="upload-status-dialog" onClose={() => navigate({ uploadJob: "" })}>
       {selectedJob && jobError && <div className="notice warning" role="alert"><AlertCircle size={16} /><span>{jobError}</span></div>}
       {selectedJob ? <UploadStatus job={selectedJob} retrying={retrying} canRetry={!!(selectedJob.source_id && ["needs_review", "failed"].includes(selectedJob.status) && canUpload && !active && sources.find((s) => s.source_id === selectedJob.source_id)?.subject === "general_policy")}
         onRetry={() => void retryComparison(selectedJob)} onFindings={() => onFindings(selectedJob.source_id!)}
@@ -181,12 +185,14 @@ export default function Sources({ office, session, view, navigate, shortcutsEnab
     {slackOpen && <SlackConnection office={office} onClose={() => setSlackOpen(false)} onJob={id => { setSlackOpen(false); navigate({ uploadJob: id }); void load(); }} />}
     <ImportSlack key={office} open={savedSlackOpen} office={office} config={session?.uploads?.[office]} onClose={() => setSavedSlackOpen(false)} onQueued={queued} />
     <UploadPdf open={openUpload} office={office} sources={sources} config={session?.uploads?.[office]} shortcutsEnabled={shortcutsEnabled} onClose={() => setOpenUpload(false)} onQueued={queued} />
-    {view.document && <DocumentDialog office={office} sourceId={view.document} view={view} navigate={navigate} onClose={() => navigate({ document: "" })} onVerify={onVerify} />}
+    {view.versionSource && !openUpload && !savedSlackOpen && !slackOpen && <Suspense fallback={<Loading label="Opening version comparison…"/>}><SourceComparison office={office} view={view} navigate={navigate} shortcutsEnabled={shortcutsEnabled} onClose={()=>navigate({versionSource:""})} onInspect={(id,passage)=>navigate({document:id,page:passage?.page||1,zoom:100},false)}/></Suspense>}
+    {view.document && <DocumentDialog office={office} sourceId={view.document} view={view} navigate={navigate} onClose={() => navigate({ document: "" })} onVerify={onVerify} onCompare={view.versionSource ? undefined : compareVersions} />}
   </>;
 }
 
-export function DocumentDialog({ office, sourceId, view, navigate, onClose, onVerify, evidence }: {
+export function DocumentDialog({ office, sourceId, view, navigate, onClose, onVerify, onCompare, evidence }: {
   office: Office; sourceId: string; view: View; navigate: (patch: Partial<View>) => void; onClose: () => void;
+  onCompare?: (sourceId:string)=>void;
   onVerify?: (sourceId: string) => void;
   evidence?: Pick<Evidence, "source_id" | "quote" | "page" | "section">;
 }) {
@@ -208,6 +214,6 @@ export function DocumentDialog({ office, sourceId, view, navigate, onClose, onVe
         <details className="library-source-metadata"><summary>Source details</summary><dl><dt>Policy category</dt><dd>{detail.source.policy_family ? humanize(detail.source.policy_family) : "Not specified"}</dd><dt>Applies to</dt><dd>{scopeLabel(detail.source.manifest.scope)}</dd><dt>Access</dt><dd>{detail.source.sensitivity === "restricted" ? "Restricted readers" : "Office readers"}</dd><dt>Hosted processing</dt><dd>{detail.source.hosted_model ? "Permitted" : "Not permitted"}</dd><dt>Office export</dt><dd>{detail.source.office_export ? "Permitted" : "Not permitted"}</dd><dt>Added</dt><dd>{date(detail.source.ingested_at, true)}</dd></dl></details>
       </>}
     </div>
-    <footer className="dialog-footer"><span className="upload-save-status">Integrity verification has not been run here.</span>{detail && <>{onVerify && <button className="button secondary" onClick={() => onVerify(sourceId)}><Check size={15} />Verify source</button>}<a className="button secondary" href={`/api/${office}/sources/${encodeURIComponent(sourceId)}/content`} download><ArrowDownToLine size={15} />Download original</a></>}</footer>
+    <footer className="dialog-footer"><span className="upload-save-status">Integrity verification has not been run here.</span>{detail && <>{onCompare&&<button className="button secondary" onClick={()=>onCompare(sourceId)}><GitCompareArrows size={15}/>Compare versions</button>}{onVerify && <button className="button secondary" onClick={() => onVerify(sourceId)}><Check size={15} />Verify source</button>}<a className="button secondary" href={`/api/${office}/sources/${encodeURIComponent(sourceId)}/content`} download><ArrowDownToLine size={15} />Download original</a></>}</footer>
   </Modal>;
 }

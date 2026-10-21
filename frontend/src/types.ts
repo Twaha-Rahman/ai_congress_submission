@@ -110,6 +110,7 @@ export interface ReviewEvent {
 export interface Session {
   role: "reviewer" | "reader";
   canReview: boolean;
+  activity?: boolean;
   demo: boolean;
   queries?: Record<Office, boolean>;
   comparisons?: { rules: boolean };
@@ -271,4 +272,23 @@ export interface Answer {
     rule_summary: string; scope_summary: string;
     valid_interval: { start: string | null; end: string | null };
   }[];
+}
+
+export interface ActivityEvent {
+  id: string; category: "transfer" | "processing" | "review" | "source" | "withdrawal";
+  created_at: string; title: string; outcome: string; description: string; target_id: string;
+  details: Record<string, unknown>;
+}
+export interface ActivityPage {
+  events: ActivityEvent[]; next_cursor: string;
+  summary: { office_to_office_events: number; office_to_office_bytes: number; hosted_model_events: number; hosted_model_request_bytes: number; raw_source_text_bytes_between_offices: number; blocked_exports: number; failed_transfers: number };
+  model_calls: Record<string, unknown>;
+}
+export interface VersionPassage { clause_id: string; page: number; section: string | null; text: string; }
+export type VersionChange = "added" | "removed" | "changed" | "unchanged";
+export interface VersionDiff {
+  before: Source; after: Source; same_file: boolean; same_text: boolean; explicit_replacement: boolean;
+  counts: Record<VersionChange, number>;
+  metadata: { field: string; before: unknown; after: unknown }[];
+  passages: { kind: VersionChange; before: VersionPassage | null; after: VersionPassage | null; chunks: { kind: "added" | "removed" | "unchanged"; text: string }[] }[];
 }

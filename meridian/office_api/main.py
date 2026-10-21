@@ -16,6 +16,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from cryptography.fernet import Fernet
+
 from fastapi import Depends, FastAPI, File, Form, Query, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 
@@ -68,6 +70,7 @@ from ..security.auth import Permission, PrincipalRegistry
 from ..storage.db import SCHEMA_VERSION, Database
 from ..storage.store import JobRow, OfficeStore, SourceRow, new_id
 from ..temporal.snapshots import select_snapshot
+from .workspace_views import activity_page, activity_record, compare_source_text
 
 
 @dataclass
@@ -225,6 +228,7 @@ def create_app(settings: OfficeSettings | None = None) -> FastAPI:
     authenticate = bearer_dependency(runtime.registry)
     registry = runtime.registry
     store = runtime.store
+    activity_cursor = Fernet(Fernet.generate_key())
     office = runtime.settings.region
 
     def _require_office_scope(principal, permission: Permission) -> None:
@@ -466,6 +470,24 @@ def create_app(settings: OfficeSettings | None = None) -> FastAPI:
         graph = lineage_for_node(store, f"source:{source_id}",
                                  allowed_restricted=principal.has(Permission.READ_RESTRICTED))
         return {"lineage": graph.model_dump(mode="json")}
+
+    @app.get("/v1/sources/{source_id}/versions")
+    def source_versions(source_id: str, principal=Depends(authenticate)):
+        _require_office_scope(principal, Permission.READ_LOCAL)
+        source = store.get_source(source_id)
+        if not _source_readable(principal, source):
+            raise ApiError(ErrorCode.NOT_FOUND, "no such source")
+        return {"sources": [_source_dict(item, include_manifest=False) for item in store.source_versions(source.source_identity) if _source_readable(principal, item)]}
+
+    @app.get("/v1/sources/{source_id}/diff")
+    def source_diff(source_id: str, other: str = Query(min_length=1), principal=Depends(authenticate)):
+        _require_office_scope(principal, Permission.READ_LOCAL)
+        before, after = store.get_source(source_id), store.get_source(other)
+        if not _source_readable(principal, before) or not _source_readable(principal, after):
+            raise ApiError(ErrorCode.NOT_FOUND, "no such source")
+        if before.source_identity != after.source_identity or source_id == other:
+            raise ApiError(ErrorCode.INVALID_INPUT, "Choose two different versions of the same source.")
+        return {"before": _source_dict(before), "after": _source_dict(after), **compare_source_text(store, before, after)}
 
     @app.post("/v1/sources/{source_id}/comparisons", status_code=202)
     def recheck_source(source_id: str, mode: str | None = None,
@@ -1105,6 +1127,27 @@ def create_app(settings: OfficeSettings | None = None) -> FastAPI:
         }
 
     # ------------------------------------------------------------------- audit
+    @app.get("/v1/activity")
+    def office_activity(limit: int = Query(default=40, ge=1, le=100), cursor: str = "", category: str = "all", outcome: str = "all", q: str = Query(default="", max_length=200), since: datetime | None = None, until: datetime | None = None, principal=Depends(authenticate)):
+        _require_office_scope(principal, Permission.AUDIT_READ)
+        _require_office_scope(principal, Permission.READ_LOCAL)
+        if any(value and value.utcoffset() is None for value in [since, until]) or since and until and since > until:
+            raise ApiError(ErrorCode.INVALID_INPUT, "Choose a valid UTC activity date range.")
+        page = activity_page(store, cursor_cipher=activity_cursor, limit=limit, cursor=cursor, category=category, outcome=outcome, query=q, since=since, until=until,
+                             source_readable=lambda source: _source_readable(principal, source),
+                             job_readable=lambda job: _job_readable(principal, job), finding_readable=lambda finding: _finding_readable(principal, finding))
+        return {**page, "summary": store.summarize_egress().model_dump(mode="json"), "model_calls": store.model_call_stats()}
+
+    @app.get("/v1/activity/{event_id}")
+    def office_activity_detail(event_id: str, principal=Depends(authenticate)):
+        _require_office_scope(principal, Permission.AUDIT_READ)
+        _require_office_scope(principal, Permission.READ_LOCAL)
+        category, _, identifier = event_id.partition(":")
+        event = activity_record(store, category, identifier, source_readable=lambda source: _source_readable(principal, source), job_readable=lambda job: _job_readable(principal, job), finding_readable=lambda finding: _finding_readable(principal, finding))
+        if not event:
+            raise ApiError(ErrorCode.NOT_FOUND, "no such activity")
+        return {"event": event}
+
     @app.get("/v1/audit/egress")
     def audit_egress(principal=Depends(authenticate)) -> dict[str, Any]:
         _require_office_scope(principal, Permission.AUDIT_READ)

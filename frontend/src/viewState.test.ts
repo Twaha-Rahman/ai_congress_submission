@@ -82,3 +82,11 @@ test("Questions links preserve saved answer, search, mobile pane and cited sourc
   assert.equal(readView("?answer=ans_123").questionPane, "answer");
   assert.equal(readView("?questionPane=bad").questionPane, "compose");
 });
+
+test("activity and source-version links restore filters, selections and comparison direction",()=>{
+  const view={...readView(""),activitySearch:"req_42",activityCategory:"transfer" as const,activityOutcome:"blocked",activitySince:"2026-10-21T09:00",activityUntil:"2026-10-22T18:30",activityId:"transfer:egress_1",versionSource:"src2",versionBase:"src1",versionNext:"src2",versionFilter:"changed" as const,versionSearch:"HR"};
+  const restored=readView(viewSearch(view));
+  for(const key of ["activitySearch","activityCategory","activityOutcome","activitySince","activityUntil","activityId","versionSource","versionBase","versionNext","versionFilter","versionSearch"] as const)assert.equal(restored[key],view[key]);
+  const invalid=readView("?activityType=secret&activityOutcome=unknown&activitySince=garbage&versionFilter=unknown");
+  assert.equal(invalid.activityCategory,"all");assert.equal(invalid.activityOutcome,"all");assert.equal(invalid.activitySince,"");assert.equal(invalid.versionFilter,"changes");
+});

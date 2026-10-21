@@ -8,6 +8,17 @@ import type { Finding, Office } from "./types";
 
 export type DetailTab = "evidence" | "timeline" | "reviews";
 export interface View {
+  activitySearch: string;
+  activityCategory: "all" | "transfer" | "processing" | "review" | "source" | "withdrawal";
+  activityOutcome: string;
+  activitySince: string;
+  activityUntil: string;
+  activityId: string;
+  versionSource: string;
+  versionBase: string;
+  versionNext: string;
+  versionFilter: "all" | "changes" | "added" | "removed" | "changed" | "unchanged";
+  versionSearch: string;
   office: Office;
   finding: string;
   tag: string;
@@ -63,6 +74,17 @@ export function readView(search: string): View {
   const page = Number(p.get("page") || 1);
   return {
     office: p.get("office") === "frankfurt" ? "frankfurt" : "dhaka",
+    activitySearch: p.get("activityQ") || "",
+    activityCategory: allowed("activityType", ["transfer", "processing", "review", "source", "withdrawal"]) as View["activityCategory"],
+    activityOutcome: allowed("activityOutcome", ["delivered", "failed", "blocked", "timeout", "queued", "running", "succeeded", "needs_review", "acknowledged", "resolved", "dismissed", "published", "withdrawn"]),
+    activitySince: /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(p.get("activitySince") || "") ? p.get("activitySince")! : "",
+    activityUntil: /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(p.get("activityUntil") || "") ? p.get("activityUntil")! : "",
+    activityId: p.get("activity") || "",
+    versionSource: p.get("versions") || "",
+    versionBase: p.get("base") || "",
+    versionNext: p.get("next") || "",
+    versionFilter: allowed("versionFilter", ["all", "changes", "added", "removed", "changed", "unchanged"], "changes") as View["versionFilter"],
+    versionSearch: p.get("versionQ") || "",
     finding,
     tag,
     search: p.get("q") || "",
@@ -132,6 +154,19 @@ export function viewSearch(view: View) {
     pane: view.pane,
     auto: view.autoRefresh ? "1" : "0",
   });
+  if (view.activitySearch) p.set("activityQ", view.activitySearch);
+  if (view.activityCategory !== "all") p.set("activityType", view.activityCategory);
+  if (view.activityOutcome !== "all") p.set("activityOutcome", view.activityOutcome);
+  if (view.activitySince) p.set("activitySince", view.activitySince);
+  if (view.activityUntil) p.set("activityUntil", view.activityUntil);
+  if (view.activityId) p.set("activity", view.activityId);
+  if (view.versionSource) {
+    p.set("versions", view.versionSource);
+    if (view.versionBase) p.set("base", view.versionBase);
+    if (view.versionNext) p.set("next", view.versionNext);
+    if (view.versionFilter !== "changes") p.set("versionFilter", view.versionFilter);
+    if (view.versionSearch) p.set("versionQ", view.versionSearch);
+  }
   if (view.finding) p.set("finding", view.finding);
   if (view.tag) p.set("tag", view.tag);
   if (view.search) p.set("q", view.search);

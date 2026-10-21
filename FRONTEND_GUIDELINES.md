@@ -22,7 +22,7 @@ second slice is **Sources and PDF ingestion**: a source library, trusted upload
 metadata, processing status and whole-version replacement. The third slice is **Verification and lineage**: source-copy checks, signed answer
 bundles and authorized evidence connections. The fourth slice is **Questions**:
 natural-language source questions, historical cutoffs, saved answers and cited passages.
-The fifth slice is **Cross-office**: independent general-source answers and strict signed-rule comparisons. A dedicated egress-audit workspace remains a later slice.
+The fifth slice is **Cross-office**: independent general-source answers and strict signed-rule comparisons. The sixth slice is **Activity and source versions**: office audit records and preserved-text version comparison.
 Do not add navigation destinations until their workflows exist.
 
 `DESIGN.md` was installed using `npx getdesign@latest add claude`. Use its warm
@@ -703,3 +703,28 @@ batches with specific errors; never silently drop message entries. Keep a failed
 import's file and draft. Return to the already-selected processing job after a
 successful import; do not select the incoming job over an existing selection.
 Both PDF and Slack jobs remain in Recent activity with their actual stage timings.
+
+
+## Activity and source versions
+
+- Activity reuses the sidebar, office selector, styled filters, direct date pickers,
+  share/copy behavior and keyboard preference. Audit capability gates navigation;
+  server authorization gates every read. Counters reflect office totals and exact
+  zero-byte values. Processing rows are labelled snapshots, not invented history.
+- Keep loaded activity in place during refresh/error states, spin the pending
+  refresh icon, and reserve the status row. Retain older loaded pages when polling;
+  deduplicate, refresh matching records and retain cursors across new gaps.
+- Record details open in a dialog; request/source/job/finding links are explicit.
+  Search visible fields and metadata excerpts with highlights. Export only the
+  loaded records with their successfully loaded filters; deep links restore state.
+- Source comparison belongs in Sources, with entry points on rows and the inspector.
+  Use a wide modal, labelled base/compared selectors and a swap control. Start with
+  text changes and keep metadata collapsed. Stack passages on small screens and
+  keep setup/footer compact enough to reach the diff. Preserve literal source text.
+- Search marks coexist with added/removed marks; use labels/underline/strikethrough,
+  not color alone. Keep uniform borders and existing control feedback. Show real
+  publication, scope, permission and explicit replacement changes; never infer
+  replacement from version names. One accessible version gets an empty state.
+- Inspection reuses the wide original viewer at the selected page and returns to
+  the comparison. Share/export controls show desktop shortcuts and respect typing,
+  modal and preference guards. Comparison exports contain the complete loaded diff.

@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { ArrowDown, ArrowLeft, ArrowRight, BookOpen, CircleDot, FileText, GitBranch, LockKeyhole, MessageSquare, Network, ShieldQuestion } from "lucide-react";
+import Highlight from "./Highlight";
+import { matchingExcerpt, searchRanges } from "./searchHighlight";
 import type { LineageGraph, LineageNode } from "./types";
 import { date, humanize, sourceTitle } from "./presentation";
-import { lineageGroups, lineageNodes, lineageNodeTitle, sourceFamily } from "./verification";
+import { lineageGroups, lineageNodes, lineageNodeTitle, sourceFamily, lineageSourceCounts, lineageMatchContext } from "./verification";
 
 const incomingLabels: Record<string, string> = { CITES: "Cited by", FINDS_BETWEEN: "Compared in", EXTRACTED_FROM: "Used by statement", IN_VERSION: "Contains", SUPERSEDES: "Replaced by" };
 const relationLabels: Record<string, string> = { CITES: "Cites", FINDS_BETWEEN: "Compares", EXTRACTED_FROM: "Extracted from", IN_VERSION: "Belongs to", SUPERSEDES: "Replaces" };
@@ -56,6 +58,7 @@ export default function Lineage({ graph, nodeId, search, group, pane, returnScro
     previousPane.current = pane; previousNode.current = selectedId;
   }, [pane, selectedId]);
   const pageNodes = nodes.slice(0, limit);
+  const sourceCounts = lineageSourceCounts(nodes);
   const families = [...new Set(pageNodes.map(sourceFamily))];
   function recordLink(node: LineageNode) {
     return <button onClick={() => onSelect(node.node_id)}><span>{lineageNodeTitle(node)}</span>
@@ -66,14 +69,17 @@ export default function Lineage({ graph, nodeId, search, group, pane, returnScro
   }
   function renderNode(node: LineageNode) {
     const Icon = nodeIcon(node.node_type);
+    const match = search.trim() ? lineageMatchContext(node, search) : null;
+    const title = activeGroup === "Sources" && node.node_type !== "document" ? `Version ${node.attributes.version_label || "not recorded"}` : lineageNodeTitle(node);
     return <li key={node.node_id}><button type="button" data-lineage-node={node.node_id} className={`lineage-node ${selectedId === node.node_id ? "selected" : ""}`} aria-pressed={selectedId === node.node_id} onClick={() => onSelect(node.node_id)}>
               <span className="lineage-node-type"><Icon size={14} />{({ claim_revision: "Statement", revision: "Statement", version: "Source version", clause: "Passage", message: "Slack message", remote_reference: "Remote reference" } as Record<string, string>)[node.node_type] || humanize(node.node_type)}{node.node_id === graph.root_id && <span className="lineage-root">Start</span>}</span>
-              <strong>{activeGroup === "Sources" && node.node_type !== "document" ? `Version ${node.attributes.version_label || "not recorded"}` : lineageNodeTitle(node)}</strong>
-              {node.node_type === "finding" && <span className="lineage-finding-tag">#{node.node_id.slice(-8).toUpperCase()}</span>}
-              {activeGroup !== "Sources" && <div className="lineage-source-identity">{node.attributes.source_identity && <span>{sourceTitle({ source_identity: node.attributes.source_identity })}</span>}{node.attributes.version_label && <span className="source-version">{node.attributes.version_label}</span>}</div>}
-              {node.attributes.quote && !["answer", "claim_revision", "revision"].includes(node.node_type) && <span className="lineage-excerpt">{node.attributes.quote}</span>}
-              {activeGroup === "Sources" && node.attributes.effective_from && <span className="lineage-locator">Effective {date(node.attributes.effective_from)}</span>}
-              {node.attributes.page && <span className="lineage-locator">Page {node.attributes.page}{node.attributes.section ? ` · § ${node.attributes.section}` : ""}</span>}
+              <strong><Highlight text={title} query={search} /></strong>
+              {node.node_type === "finding" && <span className="lineage-finding-tag"><Highlight text={`#${node.node_id.slice(-8).toUpperCase()}`} query={search} identifier /></span>}
+              {activeGroup !== "Sources" && <div className="lineage-source-identity">{node.attributes.source_identity && <span><Highlight text={sourceTitle({ source_identity: node.attributes.source_identity })} query={search} /></span>}{node.attributes.version_label && <span className="source-version"><Highlight text={node.attributes.version_label} query={search} /></span>}</div>}
+              {node.attributes.quote && !["answer", "claim_revision", "revision"].includes(node.node_type) && <span className="lineage-excerpt"><Highlight text={searchRanges(node.attributes.quote, search).length ? matchingExcerpt(node.attributes.quote, search) : node.attributes.quote} query={search} /></span>}
+              {activeGroup === "Sources" && node.attributes.effective_from && <span className="lineage-locator"><Highlight text={`Effective ${date(node.attributes.effective_from)}`} query={search} /></span>}
+              {node.attributes.page && <span className="lineage-locator"><Highlight text={`Page ${node.attributes.page}${node.attributes.section ? ` · § ${node.attributes.section}` : ""}`} query={search} /></span>}
+              {match && <span className="lineage-match-context">{match.label}: <Highlight text={match.text} query={search} identifier={match.identifier} /></span>}
             </button></li>;
 
   }
@@ -82,13 +88,13 @@ export default function Lineage({ graph, nodeId, search, group, pane, returnScro
     {graph.truncated && <div className="notice warning" role="status">This trace reached its display limit. Some connections are not shown.</div>}
     <div className={`lineage-explorer pane-${pane}`}>
       <div className="lineage-browser" ref={browser}>
-        <div className="lineage-groups" role="group" aria-label="Evidence groups">{lineageGroups.map(item => <button key={item.label} type="button" aria-pressed={activeGroup === item.label} onClick={() => onGroup(item.label)}>{item.label}<span>{visible.filter(node => item.types.includes(node.node_type)).length}</span></button>)}</div>
+        <div className="lineage-groups" role="group" aria-label="Evidence groups">{lineageGroups.map(item => <button key={item.label} type="button" aria-pressed={activeGroup === item.label} onClick={() => onGroup(item.label)}>{item.label}<span>{item.label === "Sources" ? lineageSourceCounts(visible).documents : visible.filter(node => item.types.includes(node.node_type)).length}</span></button>)}</div>
         <section className="lineage-records" aria-label={activeGroup}>
-          <h3>{activeGroup}<span>{nodes.length} {nodes.length === 1 ? "record" : "records"}</span></h3>
+          <h3>{activeGroup}<span>{activeGroup === "Sources" ? `${sourceCounts.documents} ${sourceCounts.documents === 1 ? "document" : "documents"} · ${sourceCounts.versions} ${sourceCounts.versions === 1 ? "version" : "versions"}` : `${nodes.length} ${nodes.length === 1 ? "record" : "records"}`}</span></h3>
           <ul>{activeGroup === "Sources" ? families.map(family => {
             const members = pageNodes.filter(node => sourceFamily(node) === family);
             const document = members.find(node => node.node_type === "document");
-            return <li key={family} className="lineage-document-family">{document ? <ul className="lineage-document-title">{renderNode(document)}</ul> : <h4>{members[0].attributes.source_identity ? sourceTitle({ source_identity: members[0].attributes.source_identity }) : "Source name unavailable"}</h4>}<ul>{members.filter(node => node.node_type !== "document").map(renderNode)}</ul></li>;
+            return <li key={family} className="lineage-document-family">{document ? <ul className="lineage-document-title">{renderNode(document)}</ul> : <h4><Highlight text={members[0].attributes.source_identity ? sourceTitle({ source_identity: members[0].attributes.source_identity }) : "Source name unavailable"} query={search} /></h4>}<ul>{members.filter(node => node.node_type !== "document").map(renderNode)}</ul></li>;
           }) : pageNodes.map(renderNode)}</ul>
           {!nodes.length && <p className="lineage-lane-empty">{search ? "No matches in this group. Try another group or clear the search." : "No records in this group."}</p>}
           {nodes.length > limit && <button className="button secondary lineage-show-more" onClick={() => setLimit(value => value + 8)}>Show {Math.min(8, nodes.length - limit)} more<span className="muted">{limit} of {nodes.length}</span></button>}

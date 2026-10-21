@@ -1,7 +1,7 @@
 export const shortcutDescriptions = [
   { keys: "/", label: "Search the current page" },
   { keys: "U", label: "Upload a policy PDF (when permitted)" },
-  { keys: "J / K", label: "Next / previous finding" },
+  { keys: "J / K", label: "Next / previous finding or evidence record" },
   { keys: "A", label: "Acknowledge selected finding" },
   { keys: "R", label: "Resolve selected finding" },
   { keys: "D", label: "Dismiss selected finding" },
@@ -11,8 +11,10 @@ export const shortcutDescriptions = [
   { keys: "Shift + R", label: "Toggle auto-refresh" },
   { keys: "Shift + T", label: "Open theme options" },
   { keys: "V", label: "Open verification from a finding / run the selected check" },
-  { keys: "L", label: "Focus evidence lineage (Verification)" },
-  { keys: "Ctrl / ⌘ + Enter", label: "Submit the open review or upload form" },
+  { keys: "I / L", label: "Check integrity / trace evidence (Verification)" },
+  { keys: "Shift + E", label: "Open exports (Verification)" },
+  { keys: "Shift + S", label: "Share view (Verification)" },
+  { keys: "Ctrl / ⌘ + Enter", label: "Submit the open review, upload or verification form" },
   { keys: "Esc", label: "Leave search or close a dropdown or dialog" },
   { keys: "? / F1", label: "Show keyboard shortcuts" },
 ];
@@ -33,7 +35,10 @@ export type ShortcutAction =
   | "help"
   | "upload"
   | "verify"
-  | "lineage";
+  | "lineage"
+  | "integrity"
+  | "export"
+  | "share";
 // Upload opens a form and never sends a file immediately.
 export function shortcutForKey(
   event: { key: string; ctrlKey: boolean; metaKey: boolean; altKey: boolean },
@@ -60,6 +65,9 @@ export function shortcutForKey(
     u: "upload",
     v: "verify",
     l: "lineage",
+    i: "integrity",
+    E: "export",
+    S: "share",
   };
   return actions[event.key] || null;
 }

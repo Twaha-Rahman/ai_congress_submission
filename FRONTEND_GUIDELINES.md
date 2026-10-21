@@ -357,7 +357,9 @@ model quality still require rehearsal.
   with Back to evidence restoring scroll and keyboard focus. Do not stack independently
   scrolling graph columns on mobile.
   Keyboard focus rings stay inside node cards. Show a source name and version as
-  distinct elements; render quotations verbatim without search highlights. A selected
+  distinct elements. Highlight literal search matches only in evidence-browser cards,
+  including match-centered excerpts for matches beyond a shortened title; keep the
+  inspector, connections and original source free of search highlighting. A selected
   node persists when searching, including when it is outside the filtered nodes.
 - Result summaries explain only the checks actually returned. A file-byte mismatch
   with matching text/passages says so explicitly and suggests checking the intended
@@ -374,7 +376,7 @@ model quality still require rehearsal.
   location. File bytes, filenames, unsaved answer IDs and check results stay out of
   shared links. Explain that imported files need to be selected again after reload.
 - `/` searches lineage, Escape leaves search, J/K move matching records in group order,
-  L opens Trace evidence, and V opens Check integrity and runs a ready check (or opens the current finding's trace
+  I opens Check integrity, L opens Trace evidence, and V opens Check integrity and runs a ready check (or opens the current finding's trace
   from Findings). Show keycaps for the primary actions on desktop only. Preserve
   F1, theme/office shortcuts and the existing shortcut preference.
 - Header finding tags copy with a fixed-size in-button animation and screen-reader
@@ -383,6 +385,8 @@ model quality still require rehearsal.
   stable icon feedback. Outside click/Escape dismiss the dialog and restore focus.
   Use one header Export disclosure for the available report, trace and signed bundle;
   label supplied traces explicitly. Escape, outside click and leaving focus dismiss it.
+  Expose Shift+E for Export and Shift+S for Share view with the shared desktop keycaps.
+  Both task tabs show hints (I/L); shortcut preferences and typing/modal guards apply.
 - Show Stored original and Your copy together. Initial entry never chooses an arbitrary
   source. Keep unchecked file selection neutral and reserve success accents for returned
   passed checks. Zero-result counters are neutral. Use a compact unchecked line rather
@@ -440,3 +444,11 @@ responses and recovery, grouped downloads, copy feedback, outside/Escape dismiss
 late-response cancellation, mobile list/detail navigation and both themes at 320–1440px.
 The wide PDF inspector and one-line source version badge remain intact. No hosted model
 calls or changes to the working demo database were needed.
+
+
+The Sources group counts logical documents, with the section heading distinguishing
+for example “1 document · 1 version”; the document and its version remain distinct
+provenance records. Search uses the displayed source name as well as literal evidence
+and identifiers, including finding tags. List-only highlighting, source/version counts,
+I/L task selection, Shift+E/Shift+S, disabled preferences and mobile-hidden hints were
+checked with 56 frontend tests, a production build and desktop/mobile browser checks.

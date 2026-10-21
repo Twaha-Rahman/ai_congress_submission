@@ -46,6 +46,7 @@ export default function Verification({ office, view, navigate, shortcutsEnabled,
   const input = useRef<HTMLInputElement>(null);
   const search = useRef<HTMLInputElement>(null);
   const answerPicker = useRef<HTMLButtonElement>(null);
+  const shareTrigger = useRef<HTMLButtonElement>(null);
   const lineage = useRef<HTMLElement>(null);
   const verificationRequest = useRef<AbortController | null>(null);
   const fileGeneration = useRef(0);
@@ -100,6 +101,10 @@ export default function Verification({ office, view, navigate, shortcutsEnabled,
     navigate({ verifyNode: id, verifyPane: "detail", verifyGroup: lineageGroups.find(group => group.types.includes(node?.node_type || ""))?.label || "" }, true);
   }
   function switchTask(task: View["verifyTab"]) { navigate({ verifyTab: task }); }
+  function focusTask(task: View["verifyTab"]) {
+    switchTask(task);
+    requestAnimationFrame(() => { const tab = document.getElementById(`verification-tab-${task}`); tab?.setAttribute("data-shortcut-focus", "true"); tab?.focus(); });
+  }
   function moveNode(direction: number) {
     if (!graph || view.verifyTab !== "trace") return;
     const nodes = lineageNodes(graph, view.verifySearch);
@@ -110,7 +115,9 @@ export default function Verification({ office, view, navigate, shortcutsEnabled,
   useKeyboardShortcuts(shortcutsEnabled, {
     search: () => { navigate({ verifyTab: "trace", verifyPane: "browse" }); requestAnimationFrame(() => { search.current?.focus(); search.current?.select(); }); },
     verify: () => { if (canCheck && !checking && !reading) { switchTask("check"); requestAnimationFrame(() => form.current?.requestSubmit()); } },
-    lineage: () => { switchTask("trace"); requestAnimationFrame(() => { document.getElementById("verification-tab-trace")?.setAttribute("data-shortcut-focus", "true"); document.getElementById("verification-tab-trace")?.focus(); }); },
+    lineage: () => focusTask("trace"),
+    integrity: () => focusTask("check"),
+    share: () => { shareTrigger.current?.focus(); setSharing(true); },
     next: () => moveNode(1), previous: () => moveNode(-1),
   });
   async function chooseFile(chosen: File | null) {
@@ -185,16 +192,16 @@ export default function Verification({ office, view, navigate, shortcutsEnabled,
   return <div className="verification-workspace">
     <div className="page-heading"><h1>Verification</h1><div className="page-actions">
       <button className="button secondary shortcuts-button" aria-label="Keyboard shortcuts" onClick={onHelp} aria-keyshortcuts="F1"><Keyboard size={16} />Shortcuts<ShortcutHint>F1</ShortcutHint></button>
-      <VerificationExports items={exportItems} />
-      <button className="button secondary verification-share" onClick={() => setSharing(true)}><Link size={15} />Share view</button>
+      <VerificationExports items={exportItems} shortcutsEnabled={shortcutsEnabled} />
+      <button ref={shareTrigger} className="button secondary verification-share" aria-label="Share view" aria-keyshortcuts={shortcutsEnabled ? "Shift+S" : undefined} onClick={() => setSharing(true)}><Link size={15} />Share view{shortcutsEnabled && <ShortcutHint>Shift+S</ShortcutHint>}</button>
     </div></div>
     <div className="detail-tabs verification-task-tabs" role="tablist" aria-label="Verification task">
-      {([ ["check", "Check integrity", ShieldCheck], ["trace", "Trace evidence", Network] ] as const).map(([task, label, Icon], index) => <button key={task} id={`verification-tab-${task}`} role="tab" aria-selected={view.verifyTab === task} aria-controls={`verification-panel-${task}`} tabIndex={view.verifyTab === task ? 0 : -1} aria-keyshortcuts={task === "trace" && shortcutsEnabled ? "L" : undefined} onBlur={event => { delete event.currentTarget.dataset.shortcutFocus; }} onPointerDown={event => { delete event.currentTarget.dataset.shortcutFocus; }} onClick={() => switchTask(task)} onKeyDown={event => {
+      {([ ["check", "Check integrity", ShieldCheck], ["trace", "Trace evidence", Network] ] as const).map(([task, label, Icon], index) => <button key={task} id={`verification-tab-${task}`} role="tab" aria-selected={view.verifyTab === task} aria-controls={`verification-panel-${task}`} tabIndex={view.verifyTab === task ? 0 : -1} aria-keyshortcuts={shortcutsEnabled ? task === "trace" ? "L" : "I" : undefined} onBlur={event => { delete event.currentTarget.dataset.shortcutFocus; }} onPointerDown={event => { delete event.currentTarget.dataset.shortcutFocus; }} onClick={() => switchTask(task)} onKeyDown={event => {
         delete event.currentTarget.dataset.shortcutFocus;
         if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
         event.preventDefault(); const next = event.key === "Home" ? "check" : event.key === "End" ? "trace" : index === 0 ? "trace" : "check";
         switchTask(next); document.getElementById(`verification-tab-${next}`)?.focus();
-      }}><Icon size={16} />{label}{task === "trace" && shortcutsEnabled && <ShortcutHint>L</ShortcutHint>}</button>)}
+      }}><Icon size={16} />{label}{shortcutsEnabled && <ShortcutHint>{task === "trace" ? "L" : "I"}</ShortcutHint>}</button>)}
     </div>
     <section className="verification-target" aria-label="Choose evidence">
       <div className="verification-target-kind"><label>Evidence type</label><Select label="Evidence type" value={view.verifyKind} options={kinds} onChange={value => choose(value as View["verifyKind"], "", value === "finding" ? "trace" : view.verifyTab)} icon={<ClipboardCheck size={16} />} /></div>

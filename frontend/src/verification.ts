@@ -1,5 +1,6 @@
 import type { CheckStatus, LineageGraph, LineageNode, VerificationReport } from "./types";
 import { sourceTitle } from "./presentation";
+import { searchRanges, matchingExcerpt } from "./searchHighlight";
 
 export const MAX_EVIDENCE_BYTES = 20 * 1024 * 1024;
 export const checkLabels: Record<string, string> = {
@@ -71,7 +72,31 @@ export function lineageNodes(graph: LineageGraph, search: string) {
       Number(b.node_type === "document") - Number(a.node_type === "document") ||
       (a.attributes.version_label || "").localeCompare(b.attributes.version_label || "", undefined, { numeric: true })) : nodes;
   })
-    .filter(node => !query || `${lineageNodeTitle(node)} ${node.node_id} ${Object.values(node.attributes).join(" ")}`.toLowerCase().includes(query));
+    .filter(node => !query || lineageSearchEntries(node).some(entry => searchRanges(entry.text, search, entry.identifier).length));
+}
+export function lineageSourceCounts(nodes: LineageNode[]) {
+  const sources = nodes.filter(node => ["document", "source", "version"].includes(node.node_type));
+  return { documents: new Set(sources.map(sourceFamily)).size, versions: sources.filter(node => node.node_type !== "document").length };
+}
+function lineageSearchEntries(node: LineageNode) {
+  const entries = [{ label: "Title", text: lineageNodeTitle(node), identifier: false },
+    { label: "Record ID", text: node.node_id, identifier: true }];
+  if (node.node_type === "finding") entries.push({ label: "Finding tag", text: `#${node.node_id.slice(-8).toUpperCase()}`, identifier: true });
+  if (node.attributes.source_identity) entries.push({ label: "Source", text: sourceTitle({ source_identity: node.attributes.source_identity }), identifier: false });
+  for (const [key, value] of Object.entries(node.attributes)) entries.push({ label: key === "quote" ? "Passage" : key.replace(/_/g, " "), text: value, identifier: key.endsWith("_id") });
+  return entries;
+}
+/** Explain matches beyond the truncated title without highlighting the inspector. */
+export function lineageMatchContext(node: LineageNode, query: string) {
+  const visible = [lineageNodeTitle(node), node.attributes.version_label || "",
+    node.attributes.source_identity ? sourceTitle({ source_identity: node.attributes.source_identity }) : "",
+    `Page ${node.attributes.page || ""}${node.attributes.section ? ` · § ${node.attributes.section}` : ""}`];
+  if (visible.some(text => searchRanges(text, query).length) ||
+      (node.node_type === "finding" && searchRanges(`#${node.node_id.slice(-8).toUpperCase()}`, query, true).length)) return null;
+  // Passages already render a match-centered excerpt in their card.
+  if (["clause", "message"].includes(node.node_type) && searchRanges(node.attributes.quote || "", query).length) return null;
+  const entry = lineageSearchEntries(node).find(entry => searchRanges(entry.text, query, entry.identifier).length);
+  return entry ? { ...entry, text: entry.identifier ? entry.text : matchingExcerpt(entry.text, query) } : null;
 }
 export function sourceFamily(node: LineageNode) {
   return node.node_type === "document" ? node.node_id.replace(/^document:/, "") : node.attributes.source_identity || node.node_id;

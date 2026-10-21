@@ -327,3 +327,4 @@
   .verification-target { align-items: stretch; }
   .verification-target-record, .verification-answer-picker { width: 100%; max-width: 100%; }
 }
+.lineage-match-context { display: block; margin-top: 10px; font-size: 12px; line-height: 1.7; color: var(--muted); overflow-wrap: anywhere; }

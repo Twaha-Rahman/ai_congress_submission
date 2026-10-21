@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { bundleLineage, checkCounts, checkSummary, focusedLineage, lineageNodes, lineageNodeTitle, sourceFamily, evidenceFileError, parseEvidenceBundle } from "./verification.ts";
+import { bundleLineage, checkCounts, checkSummary, focusedLineage, lineageNodes, lineageNodeTitle, sourceFamily, lineageSourceCounts, lineageMatchContext, evidenceFileError, parseEvidenceBundle } from "./verification.ts";
 import { readView, viewSearch } from "./viewState.ts";
 
 test("verification URLs retain target, selected node, filters and original-source location", () => {
@@ -104,4 +104,25 @@ test("evidence labels use literal excerpts and clear locators without modifying 
   assert.equal(lineageNodes(graph, 'email accounts')[0].node_id, node.node_id);
   const view = { ...readView(''), verifyAnswerSearch: 'policy & date' };
   assert.deepEqual(readView(viewSearch(view)), view);
+});
+
+test("source counts distinguish documents from their uploaded versions", () => {
+  const make = (id: string, type: string, identity: string) => ({ node_id: id, node_type: type, label: identity, attributes: { source_identity: identity }, restricted: false });
+  const document = make('document:handbook', 'document', 'handbook');
+  const v1 = make('source:one', 'version', 'handbook');
+  assert.deepEqual(lineageSourceCounts([document, v1]), { documents: 1, versions: 1 });
+  assert.deepEqual(lineageSourceCounts([document, v1, make('source:two', 'version', 'handbook')]), { documents: 1, versions: 2 });
+  assert.deepEqual(lineageSourceCounts([v1, make('source:other', 'version', 'other')]), { documents: 2, versions: 2 });
+});
+
+test("lineage search uses visible source names and exposes matches beyond shortened titles", () => {
+  const node = { node_id: 'revision:claim_abcdef12', node_type: 'claim_revision', label: 'Policy statement',
+    attributes: { quote: 'A'.repeat(130) + ' HR system records leave.', source_identity: 'employee_handbook', version_label: 'v1' }, restricted: false };
+  const graph = { root_id: node.node_id, nodes: [node], edges: [], truncated: false };
+  assert.equal(lineageNodes(graph, 'employee handbook').length, 1);
+  assert.equal(lineageNodes(graph, 'HR').length, 1);
+  assert.match(lineageMatchContext(node, 'hr')!.text, /HR system/);
+  const finding = { ...node, node_id: 'finding:find_abcdef12', node_type: 'finding' };
+  assert.equal(lineageNodes({ ...graph, nodes: [finding] }, '#ABCDEF12').length, 1);
+  assert.equal(lineageMatchContext(finding, '#ABCDEF12'), null);
 });

@@ -24,3 +24,13 @@ test("browser and assistive modifier combinations are not intercepted", () => {
   assert.equal(shortcutForKey(key("k", { metaKey: true }), true), null);
   assert.equal(shortcutForKey(key("a", { altKey: true }), true), null);
 });
+
+test("verification shortcuts distinguish task selection, running checks, exports and sharing", () => {
+  for (const [character, action] of [['i', 'integrity'], ['l', 'lineage'], ['v', 'verify'], ['E', 'export'], ['S', 'share']] as const) {
+    assert.equal(shortcutForKey(key(character), true), action);
+    assert.equal(shortcutForKey(key(character), false), null);
+    assert.equal(shortcutForKey(key(character, { ctrlKey: true }), true), null);
+  }
+  assert.equal(shortcutForKey(key('e'), true), 'evidence');
+  assert.equal(shortcutForKey(key('s'), true), 'sort');
+});

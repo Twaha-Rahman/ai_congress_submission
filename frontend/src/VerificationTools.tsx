@@ -1,9 +1,15 @@
 import { useEffect, useRef } from "react";
 import { ArrowDownToLine, ChevronDown } from "lucide-react";
 import { downloadJson } from "./verification";
+import { ShortcutHint } from "./components";
+import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 
-export default function VerificationExports({ items }: { items: { label: string; filename: string; value: unknown }[] }) {
+export default function VerificationExports({ items, shortcutsEnabled }: { items: { label: string; filename: string; value: unknown }[]; shortcutsEnabled: boolean }) {
   const root = useRef<HTMLDetailsElement>(null);
+  useKeyboardShortcuts(shortcutsEnabled, items.length ? { export: () => {
+    root.current?.querySelector('summary')?.focus();
+    if (root.current) root.current.open = !root.current.open;
+  } } : {});
   useEffect(() => {
     const outside = (event: PointerEvent) => { if (!root.current?.contains(event.target as Node) && root.current) root.current.open = false; };
     const escape = (event: KeyboardEvent) => {
@@ -18,7 +24,7 @@ export default function VerificationExports({ items }: { items: { label: string;
   }, []);
   if (!items.length) return null;
   return <details ref={root} className="verification-exports">
-    <summary className="button secondary"><ArrowDownToLine size={15} />Export<ChevronDown size={14} /></summary>
+    <summary className="button secondary" aria-label="Export" aria-keyshortcuts={shortcutsEnabled ? "Shift+E" : undefined}><ArrowDownToLine size={15} />Export{shortcutsEnabled && <ShortcutHint>Shift+E</ShortcutHint>}<ChevronDown size={14} /></summary>
     <div aria-label="Available exports">{items.map(item => <button key={item.filename} type="button" onClick={() => {
       downloadJson(item.value, item.filename); if (root.current) { root.current.open = false; root.current.querySelector('summary')?.focus(); }
     }}><ArrowDownToLine size={15} /><span>{item.label}<small>JSON file</small></span></button>)}</div>

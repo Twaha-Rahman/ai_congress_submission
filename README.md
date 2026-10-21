@@ -135,7 +135,9 @@ The trace starts with the selected record’s supporting evidence; **Show relate
 evidence** expands the wider authorized graph. Browse conclusions, statements,
 passages and sources one group at a time, with more records loaded on request.
 Statements use literal excerpts and citations as labels, and source versions are grouped
-under their document. Selecting a record shows its connections and exact passage beside
+under their document. Sources counts documents separately from their versions. Search
+highlights literal matches in the evidence list; inspector text stays unchanged.
+Selecting a record shows its connections and exact passage beside
 the list on desktop. On mobile it opens a detail view; **Back to evidence** restores
 your scroll and focus. Connections represent stored
 provenance, not an integrity result. Uploaded-bundle connections are explicitly
@@ -143,9 +145,9 @@ labelled as supplied data. Server-authorized traces omit inaccessible nodes and
 dangling edges; a bounded trace warns when it reaches the node limit.
 
 `/` focuses lineage search; `Escape` leaves it without clearing the query. `J`/`K`
-move through matching records, `L` opens Trace evidence, and `V` opens Check integrity
-and runs a ready verification form. `Ctrl+Enter` / `⌘+Enter` also submits that form.
-Share view preserves office,
+move through matching records, `I` opens Check integrity, `L` opens Trace evidence,
+and `V` opens Check integrity and runs a ready verification form. `Ctrl+Enter` / `⌘+Enter` also submits that form.
+`Shift+E` opens Export and `Shift+S` opens Share view. Share view preserves office,
 task, trace scope/group, mobile pane, evidence type/ID, selected node, search, result
 filter and source page/zoom/passage.
 Saved-answer search is retained in the link. Local files and check results must be

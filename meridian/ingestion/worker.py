@@ -123,6 +123,7 @@ class OfficeWorker:
         self.transport = transport
         self.write_cache = write_cache
         self.poll_interval = poll_interval
+        self.slack = None
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
 
@@ -153,10 +154,13 @@ class OfficeWorker:
 
     # ----------------------------------------------------------------- processing
     def process_once(self) -> bool:
-        job = self.store.claim_next_job()
+        if self.slack:
+            self.slack.process_once(self.signer)
+        job = self.store.claim_next_job(pause_live_slack=bool(self.slack and self.slack.jobs_paused()))
         if job is None:
             return False
-        self.process_job(job)
+        if not self.slack or self.slack.authorize_job(job, self.signer):
+            self.process_job(job)
         return True
 
     def process_job(self, job: JobRow) -> IngestionOutcome | None:
@@ -269,6 +273,8 @@ class OfficeWorker:
         # Failed extraction never commits its staged source. Keep authorization
         # tied to the job's trusted manifest rather than an unresolvable source ID.
         persisted_source_id = outcome.source_id if outcome.source_id and self.store.get_source(outcome.source_id) else None
+        if self.slack:
+            self.slack.link_result(job, persisted_source_id)
         if outcome.error_code is not None:
             status = self._failure_status(job, outcome.error_code)
             self.store.update_job(

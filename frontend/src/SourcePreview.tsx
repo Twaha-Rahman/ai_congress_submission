@@ -263,6 +263,8 @@ export default function SourcePreview({
             ? "Cited message highlighted"
             : "The cited quote could not be located in this saved source"}
         </p>
+        {source?.slack && <a className="text-button" href={source.slack.url} target="_blank" rel="noopener noreferrer">Open in Slack</a>}
+        {source?.status === "withdrawn" && <p className="source-location-note">This message revision was withdrawn. It is excluded from current answers.</p>}
         <div className="source-page-scroll saved-source-scroll" ref={scroll}>
           <pre>
             {!evidence || saved.start < 0 ? (

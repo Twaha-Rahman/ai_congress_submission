@@ -56,6 +56,7 @@ from ..federation.exchange import (
     verify_export,
 )
 from ..ingestion.worker import OfficeWorker
+from ..integrations.slack import SlackConnector, ChannelConfig, SlackUnavailable, source_slack_link
 from ..integrity.bundles import verify_bundle
 from ..integrity.canonical import canonical_json_bytes, sha256_hex
 from ..integrity.signing import PinnedKeyRegistry, Signer
@@ -77,6 +78,7 @@ class OfficeRuntime:
     signer: Signer
     store: OfficeStore
     worker: OfficeWorker
+    slack: SlackConnector | None = None
 
 
 def build_runtime(settings: OfficeSettings | None = None) -> OfficeRuntime:
@@ -99,6 +101,8 @@ def build_runtime(settings: OfficeSettings | None = None) -> OfficeRuntime:
         Database(resolved.db_path), tenant_id=resolved.tenant_id, region=resolved.region
     )
     worker = OfficeWorker(store=store, settings=resolved, signer=signer)
+    slack = SlackConnector(store, resolved)
+    worker.slack = slack
     return OfficeRuntime(
         settings=resolved,
         registry=registry,
@@ -106,6 +110,7 @@ def build_runtime(settings: OfficeSettings | None = None) -> OfficeRuntime:
         signer=signer,
         store=store,
         worker=worker,
+        slack=slack,
     )
 
 
@@ -113,6 +118,7 @@ def _source_dict(source: SourceRow, *, include_manifest: bool = True) -> dict[st
     payload: dict[str, Any] = {
         "source_id": source.source_id,
         "source_identity": source.source_identity,
+        "display_name": source.manifest.rationale if source.source_identity.startswith("slack:") else None,
         "version_label": source.version_label,
         "source_type": source.source_type,
         "subject": source.subject,
@@ -168,6 +174,7 @@ def _job_dict(job: JobRow) -> dict[str, Any]:
         "finished_at": canonical_datetime(job.finished_at) if job.finished_at else None,
         "updated_at": canonical_datetime(job.updated_at),
         "source_identity": (job.request.get("manifest") or {}).get("source_identity"),
+        "display_name": (job.request.get("manifest") or {}).get("rationale") if job.request.get("slack") else None,
         "version_label": (job.request.get("manifest") or {}).get("version_label"),
     }
 
@@ -193,13 +200,18 @@ def _stage_upload(settings: OfficeSettings, raw: bytes, extension: str) -> Path:
 
 def create_app(settings: OfficeSettings | None = None) -> FastAPI:
     runtime = build_runtime(settings)
+    if runtime.slack is None:
+        runtime.slack = SlackConnector(runtime.store, runtime.settings)
+        runtime.worker.slack = runtime.slack
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
         runtime.worker.start()
+        runtime.slack.start()
         try:
             yield
         finally:
+            runtime.slack.stop()
             runtime.worker.stop()
 
     app = FastAPI(
@@ -372,6 +384,36 @@ def create_app(settings: OfficeSettings | None = None) -> FastAPI:
         )
         return {"job": _job_dict(job), "staged_bytes": len(raw)}
 
+    # ----------------------------------------------------------- Slack connector
+    @app.get("/v1/integrations/slack")
+    def slack_status(principal=Depends(authenticate)):
+        _require_office_scope(principal, Permission.INGEST)
+        return runtime.slack.status()
+
+    @app.post("/v1/integrations/slack")
+    def slack_update(body: dict, principal=Depends(authenticate)):
+        _require_office_scope(principal, Permission.INGEST)
+        action = body.get("action")
+        if set(body) - {"action", "channel", "channel_id"}:
+            raise ApiError(ErrorCode.INVALID_INPUT, "Unsupported Slack connection fields.")
+        try:
+            if action in {"pause", "resume"}:
+                runtime.slack.set_paused(action == "pause")
+            elif action == "save_channel":
+                config = ChannelConfig.model_validate(body.get("channel"))
+                runtime.slack.save_channel(config)
+            elif action == "remove_channel" and isinstance(body.get("channel_id"), str):
+                runtime.slack.disable_channel(body["channel_id"])
+            elif action == "check":
+                runtime.slack.authenticate()
+            else:
+                raise ApiError(ErrorCode.INVALID_INPUT, "Choose a valid Slack connection action.")
+        except SlackUnavailable as exc:
+            raise ApiError(ErrorCode.PROVIDER_ERROR, str(exc), status_code=503) from exc
+        except ValueError as exc:
+            raise ApiError(ErrorCode.INVALID_INPUT, "Channel settings are invalid.") from exc
+        return runtime.slack.status()
+
     # -------------------------------------------------------------------- jobs
     @app.get("/v1/jobs")
     def list_jobs(
@@ -410,7 +452,7 @@ def create_app(settings: OfficeSettings | None = None) -> FastAPI:
         if not _source_readable(principal, source):
             raise ApiError(ErrorCode.NOT_FOUND, "no such source")
         return {
-            "source": _source_dict(source),
+            "source": {**_source_dict(source), "slack": source_slack_link(store, source_id)},
             "clauses": [{"clause_id": clause.clause_id, "page": clause.page,
                          "section": clause.section}
                         for clause in store.clauses_for_source(source_id)],

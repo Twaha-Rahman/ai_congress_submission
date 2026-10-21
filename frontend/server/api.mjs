@@ -79,13 +79,14 @@ export function createApiHandler({
       });
     }
     const match =
-      /^\/api\/(dhaka|frankfurt|gateway)\/(findings(?:\/[\w:.-]+(?:\/(?:reviews|lineage))?)?|sources(?:\/[\w:.-]+(?:\/(?:content|comparisons|lineage))?)?|answers(?:\/[\w:.-]+(?:\/(?:lineage|bundle))?)?|queries(?:\/gw_\d{8}T\d{12})?|verifications\/(?:source|bundle)|claims(?:\/reviews)?|jobs(?:\/[\w.-]+)?|ingestions\/pdf)$/.exec(
+      /^\/api\/(dhaka|frankfurt|gateway)\/(findings(?:\/[\w:.-]+(?:\/(?:reviews|lineage))?)?|sources(?:\/[\w:.-]+(?:\/(?:content|comparisons|lineage))?)?|answers(?:\/[\w:.-]+(?:\/(?:lineage|bundle))?)?|queries(?:\/gw_\d{8}T\d{12})?|verifications\/(?:source|bundle)|claims(?:\/reviews)?|jobs(?:\/[\w.-]+)?|ingestions\/pdf|integrations\/slack)$/.exec(
         url.pathname,
       );
     const path = match?.[2];
     const isGateway = match?.[1] === "gateway";
     const isReview = path && /^findings\/[\w:.-]+\/reviews$/.test(path);
     const isUpload = path === "ingestions/pdf";
+    const isSlack = path === "integrations/slack";
     const isQuery = path === "queries";
     const isComparison = path && /^sources\/[\w:.-]+\/comparisons$/.test(path);
     const isVerification = path?.startsWith("verifications/");
@@ -94,7 +95,7 @@ export function createApiHandler({
       !match || (!isGateway && path?.startsWith("queries/")) || (isGateway && path !== "queries" && !/^queries\/gw_\d{8}T\d{12}$/.test(path)) ||
       !(
         (req.method === "GET" && !isReview && !isUpload && !isComparison && !isVerification && !isQuery) ||
-        (req.method === "POST" && (isReview || isUpload || isComparison || isVerification || isQuery))
+        (req.method === "POST" && (isReview || isUpload || isComparison || isVerification || isQuery || isSlack))
       )
     ) {
       return json(res, 404, {
@@ -106,6 +107,8 @@ export function createApiHandler({
     }
     // Federation can import signed claims at another office. Only the configured
     // reviewer workspace exposes this explicit service-backed operation.
+    if (isSlack && role !== "reviewer")
+      return json(res, 403, { error: { code: "forbidden", message: "Slack connection settings require an authorized workspace." } });
     if (isGateway && role !== "reviewer")
       return json(res, 403, { error: { code: "forbidden", message: "Signed-rule comparisons require reviewer access." } });
     if (req.method === "POST") {
@@ -134,7 +137,7 @@ export function createApiHandler({
         });
     }
     const office = match[1].toUpperCase();
-    const connectionRole = isUpload || isComparison ? "uploader" : role;
+    const connectionRole = isUpload || isComparison || isSlack ? "uploader" : role;
     const token = env[`DEMO_TOKEN_${office}_${isGateway ? "SERVICE" : connectionRole.toUpperCase()}`];
     if (!token)
       return json(res, 503, {

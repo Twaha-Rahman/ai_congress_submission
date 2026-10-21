@@ -247,6 +247,11 @@ class OfficeStore:
             ).fetchone()
         return self._source_from_row(row) if row else None
 
+    def source_available_at(self, source_id: str, known_at: datetime) -> bool:
+        with self.db.reader() as conn:
+            row = conn.execute("SELECT withdrawn_at FROM source_withdrawals WHERE source_id=? AND tenant_id=? AND region=?", (source_id, self.tenant_id, self.region)).fetchone()
+        return row is None or known_at < _parse_dt(row[0])
+
     def find_source_version(self, source_identity: str, version_label: str) -> SourceRow | None:
         with self.db.reader() as connection:
             row = connection.execute(
@@ -426,15 +431,15 @@ class OfficeStore:
             progress=json.loads(row["progress_json"]),
         )
 
-    def claim_next_job(self) -> JobRow | None:
+    def claim_next_job(self, *, pause_live_slack: bool = False) -> JobRow | None:
         """Atomically move one queued job to ``running``."""
 
         now = utc_now()
         with self.db.transaction() as connection:
             row = connection.execute(
                 "SELECT job_id FROM jobs WHERE tenant_id = ? AND region = ? AND status = ? "
-                "ORDER BY created_at ASC LIMIT 1",
-                (self.tenant_id, self.region, JobStatus.QUEUED.value),
+                "AND (? = 0 OR COALESCE(json_extract(request_json, '$.uploaded_by'), '') != 'slack_connector') ORDER BY created_at ASC LIMIT 1",
+                (self.tenant_id, self.region, JobStatus.QUEUED.value, int(pause_live_slack)),
             ).fetchone()
             if row is None:
                 return None

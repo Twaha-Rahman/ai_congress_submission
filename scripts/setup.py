@@ -28,6 +28,10 @@ REGIONS = ("DHAKA", "FRANKFURT")
 # Values written when a key is absent from .env.  Model values stay empty on purpose:
 # a live run requires an explicit operator choice.
 ENV_TEMPLATE: dict[str, str] = {
+    "DHAKA_SLACK_APP_TOKEN": "",
+    "DHAKA_SLACK_BOT_TOKEN": "",
+    "FRANKFURT_SLACK_APP_TOKEN": "",
+    "FRANKFURT_SLACK_BOT_TOKEN": "",
     "TENANT_ID": TENANT_ID,
     "DHAKA_DB_PATH": "runtime/dhaka/meridian.db",
     "DHAKA_SOURCE_DIR": "runtime/dhaka/sources",

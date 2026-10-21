@@ -5,6 +5,7 @@ import { EmptyState, ErrorState, Loading, Modal, ShortcutHint, AutoRefreshButton
 import { date, humanize, scopeLabel, sourceTitle } from "./presentation";
 import Select from "./Select";
 import UploadPdf from "./UploadPdf";
+import SlackConnection from "./SlackConnection";
 import UploadStatus, { JobBadge } from "./UploadStatus";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 import { isProcessing, keepUploadSelection, visibleSources } from "./uploads";
@@ -30,6 +31,7 @@ export default function Sources({ office, session, view, navigate, shortcutsEnab
   const [jobError, setJobError] = useState("");
   const [notice, setNotice] = useState("");
   const [openUpload, setOpenUpload] = useState(false);
+  const [slackOpen, setSlackOpen] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const [readRevision, setReadRevision] = useState(0);
   const search = useRef<HTMLInputElement>(null);
@@ -54,7 +56,7 @@ export default function Sources({ office, session, view, navigate, shortcutsEnab
       ]);
       if (!mounted.current || signal?.aborted || sequence !== requestSequence.current) return;
       setSources(library.sources);
-      setJobs(activity.jobs.filter((j) => j.kind === "pdf" || j.kind === "policy_comparison"));
+      setJobs(activity.jobs.filter((j) => j.kind === "pdf" || j.kind === "slack" || j.kind === "policy_comparison"));
       setError(""); setLoading(false);
     } catch (e) {
       if (mounted.current && !signal?.aborted && sequence === requestSequence.current) {
@@ -122,6 +124,7 @@ export default function Sources({ office, session, view, navigate, shortcutsEnab
         <AutoRefreshButton enabled={view.autoRefresh} refreshing={refreshing} shortcutsEnabled={shortcutsEnabled}
           title="Checks every 3 seconds during processing and every 10 seconds otherwise. Pauses while editing or inspecting sources."
           onToggle={() => { navigate({ autoRefresh: !view.autoRefresh }); if (!view.autoRefresh) void load(); }} />
+        {canUpload && <button className="button secondary" onClick={() => setSlackOpen(true)}><MessageSquare size={16} />Slack</button>}
         <button className="button primary" disabled={!canUpload} aria-keyshortcuts={shortcutsEnabled && canUpload ? "U" : undefined} onClick={() => setOpenUpload(true)}><ArrowUpFromLine size={16} />Upload PDF{shortcutsEnabled && <ShortcutHint>U</ShortcutHint>}</button>
       </div>
     </div>
@@ -145,7 +148,7 @@ export default function Sources({ office, session, view, navigate, shortcutsEnab
             {visible.map((source) => <li className="source-row" key={source.source_id}>
               <span className={`source-type-icon authority-${source.authority}`}>{source.source_type === "pdf" ? <FileText size={20} /> : <MessageSquare size={20} />}</span>
               <div className="source-row-body"><div className="source-row-top"><button className="source-name" onClick={() => navigate({ document: source.source_id, page: 1, zoom: 100 }, false)}>{sourceTitle(source)}</button><span className="source-version">{source.version_label}</span></div>
-                <div className="source-row-meta"><span>{humanize(source.authority)}</span>{source.policy_family && <span>{humanize(source.policy_family)}</span>}{source.sensitivity === "restricted" && <span className="restricted-source"><LockKeyhole size={12} />Restricted</span>}</div>
+                <div className="source-row-meta">{source.status === "withdrawn" && <span>Withdrawn</span>}<span>{humanize(source.authority)}</span>{source.policy_family && <span>{humanize(source.policy_family)}</span>}{source.sensitivity === "restricted" && <span className="restricted-source"><LockKeyhole size={12} />Restricted</span>}</div>
                 <p className="source-row-date">Effective {date(source.effective_from)} <span>· Added {date(source.ingested_at)}</span></p>
               </div>
               <div className="source-row-actions"><button className="button secondary" aria-label={`Inspect ${source.source_identity} ${source.version_label}`} onClick={() => navigate({ document: source.source_id, page: 1, zoom: 100 }, false)}>Inspect</button><button className="icon-button" aria-label={`Findings for ${source.source_identity} ${source.version_label}`} title="View findings for this source" onClick={() => onFindings(source.source_id)}><ArrowRight size={17} /></button></div>
@@ -156,11 +159,11 @@ export default function Sources({ office, session, view, navigate, shortcutsEnab
           <p className="source-library-note"><LockKeyhole size={13} />Only sources your role can access are shown.</p>
         </section>
         <aside className="upload-activity" id="upload-activity" tabIndex={-1} aria-labelledby="upload-activity-title">
-          <div className="source-section-heading"><h2 id="upload-activity-title">Recent uploads</h2>{active && <span className="activity-live"><span className="small-dot dot-policy" />In progress</span>}</div>
+          <div className="source-section-heading"><h2 id="upload-activity-title">Recent activity</h2>{active && <span className="activity-live"><span className="small-dot dot-policy" />In progress</span>}</div>
           {!view.autoRefresh && active && <p className="activity-paused">Updates paused. <button className="text-button" onClick={() => { navigate({ autoRefresh: true }); void load(); }}>Resume updates</button></p>}
           {jobError && <div className="notice warning" role="alert"><AlertCircle size={16} /><span>{jobError}</span></div>}
           {jobs.length ? <ul className="upload-job-list">{jobs.slice(0, 12).map((job) => <li key={job.job_id}><button className={`upload-job ${view.uploadJob === job.job_id ? "selected" : ""}`} aria-pressed={view.uploadJob === job.job_id} onClick={() => navigate({ uploadJob: job.job_id })}>
-            <span className="upload-job-name">{job.source_identity || (job.kind === "policy_comparison" ? "Policy comparison" : "PDF upload")}</span><JobBadge job={job} /><span className="upload-job-date">{job.version_label ? `${job.version_label} · ` : ""}{date(job.created_at, true)}</span>
+            <span className="upload-job-name">{job.display_name || job.source_identity || (job.kind === "slack" ? "Slack message" : job.kind === "policy_comparison" ? "Policy comparison" : "PDF upload")}</span><JobBadge job={job} /><span className="upload-job-date">{`${job.kind === "slack" ? "Slack · " : ""}${job.version_label ? `${job.version_label} · ` : ""}`}{date(job.created_at, true)}</span>
           </button></li>)}</ul> : <div className="activity-empty"><Clock3 size={21} /><p>No recent uploads</p><span>Processing status will appear here after you upload a PDF.</span></div>}
         </aside>
       </div>
@@ -170,8 +173,9 @@ export default function Sources({ office, session, view, navigate, shortcutsEnab
       {selectedJob ? <UploadStatus job={selectedJob} retrying={retrying} canRetry={!!(selectedJob.source_id && ["needs_review", "failed"].includes(selectedJob.status) && canUpload && !active && sources.find((s) => s.source_id === selectedJob.source_id)?.subject === "general_policy")}
         onRetry={() => void retryComparison(selectedJob)} onFindings={() => onFindings(selectedJob.source_id!)}
         onInspect={() => navigate({ document: selectedJob.source_id!, page: 1, zoom: 100 })}
-        onUpload={canUpload ? () => setOpenUpload(true) : undefined} /> : <div className="dialog-body">{jobError ? <ErrorState error={jobError} retry={() => setReadRevision((n) => n + 1)} /> : <Loading label="Opening processing job…" />}</div>}
+        onUpload={canUpload && selectedJob.kind !== "slack" ? () => setOpenUpload(true) : undefined} /> : <div className="dialog-body">{jobError ? <ErrorState error={jobError} retry={() => setReadRevision((n) => n + 1)} /> : <Loading label="Opening processing job…" />}</div>}
     </Modal>}
+    {slackOpen && <SlackConnection office={office} onClose={() => setSlackOpen(false)} onJob={id => { setSlackOpen(false); navigate({ uploadJob: id }); void load(); }} />}
     <UploadPdf open={openUpload} office={office} sources={sources} config={session?.uploads?.[office]} shortcutsEnabled={shortcutsEnabled} onClose={() => setOpenUpload(false)} onQueued={queued} />
     {view.document && <DocumentDialog office={office} sourceId={view.document} view={view} navigate={navigate} onClose={() => navigate({ document: "" })} onVerify={onVerify} />}
   </>;

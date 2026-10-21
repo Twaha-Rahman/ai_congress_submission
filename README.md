@@ -18,8 +18,10 @@ relevant statements, checks source quotations, and publishes model-assisted conf
 candidates for human review. See the [general policy demo guide](docs/general_policy_demo.md)
 for manifests, PDF/Slack API examples, comparison retries, limits and model evaluation.
 The existing numeric checks remain available. General source Q&A is office-local;
-automated cross-office text conflict judgments are not implemented. The browser can present independently authorized office answers side by side. A live Slack listener remains separate
-integration work; saved Slack messages can already be ingested through the API.
+automated cross-office text conflict judgments are not implemented. The browser can
+present independently authorized office answers side by side. A read-only live Slack
+connector supports selected public channels through Socket Mode;
+[setup and supported behavior](docs/slack_integration.md) are documented separately.
 
 ## Browser workspace
 
@@ -243,6 +245,15 @@ Saved-answer search is retained in the link. Local files and check results must 
 supplied or rerun after reload. Browser history restores the evidence view, with explicit unavailable states for missing IDs. Evidence,
 lineage, and bundle requests fail independently: a trace failure does not prevent a
 source-copy check, and a bundle failure does not hide a saved answer’s trace.
+
+### Connect live Slack channels
+
+Open **Sources → Slack** in an authorized workspace to monitor public channels,
+set their applicability and processing permissions, pause/resume model work and
+inspect recent processing. Slack app credentials are configured per office on the
+server. Edits and deletions withdraw prior evidence from current answers while
+preserving audit history. See [the setup guide](docs/slack_integration.md) for app
+installation, restart instructions, permissions and coverage limits.
 
 ### Upload your own PDF
 
@@ -592,7 +603,7 @@ verification unless the old public keys remain pinned.
 - **Live PDF extraction has been exercised on synthetic fixtures**, including paid
   comparison calls; see [the measured verification report](docs/pdf_api_verification.md).
   Those results do not establish exhaustive coverage of arbitrary policies or a
-  successful live Slack-listener rehearsal. A new model or route needs fresh testing.
+  successful live Slack-connector rehearsal. A new model or route needs fresh testing.
 - The identity map and bearer tokens are a demo mechanism, not production SSO/OIDC.
 - Storage is single-node SQLite (WAL) per office; it is not a horizontally scaled
   deployment. The worker is one per service process by design.

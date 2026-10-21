@@ -122,8 +122,9 @@ export function explanation(finding: Finding) {
       return "These rules could not be fully compared automatically. Inspect their scope, dates, and original evidence before drawing a conclusion.";
   }
 }
-export function sourceTitle(source?: Pick<Source, "source_identity">) {
+export function sourceTitle(source?: Pick<Source, "source_identity"> & { display_name?: string | null }) {
   if (!source) return "Source metadata unavailable";
+  if (source.display_name) return source.display_name;
   const names: Record<string, string> = {
     dhaka_lending_policy: "Business lending policy",
     dha_slack_credit_channel: "Credit team · Slack",

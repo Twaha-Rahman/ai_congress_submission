@@ -383,4 +383,43 @@ ALTER TABLE claim_reviews ADD COLUMN resolved_at TEXT;
         5,
         "ALTER TABLE jobs ADD COLUMN progress_json TEXT NOT NULL DEFAULT '{}';",
     ),
+    (6, """
+CREATE TABLE slack_connections (
+    tenant_id TEXT NOT NULL, region TEXT NOT NULL, paused INTEGER NOT NULL DEFAULT 0,
+    team_id TEXT, team_name TEXT, updated_at TEXT NOT NULL,
+    coverage_gap_at TEXT, connected_at TEXT,
+    PRIMARY KEY (tenant_id, region)
+);
+CREATE TABLE slack_channels (
+    tenant_id TEXT NOT NULL, region TEXT NOT NULL, channel_id TEXT NOT NULL,
+    config_json TEXT NOT NULL, enabled INTEGER NOT NULL DEFAULT 1,
+    PRIMARY KEY (tenant_id, region, channel_id)
+);
+CREATE TABLE slack_inbox (
+    tenant_id TEXT NOT NULL, region TEXT NOT NULL, event_id TEXT NOT NULL,
+    team_id TEXT NOT NULL, channel_id TEXT NOT NULL, payload_json TEXT NOT NULL,
+    config_json TEXT NOT NULL, received_at TEXT NOT NULL, status TEXT NOT NULL,
+    reason TEXT, job_id TEXT, processed_at TEXT,
+    PRIMARY KEY (tenant_id, region, event_id)
+);
+CREATE INDEX idx_slack_pending ON slack_inbox (tenant_id, region, status, received_at);
+CREATE TABLE slack_messages (
+    tenant_id TEXT NOT NULL, region TEXT NOT NULL, team_id TEXT NOT NULL,
+    channel_id TEXT NOT NULL, message_ts TEXT NOT NULL, event_ts TEXT NOT NULL,
+    thread_ts TEXT, message_json TEXT NOT NULL, config_json TEXT NOT NULL,
+    revision INTEGER NOT NULL DEFAULT 1, deleted INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (tenant_id, region, team_id, channel_id, message_ts)
+);
+CREATE TABLE slack_source_links (
+    source_id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, region TEXT NOT NULL,
+    team_id TEXT NOT NULL, channel_id TEXT NOT NULL, message_ts TEXT NOT NULL,
+    thread_ts TEXT
+);
+CREATE TABLE source_withdrawals (
+    source_id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, region TEXT NOT NULL,
+    withdrawn_at TEXT NOT NULL, payload_json TEXT NOT NULL,
+    payload_hash TEXT NOT NULL, signature TEXT NOT NULL, key_id TEXT NOT NULL
+);
+"""),
+
 ]

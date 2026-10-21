@@ -61,6 +61,9 @@ export interface Finding {
   superseded_by_snapshot_id?: string | null;
 }
 export interface Source {
+  display_name?: string | null;
+  slack?: { team_id: string; channel_id: string; message_ts: string; url: string } | null;
+  status?: string;
   source_id: string;
   source_identity: string;
   version_label: string;
@@ -114,6 +117,7 @@ export interface Session {
 }
 
 export interface UploadJob {
+  display_name?: string | null;
   job_id: string;
   kind: "pdf" | "slack" | "policy_comparison";
   status: "queued" | "running" | "succeeded" | "needs_review" | "failed";

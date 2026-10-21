@@ -71,7 +71,8 @@ def _parse_ts(raw: str) -> datetime:
     text = raw.strip()
     if text.replace(".", "", 1).isdigit():
         # Slack epoch style ("1772615700.000100") is accepted as a fallback.
-        return ensure_utc(datetime.fromtimestamp(float(text), tz=None).astimezone(__import__("datetime").timezone.utc))
+        from ..integrations.slack import slack_time
+        return slack_time(text if "." in text else text + ".000000")
     try:
         return ensure_utc(datetime.fromisoformat(text.replace("Z", "+00:00")))
     except ValueError as exc:

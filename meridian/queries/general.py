@@ -132,7 +132,7 @@ class GeneralQuestionEngine:
         if any(source_id not in readable for source_id in request.source_ids):
             raise ApiError(ErrorCode.NOT_FOUND, "One or more selected sources are unavailable in this office or access scope.")
         sources = [s for s in readable.values() if (not request.source_ids or s.source_id in request.source_ids)
-                   and s.ingested_at <= moment
+                   and s.ingested_at <= moment and self.store.source_available_at(s.source_id, moment)
                    and (s.effective_from is None or s.effective_from <= request.valid_at)
                    and (s.effective_to is None or request.valid_at < s.effective_to)]
         local_model = self.settings.llm_local_endpoint_approved and is_local_endpoint(self.settings.llm_base_url)

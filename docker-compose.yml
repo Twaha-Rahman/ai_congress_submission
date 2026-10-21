@@ -35,6 +35,8 @@ services:
     environment:
       TENANT_ID: ${TENANT_ID:-meridian_demo}
       REGION: DHAKA
+      DHAKA_SLACK_APP_TOKEN: ${DHAKA_SLACK_APP_TOKEN:-}
+      DHAKA_SLACK_BOT_TOKEN: ${DHAKA_SLACK_BOT_TOKEN:-}
       DB_PATH: /app/runtime/dhaka/meridian.db
       SOURCE_DIR: /app/runtime/dhaka/sources
       KEY_DIR: /app/runtime/keys/dhaka
@@ -70,6 +72,8 @@ services:
     environment:
       TENANT_ID: ${TENANT_ID:-meridian_demo}
       REGION: FRANKFURT
+      FRANKFURT_SLACK_APP_TOKEN: ${FRANKFURT_SLACK_APP_TOKEN:-}
+      FRANKFURT_SLACK_BOT_TOKEN: ${FRANKFURT_SLACK_BOT_TOKEN:-}
       DB_PATH: /app/runtime/frankfurt/meridian.db
       SOURCE_DIR: /app/runtime/frankfurt/sources
       KEY_DIR: /app/runtime/keys/frankfurt

@@ -315,3 +315,22 @@ test("reader workspaces cannot borrow the gateway service identity, and missing 
   const missing = await bridge(t);
   assert.equal((await fetch(`${missing.url}/api/gateway/queries`, { method: "POST", headers: { "X-Meridian-UI": "1" }, body: "{}" })).status, 503);
 });
+
+test("Slack connection settings use the office uploader and reject reader/cross-origin access", async (t) => {
+  const { url, calls } = await bridge(t, { env: { DEMO_TOKEN_DHAKA_UPLOADER: "office-uploader" } });
+  assert.equal((await fetch(`${url}/api/dhaka/integrations/slack`)).status, 200);
+  assert.equal(calls[0].headers.Authorization, "Bearer office-uploader");
+  assert.equal((await fetch(`${url}/api/dhaka/integrations/slack`, {
+    method: "POST", headers: { "X-Meridian-UI": "1", "Content-Type": "application/json" }, body: JSON.stringify({ action: "pause" }),
+  })).status, 200);
+  assert.equal(calls[1].headers.Authorization, "Bearer office-uploader");
+  assert.equal((await fetch(`${url}/api/dhaka/integrations/slack`, {
+    method: "POST", headers: { "X-Meridian-UI": "1", Origin: "https://other.invalid" }, body: "{}",
+  })).status, 403);
+  assert.equal((await fetch(`${url}/api/gateway/integrations/slack`)).status, 404);
+  const reader = await bridge(t, { env: { UI_ROLE: "reader", DEMO_TOKEN_DHAKA_READER: "reader", DEMO_TOKEN_DHAKA_UPLOADER: "office-uploader" } });
+  assert.equal((await fetch(`${reader.url}/api/dhaka/integrations/slack`)).status, 403);
+  assert.equal((await fetch(`${reader.url}/api/dhaka/integrations/slack`, {
+    method: "POST", headers: { "X-Meridian-UI": "1" }, body: '{"action":"resume"}',
+  })).status, 403);
+});

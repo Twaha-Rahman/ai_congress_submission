@@ -669,3 +669,18 @@ checks exercised Apply/Cancel, exact cutoffs, controlled-value remounts, invalid
 required/min/max constraints, day/month/year and time navigation, Tab containment,
 outside dismissal, nested upload Escape, short windows and 320–1440px layouts in
 both themes. No questions or uploads were submitted and no model calls were made.
+
+
+## Live Slack controls
+
+Sources exposes a Slack connection dialog to workspaces with ingestion access.
+Keep connection/workspace status, monitored public channels, pause/resume and
+recent event/job activity together. Configure authority as informal on the server;
+reader scope, applicability, hosted processing and office export are separate
+explicit choices. Default to restricted readers with both egress choices off.
+Use the shared Select, Modal, icon buttons, feedback and theme tokens. Keep loaded
+channel lists in place when refresh fails. Show pending/failed/review activity and
+connection gaps without claiming complete history. Recent activity in Sources
+includes PDFs and Slack; opening a job must remain an explicit selection.
+Preserved Slack originals link to Slack and mark withdrawn revisions clearly.
+Do not add onboarding filler, decorative edge rails or a new unrelated page.

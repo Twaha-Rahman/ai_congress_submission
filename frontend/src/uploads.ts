@@ -133,7 +133,7 @@ export function jobDescription(job: UploadJob) {
       comparison: "Checking relevant statement pairs against their full source context.",
       publication: "Saving statements, findings and their evidence.",
     };
-    return descriptions[job.progress?.current_stage || ""] || (job.kind === "policy_comparison" ? "Comparing accepted statements with relevant policies." : "Reading the PDF, extracting statements and checking relevant policies.");
+    return descriptions[job.progress?.current_stage || ""] || (job.kind === "policy_comparison" ? "Comparing accepted statements with relevant policies." : job.kind === "slack" ? "Reading Slack messages, extracting statements and checking relevant policies." : "Reading the PDF, extracting statements and checking relevant policies.");
   }
   if (job.status === "succeeded") return "Processing finished. Findings are candidates for review; this does not certify compliance.";
   const reasons = job.review_reason?.split(";").map((s) => s.trim()).filter(Boolean) || [];

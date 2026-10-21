@@ -27,7 +27,7 @@ export default function UploadStatus({ job, canRetry, retrying, onRetry, onInspe
   const icons = { reading: FileSearch, extraction: Sparkles, validation: ShieldCheck, comparison: GitCompareArrows, publication: Save };
   return <>
     <div className="dialog-body upload-status-body">
-      <div className="upload-status-title"><h3>{job.source_identity || "PDF processing"}</h3><div><span className="source-version">{job.version_label || "Version not recorded"}</span><JobBadge job={job} /></div></div>
+      <div className="upload-status-title"><h3>{job.display_name || job.source_identity || (job.kind === "slack" ? "Slack processing" : "PDF processing")}</h3><div><span className="source-version">{job.version_label || "Version not recorded"}</span><JobBadge job={job} /></div></div>
       <div className="job-metrics" aria-live="off">
         <div><Timer size={17} /><span>Total elapsed<strong>{durationLabel(elapsedMilliseconds(job.created_at, job.finished_at, now))}</strong></span></div>
         <div><Clock3 size={17} /><span>{(job.attempts || 1) > 1 ? "Before latest attempt" : "Time in queue"}<strong>{durationLabel(elapsedMilliseconds(job.created_at, job.started_at || job.finished_at, now))}</strong></span></div>

@@ -1,0 +1,19 @@
+# Create one app from this manifest per office; choose a unique display name.
+display_information:
+  name: Meridian Dhaka
+  description: Read selected office channels into Meridian sources.
+features:
+  bot_user:
+    display_name: Meridian Dhaka
+    always_online: false
+oauth_config:
+  scopes:
+    bot:
+      - channels:read
+      - channels:history
+settings:
+  socket_mode_enabled: true
+  event_subscriptions:
+    bot_events:
+      - message.channels
+      - member_left_channel

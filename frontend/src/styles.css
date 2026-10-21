@@ -2248,7 +2248,7 @@ button:enabled:active, summary:active, .nav-item:active {
   :is(.detail-tabs, .question-panel-tabs, .comparison-tabs, .verification-task-tabs) button:enabled:hover { color: var(--primary); }
   .search-input:hover { border-color: var(--primary); }
   :where(input, textarea, select):not(:disabled):not([readonly]):hover { border-color: var(--primary); }
-  summary:hover { color: var(--primary); background: color-mix(in srgb, var(--interaction-surface) 65%, transparent); }
+  summary:hover { color: var(--primary); }
   .question-citation-ref:enabled:hover { background: var(--primary); color: var(--on-primary); }
 }
 .mobile-workspace-nav a[aria-current="page"] { color: var(--nav-active-ink); background: var(--nav-active-surface); border-bottom-color: var(--primary); }

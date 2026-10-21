@@ -598,3 +598,12 @@ feedback, contrast in both themes, stable inline copy and clipboard failure, nat
 whole-field date picker opening in Questions/Sources/Cross-office, reduced motion,
 and 320–1440px layouts. No question submissions, source changes or paid calls were
 used in these checks.
+
+Date-filter disclosures use a compact icon/label/status/chevron group. Keep the
+summary width limited to its contents, with text-color hover feedback and a visible
+keyboard focus cue; avoid tinting an entire form-width row. In Cross-office, align
+the disclosure and privacy-note icons to the same leading column. Put the privacy
+note and submit action in one balanced footer row on desktop, stacking them on
+smaller screens. This refinement passed the production build, 72 frontend checks
+and read-only browser checks for disclosure behavior and 320–1440px layouts in
+both themes.

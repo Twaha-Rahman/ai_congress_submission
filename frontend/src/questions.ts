@@ -1,4 +1,5 @@
 import type { Answer, Office, QuestionRequest, QuestionTarget, RecentAnswer } from "./types";
+import { date } from "./presentation";
 
 export interface QuestionDraft {
   subject: QuestionTarget["subject"];
@@ -6,15 +7,15 @@ export interface QuestionDraft {
   amount: string;
   origin: "" | "DHAKA" | "FRANKFURT";
   processing: "" | "DHAKA" | "FRANKFURT";
-  product: "" | "MTF_CROSS_OFFICE";
   validAt: string;
   historical: boolean;
   knownAt: string;
+  exactDates?: { validAt: string; knownAt: string };
 }
 
 export function newQuestion(office: Office, now = new Date()): QuestionDraft {
   return { subject: "loan_approval", question: "", amount: "", origin: office === "dhaka" ? "DHAKA" : "FRANKFURT",
-    processing: "", product: "", validAt: now.toISOString().slice(0, 16), historical: false, knownAt: "" };
+    processing: "", validAt: now.toISOString().slice(0, 16), historical: false, knownAt: "" };
 }
 
 /** Parse decimal USD without silently rounding cents or accepting exponent notation. */
@@ -26,10 +27,15 @@ export function amountMinor(value: string) {
   return Number(cents);
 }
 
-function utcInput(value: string, label: string) {
+function utcInput(value: string, label: string, original?: string) {
   if (!/^\d{4}-\d\d-\d\dT\d\d:\d\d(?::\d\d(?:\.\d{1,3})?)?$/.test(value) || !Number.isFinite(Date.parse(`${value}Z`)))
     throw new Error(`Choose a valid ${label} in UTC.`);
-  return new Date(`${value}Z`).toISOString();
+  const result = new Date(`${value}Z`).toISOString();
+  if (result.slice(0, 16) !== value.slice(0, 16)) throw new Error(`Choose a valid ${label} in UTC.`);
+  // Browser date controls support milliseconds; saved knowledge cutoffs can
+  // contain microseconds. Preserve the original until the displayed time changes.
+  if (original && /\.\d{4,}/.test(original) && Date.parse(original) === Date.parse(result)) return original;
+  return result;
 }
 
 export function questionRequest(draft: QuestionDraft): QuestionRequest {
@@ -43,25 +49,32 @@ export function questionRequest(draft: QuestionDraft): QuestionRequest {
   } else {
     target = { subject: draft.subject, record_class: "loan_records", starting_event: "loan_closure",
       ...(draft.origin ? { origin_office: draft.origin } : {}), ...(draft.processing ? { processing_office: draft.processing } : {}),
-      ...(draft.product ? { product: draft.product } : {}) };
+      product: "MTF_CROSS_OFFICE" };
     fallback = "How long must loan records be retained after loan closure?";
   }
   const question = draft.question.trim() || fallback;
   if (question.length > 500) throw new Error("Keep the question label within 500 characters.");
-  return { question, target, valid_at: utcInput(draft.validAt, "policy date"),
-    ...(draft.historical ? { known_at: utcInput(draft.knownAt, "knowledge cutoff") } : {}) };
+  return { question, target, valid_at: utcInput(draft.validAt, "policy date", draft.exactDates?.validAt),
+    ...(draft.historical ? { known_at: utcInput(draft.knownAt, "knowledge cutoff", draft.exactDates?.knownAt) } : {}) };
 }
 
 export function draftFromAnswer(answer: Answer): QuestionDraft {
   const target = answer.target;
   return { subject: target.subject, question: answer.question, amount: target.amount_minor == null ? "" : (target.amount_minor / 100).toFixed(2),
-    origin: target.origin_office || "", processing: target.processing_office || "", product: target.product || "",
-    validAt: answer.valid_at.replace(/Z|\+00:00$/, ""), historical: true, knownAt: answer.known_at.replace(/Z|\+00:00$/, "") };
+    origin: target.origin_office || "", processing: target.processing_office || "",
+    validAt: new Date(answer.valid_at).toISOString().slice(0, 23), historical: true, knownAt: new Date(answer.known_at).toISOString().slice(0, 23),
+    exactDates: { validAt: answer.valid_at, knownAt: answer.known_at } };
 }
 
 export const answerStatusLabels = { answered: "Answered", needs_review: "Needs review", abstained: "Unable to answer", partial: "Partial answer" };
 
 export function matchesAnswer(answer: RecentAnswer, search: string) {
   const query = search.trim().toLowerCase();
-  return !query || `${answer.question} ${answer.answer_id} ${answer.created_at} ${answer.status} ${answerStatusLabels[answer.status as Answer["status"]] || ""} ${new Date(answer.created_at).toLocaleDateString("en-GB", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" })}`.toLowerCase().includes(query);
+  return !query || [answer.question, answer.answer_id, answer.created_at, answerStatusLabels[answer.status as Answer["status"]] || "", date(answer.created_at)].some(value => value.toLowerCase().includes(query));
+}
+
+export function answerSearchContext(answer: RecentAnswer, search: string) {
+  const query = search.trim().toLowerCase();
+  if (!query || [answer.question, answerStatusLabels[answer.status as Answer["status"]] || "", date(answer.created_at)].some(value => value.toLowerCase().includes(query))) return "";
+  return [answer.answer_id, answer.created_at].find(value => value.toLowerCase().includes(query)) || "";
 }

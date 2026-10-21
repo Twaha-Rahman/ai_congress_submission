@@ -10,9 +10,10 @@ const key = (value: string, extra = {}) => ({
   ...extra,
 });
 test("single-key shortcuts can be disabled while F1 stays available", () => {
-  for (const character of ["a", "r", "d", "/", "j", "k", "s", "o", "?", "T"])
+  for (const character of ["a", "r", "d", "/", "j", "k", "s", "o", "?", "T", "n"])
     assert.equal(shortcutForKey(key(character), false), null);
   assert.equal(shortcutForKey(key("F1"), false), "help");
+  assert.equal(shortcutForKey(key("n"), true), "compose");
 });
 test("theme shortcut does not conflict with chronology or browser modifiers", () => {
   assert.equal(shortcutForKey(key("T"), true), "theme");

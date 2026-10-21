@@ -10,8 +10,9 @@ The first slice is **Findings and investigation**: an office-scoped queue,
 evidence comparison, source inspection, chronology, and reviewer decisions. The
 second slice is **Sources and PDF ingestion**: a source library, trusted upload
 metadata, processing status and whole-version replacement. The third slice is **Verification and lineage**: source-copy checks, signed answer
-bundles and authorized evidence connections. Questions and cross-office audit remain
-later slices.
+bundles and authorized evidence connections. The fourth slice is **Questions**:
+structured local questions, historical cutoffs, saved answers and cited sources.
+Cross-office queries and audit remain later slices.
 Do not add navigation destinations until their workflows exist.
 
 `DESIGN.md` was installed using `npx getdesign@latest add claude`. Use its warm
@@ -452,3 +453,56 @@ provenance records. Search uses the displayed source name as well as literal evi
 and identifiers, including finding tags. List-only highlighting, source/version counts,
 I/L task selection, Shift+E/Shift+S, disabled preferences and mobile-hidden hints were
 checked with 56 frontend tests, a production build and desktop/mobile browser checks.
+
+## Questions
+
+- `/questions` uses the current office and principal. Keep the scope explicit:
+  business loans in USD, or loan records after closure for the MTF cross-office
+  product. The optional question label does not parse or override the selected
+  facts. General-policy questions remain unsupported.
+- Use New question / Recent answers tabs in the left column, preserving the draft
+  when switching. Opening a saved answer never submits a query or replaces the
+  draft. Use these facts is an explicit, reversible copy into the composer.
+- Policy applicability and knowledge cutoff are separate UTC timestamps. Default
+  to latest knowledge; a historical cutoff is opt-in. Browser date inputs display
+  milliseconds, while saved answers can contain microseconds: preserve the exact
+  original timestamp until its displayed time changes. Parse USD into integer cents
+  without rounding, commas or exponent notation.
+- Keep source names, versions, authority, citation locations, answer status and
+  integrity distinct. Answered means the query produced an answer, not that its
+  signed bundle passed verification. Render answer text and quotations verbatim;
+  an empty abstention gets an explicit explanation, never an empty answer card.
+  Show warnings and incomplete coverage, and keep remote evidence opaque.
+- Search recent authorized answers by question, date, status or ID; highlight only
+  the list. Show a matching ID or exact timestamp when the visible labels do not
+  explain the match. State the latest-50 limit and paginate those records locally.
+  Changing filters never replaces the selected answer.
+- Share the selected answer, active panel, list search, mobile pane, citation and
+  source page/zoom through URL state. Drafts and files stay out of shared URLs.
+  Citation inspection reuses the wide document modal and precise passage highlight.
+  Verification opens the existing answer task with old target state cleared.
+- Desktop keeps the selected answer beside the composer/history. Mobile shows the
+  browser or answer, with an explicit Back action restoring scroll and list focus.
+  Opening an answer scrolls its top into view. Card focus rings stay inset. Keep
+  button feedback inside fixed-size icons and all shortcut hints desktop-only.
+- N focuses the composer; / searches history; Escape leaves search; J/K move matching
+  answers; V opens verification; Shift+E/Shift+S export/share. Arrow/Home/End navigate
+  task tabs. Ctrl/Command+Enter submits only the visible form after validation.
+  Honor the shared shortcut preference and typing, dropdown and modal guards.
+- Abort pending requests on target/office changes and unmount. Late responses cannot
+  replace a newly selected saved answer. Keep history, selected-answer and source
+  reads independent; missing answers must not display a previous successful result.
+  Failed queries retain draft facts and explain that a server failure can leave a
+  saved answer. Refresh history before asking users to resubmit uncertain requests.
+- Local query POSTs use the configured reader/reviewer principal, with the same-origin
+  header and bounded body. The bridge permits only question/target/valid_at/known_at;
+  it rejects browser-supplied gateway snapshots, modes or tenant selection. Credentials
+  remain on the server. The backend retains final permission and evidence checks.
+
+Questions passed the frontend suite (62 checks) and production build. Browser checks
+used isolated replay-backed Dhaka and Frankfurt offices: current and historical
+loan requirements, Frankfurt retention, abstention, real PDF citation inspection,
+signed-bundle verification, URL reload, list-only highlighting, keyboard navigation,
+reader submissions, unavailable records, failed requests and late-response cancellation.
+Form and answer layouts were checked at 320–1440px in both themes. No paid model calls
+or resets of the working office databases were needed.

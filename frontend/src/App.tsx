@@ -16,6 +16,7 @@ import {
   Keyboard,
   X,
   Files,
+  MessageSquare,
 } from "lucide-react";
 import { api, ApiError, getFinding, reviewFinding } from "./api";
 import {
@@ -33,6 +34,7 @@ import Select from "./Select";
 import ThemeSelect from "./ThemeSelect";
 import Sources from "./Sources";
 import Verification from "./Verification";
+import Questions from "./Questions";
 import {
   useKeyboardShortcuts,
   useShortcutPreference,
@@ -87,13 +89,15 @@ function readBrowserView() {
 }
 
 export default function App() {
-  const [screen, setScreen] = useState<"findings" | "sources" | "verification">(() => window.location.pathname === "/sources" ? "sources" : window.location.pathname === "/verification" ? "verification" : "findings");
+  const [screen, setScreen] = useState<"findings" | "sources" | "verification" | "questions">(() => window.location.pathname === "/questions" ? "questions" : window.location.pathname === "/sources" ? "sources" : window.location.pathname === "/verification" ? "verification" : "findings");
+  const isQuestions = screen === "questions";
   const isSources = screen === "sources";
   const isVerification = screen === "verification";
   const isFindings = screen === "findings";
   const [uploadRequest, setUploadRequest] = useState(0);
   const [view, setView] = useState<View>(readBrowserView);
   const [session, setSession] = useState<Session | null>(null);
+  const [sessionError, setSessionError] = useState("");
   const [workspace, setWorkspace] = useState<
     (WorkspaceData & { office: Office }) | null
   >(null);
@@ -121,7 +125,7 @@ export default function App() {
     window.history[replace ? "replaceState" : "pushState"]({}, "", url);
     setView(next);
   }
-  function openScreen(nextScreen: "findings" | "sources" | "verification", patch: Partial<View> = {}) {
+  function openScreen(nextScreen: "findings" | "sources" | "verification" | "questions", patch: Partial<View> = {}) {
     const next = { ...pinSelection(view, selectedRecord), ...patch };
     const url = new URL(window.location.href);
     url.pathname = `/${nextScreen}`;
@@ -142,7 +146,7 @@ export default function App() {
   useEffect(() => {
     const handler = () => {
       const next = readBrowserView();
-      setScreen(window.location.pathname === "/sources" ? "sources" : window.location.pathname === "/verification" ? "verification" : "findings");
+      setScreen(window.location.pathname === "/questions" ? "questions" : window.location.pathname === "/sources" ? "sources" : window.location.pathname === "/verification" ? "verification" : "findings");
       setView(next);
       setNotice("");
       setReviewAction(null);
@@ -152,14 +156,14 @@ export default function App() {
     return () => window.removeEventListener("popstate", handler);
   }, []);
   useEffect(() => {
-    document.title = `${isSources ? "Sources" : isVerification ? "Verification" : "Findings"} · Meridian`;
+    document.title = `${isQuestions ? "Questions" : isSources ? "Sources" : isVerification ? "Verification" : "Findings"} · Meridian`;
   }, [screen]);
   useEffect(() => {
     const controller = new AbortController();
     api<Session>("session", { signal: controller.signal })
       .then(setSession)
       .catch((error) => {
-        if (error.name !== "AbortError") setError(error.message);
+        if (error.name !== "AbortError") { setError(error.message); setSessionError(error.message); }
       });
     return () => controller.abort();
   }, []);
@@ -483,6 +487,11 @@ export default function App() {
               <span className="nav-count">{data.findings.length}</span>
             )}
           </a>
+          <a className={`nav-item ${isQuestions ? "active" : ""}`}
+            href={`/questions${viewSearch(view)}`} aria-current={isQuestions ? "page" : undefined}
+            onClick={(event) => { event.preventDefault(); openScreen("questions"); }}>
+            <MessageSquare size={18} /><span>Questions</span>
+          </a>
           <a className={`nav-item ${isSources ? "active" : ""}`}
             href={`/sources${viewSearch(view)}`} aria-current={isSources ? "page" : undefined}
             onClick={(event) => { event.preventDefault(); openScreen("sources"); }}>
@@ -514,6 +523,7 @@ export default function App() {
                   document: "",
                   uploadJob: "",
                   forSource: "",
+                  questionId: "", questionSearch: "", questionPane: "compose", questionPanel: "ask", questionCitation: "",
                   verifyId: "", verifyNode: "", verifyPassage: "", verifySearch: "", verifyChecks: "all",
                 });
                 setNotice("");
@@ -539,11 +549,17 @@ export default function App() {
       <div className="main-shell">
         <nav className="mobile-workspace-nav" aria-label="Workspace">
           <a href={`/findings${viewSearch(view)}`} aria-current={isFindings ? "page" : undefined} onClick={(e) => { e.preventDefault(); openScreen("findings"); }}><LayoutList size={16} />Findings</a>
+          <a href={`/questions${viewSearch(view)}`} aria-current={isQuestions ? "page" : undefined} onClick={(e) => { e.preventDefault(); openScreen("questions"); }}><MessageSquare size={16} />Questions</a>
           <a href={`/sources${viewSearch(view)}`} aria-current={isSources ? "page" : undefined} onClick={(e) => { e.preventDefault(); openScreen("sources"); }}><Files size={16} />Sources</a>
           <a href={`/verification${viewSearch(view)}`} aria-current={isVerification ? "page" : undefined} onClick={(e) => { e.preventDefault(); openScreen("verification"); }}><Shield size={16} />Verification</a>
         </nav>
         <main id="workspace" className="workspace" tabIndex={-1}>
-          {isVerification ? <Verification key={view.office} office={view.office} view={view}
+          {isQuestions ? <Questions key={view.office} office={view.office} session={session} sessionError={sessionError} view={view}
+            navigate={(patch, replace = true) => navigate(patch, replace)} shortcutsEnabled={shortcutsEnabled}
+            onHelp={() => setShowShortcuts(true)}
+            onVerify={(id) => openScreen("verification", { verifyKind: "answer", verifyId: id, verifyTab: "check", verifyScope: "focused", verifyPane: "browse", verifyGroup: "", verifyNode: "", verifyPassage: "", verifySearch: "", verifyChecks: "all", document: "" })}
+            onFinding={(id) => openScreen("findings", { finding: id, tag: "", source: "", pane: "detail", document: "" })}
+          /> : isVerification ? <Verification key={view.office} office={view.office} view={view}
             navigate={(patch, replace = true) => navigate(patch, replace)} shortcutsEnabled={shortcutsEnabled}
             onHelp={() => setShowShortcuts(true)}
             onFinding={(id) => openScreen("findings", { finding: id, tag: "", source: "", pane: "detail", document: "" })}

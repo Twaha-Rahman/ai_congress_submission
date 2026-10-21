@@ -10,7 +10,8 @@ The repository also contains the synthetic demo corpus, replay proposals, evalua
 labels, command-line demos and an offline test suite. The frontend includes a
 Claude-inspired findings workspace with persisted reviews and a Sources workspace
 for PDF uploads, processing status and original-document inspection, plus a Verification
-workspace for source-copy checks, signed answer bundles and evidence lineage.
+workspace for source-copy checks, signed answer bundles and evidence lineage. Questions
+supports local, dated loan-approval and record-retention answers with citations.
 
 For your own policy subjects, use `subject: "general_policy"`. This path retrieves
 relevant statements, checks source quotations, and publishes model-assisted conflict
@@ -84,7 +85,7 @@ UI_ROLE=reader make frontend
 The principal is fixed on the server; there is no browser role selector. This is a
 loopback-only demo operator workspace, not a multi-user login system. Real user
 authentication is required before exposing it on an office network. The server
-forwards only the endpoints needed by findings, sources and verification, not federation or model APIs.
+forwards only the endpoints needed by findings, sources, local questions and verification, not federation or model APIs.
 
 For a built version, run `make frontend-build`, then `npm start --prefix frontend`.
 The built server also listens on loopback port 5173; stop the dev server first.
@@ -98,6 +99,39 @@ ignored `frontend/public/pdfjs/` directory; no additional download is needed ons
 npm test --prefix frontend     # bridge security, presentation, URL state, source location
 make test                     # backend suite, including durable review history
 ```
+
+### Ask questions
+
+Open **http://127.0.0.1:5173/questions**. **New question** supports business-loan
+approvals in USD and loan-record retention after closure for the MTF cross-office
+product. Supply the relevant office facts and **Policy applies at** date in UTC.
+The optional question label names the saved answer; the structured facts determine
+what is checked. General-policy question answering is not supported; uploaded
+general policies are available through Sources and Findings.
+
+By default, questions use everything the selected office knows at submission time.
+Enable **Use a historical knowledge cutoff** to exclude information learned after
+another UTC timestamp. This is separate from the date the policy applies.
+**Use these facts** copies a saved answer's facts and dates into the form without
+submitting; its exact original timestamp precision is retained until edited.
+
+**Recent answers** searches the latest 50 authorized answers by question, date,
+status or ID, with list-only highlighting. Opening an answer does not rerun it.
+Results show citations, warnings, incomplete coverage and abstention explicitly.
+**Inspect source** opens the cited original at its passage; **Verify answer** opens
+the existing signed-bundle checks. Saving an answer does not verify its integrity.
+Question creation is deterministic and does not itself call a hosted model; displayed
+processing modes come from the returned answer's evidence.
+
+Share view preserves the saved answer, office, list search, active panel, mobile
+pane and source location. Draft question facts stay out of shared URLs. Export
+downloads the saved answer response; signed evidence bundles are available in
+Verification. On mobile, Back restores the answer list and keyboard focus.
+`N` focuses the new-question form, `/` searches recent answers, `J`/`K` move through
+matching answers, `V` opens verification, and `Ctrl+Enter`/`⌘+Enter` submits the form.
+`Shift+E` opens exports and `Shift+S` opens sharing; single-key preferences and typing
+guards apply. Readers query with their existing reader credential; no uploader or
+service credential is used. Restart the frontend after upgrading its API bridge.
 
 ### Verify evidence and inspect lineage
 
@@ -117,7 +151,7 @@ your selected file and results for the same evidence. Choose an evidence type:
 - **Saved answer:** search recent authorized answers by question or creation date.
   Manual ID entry is available under Open by answer ID. Inspect its answer and
   authorized lineage, export its signed bundle, and check that bundle.
-  Creating answers remains an API/demo workflow; a Questions page is not built yet.
+  Create a new local answer in Questions, then open it here for verification.
 - **Uploaded bundle:** choose an exported JSON bundle (a bare bundle or a
   `{ "bundle": ... }` response). Inspect supplied connections and check its
   signatures, evidence bindings and disclosed passage proofs against pinned keys.

@@ -44,6 +44,7 @@ export interface View {
   questionSearch: string;
   questionPane: "compose" | "answer";
   questionCitation: string;
+  questionPanel: "ask" | "recent";
 }
 
 export function readView(search: string): View {
@@ -102,6 +103,7 @@ export function readView(search: string): View {
     questionSearch: p.get("qq") || "",
     questionPane: allowed("questionPane", ["compose", "answer"], p.get("answer") ? "answer" : "compose") as View["questionPane"],
     questionCitation: p.get("citation") || "",
+    questionPanel: allowed("questionPanel", ["ask", "recent"], p.get("answer") ? "recent" : "ask") as View["questionPanel"],
   };
 }
 
@@ -143,6 +145,7 @@ export function viewSearch(view: View) {
   if (view.questionId) p.set("answer", view.questionId);
   if (view.questionSearch) p.set("qq", view.questionSearch);
   p.set("questionPane", view.questionPane);
+  p.set("questionPanel", view.questionPanel);
   if (view.questionCitation) p.set("citation", view.questionCitation);
   if (view.source) {
     p.set("source", view.source);

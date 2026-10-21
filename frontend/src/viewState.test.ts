@@ -77,7 +77,7 @@ test("source library links preserve search, sort, inspected document, job and re
 
 test("Questions links preserve saved answer, search, mobile pane and cited source location", () => {
   const view = { ...readView(""), questionId: "ans_123", questionSearch: "loan & USD", questionPane: "answer" as const,
-    questionCitation: "2", document: "src_loan", page: 2, zoom: 125 };
+    questionCitation: "2", questionPanel: "recent" as const, document: "src_loan", page: 2, zoom: 125 };
   assert.deepEqual(readView(viewSearch(view)), view);
   assert.equal(readView("?answer=ans_123").questionPane, "answer");
   assert.equal(readView("?questionPane=bad").questionPane, "compose");

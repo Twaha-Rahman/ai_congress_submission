@@ -428,7 +428,7 @@ model quality still require rehearsal.
   source verification; a failed bundle cannot hide an answer or its trace. Retries preserve
   local files/results for the same target. Changing targets aborts pending work and gates
   previous files/results immediately so they cannot flash under the new selection.
-- The bridge uses the configured reader/reviewer principal for verification, never
+- The bridge uses the signed-in account identity for verification, never
   an uploader/service credential. Verification POSTs are read operations but still
   require the workspace origin/header. Allowlist only the source/bundle and lineage
   routes; bound bodies to 20 MiB and keep bearer credentials on the server.
@@ -520,7 +520,7 @@ checked with 56 frontend tests, a production build and desktop/mobile browser ch
 - N focuses the composer; / searches; Escape leaves search; J/K move matches; V
   verifies; Shift+E/Shift+S export/share. Tab arrows/Home/End and Ctrl/Command+Enter
   work with the shared typing, dropdown, modal and shortcut-preference guards.
-- Queries use the configured reader/reviewer principal and same-origin header. Allow
+- Queries use the signed-in account identity and same-origin header. Allow
   only question/target/source_ids/valid_at/known_at through the bridge, with a model-
   sized response budget. Never accept browser gateway snapshots, modes or tenant
   selection. Show uncertain outcomes after failures and refresh saved answers before
@@ -569,8 +569,8 @@ Signatures and source-passage bindings were checked through the real verificatio
   outside/Escape modal dismissal, wide PDF viewing and Verification entry points.
   Office cards stack on narrow displays; mobile navigation scrolls within its own bar.
 - Gateway query/receipt routes are server-allowlisted, reviewer-only, same-origin for
-  POSTs, and use the fixed server service identity. General questions retain the
-  configured office reader/reviewer principal and all source/model permissions.
+  POSTs, and use the signed-in account identity. General questions retain the
+  signed-in office account identity and all source/model permissions.
 
 Validation uses isolated office databases and pinned keys with real federation,
 import, receipt reads, original-source access and signed evidence verification. Model
@@ -755,3 +755,25 @@ comparison retry available where applicable. Existing uploads update on read;
 there is no migration or automatic model retry. Refresh Sources when returning to
 the browser as well as during the existing explicit polling cycle. Preserve the
 selected job and loaded cards during refresh.
+
+
+## Accounts and administration
+
+- Login precedes workspace API access. Use the shared theme controls and restrained
+  form styling; do not add onboarding or architecture copy to the sign-in form.
+- The sidebar account button shows the real username and privilege. At compact
+  widths it becomes an accessible icon button. Change password and Sign out live
+  in this account dialog. Passwords support reveal/hide, password managers and
+  native validation; failed submissions preserve their drafts.
+- Admin-only Users supports create, edit access, enable/disable and password reset.
+  Use the shared Select and Modal, actual privilege labels and office/restricted
+  access controls. Keep usernames immutable and keep the current account out of
+  self-demotion/reset flows. The API enforces these rules independently.
+- User-list refreshes retain rows and filters; show errors in a reserved feedback
+  area and spin the refresh icon. Search highlights matching usernames. `N` opens
+  Create user, `/` focuses search, and shared form submit shortcuts respect typing,
+  modal guards and shortcut preferences. Hints stay hidden on mobile.
+- Session expiry or sign-out unmounts the workspace. Changing users or access
+  remounts it to discard the previous account's loaded evidence and drafts. URL
+  selections are fetched again under the new account's permissions. Office options
+  come from account access.

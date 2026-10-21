@@ -107,8 +107,22 @@ export interface ReviewEvent {
   created_at: string;
   snapshot_id: string | null;
 }
+export type UserRole = "admin" | "reviewer" | "uploader" | "reader";
+export interface UserAccount {
+  id: string;
+  username: string;
+  role: UserRole;
+  offices: Office[];
+  readRestricted: boolean;
+  active: boolean;
+  createdAt: string;
+  lastLogin: string | null;
+}
 export interface Session {
-  role: "reviewer" | "reader";
+  user: UserAccount;
+  offices: Office[];
+  canManageUsers: boolean;
+  role: UserRole;
   canReview: boolean;
   activity?: boolean;
   demo: boolean;

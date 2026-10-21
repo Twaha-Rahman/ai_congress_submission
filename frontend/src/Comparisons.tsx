@@ -177,7 +177,7 @@ export default function Comparisons({ view, session, sessionError, navigate, sho
           <DateFilters draft={draft} onChange={patch} />
         </fieldset>
         <div className="comparison-form-footer">
-        {(!session || !canSubmit) && <p className="question-help comparison-footer-access" role="status">{sessionError || (!session ? "Connecting workspace access…" : view.compareMode === "rules" ? session.role === "reader" ? "Signed-rule checks require reviewer access." : "Configure DEMO_TOKEN_GATEWAY_SERVICE and restart the frontend to enable signed-rule checks." : "Office question connections are not configured.")}</p>}
+        {(!session || !canSubmit) && <p className="question-help comparison-footer-access" role="status">{sessionError || (!session ? "Connecting workspace access…" : view.compareMode === "rules" ? "Signed-rule checks require Admin or Reviewer privileges, both offices and restricted-source access." : "Office question connections are not configured.")}</p>}
         <div className="question-submit"><button className="button primary" type="submit" disabled={busy || !canSubmit} aria-keyshortcuts="Control+Enter Meta+Enter">{busy ? <LoaderCircle className="spin" size={16} /> : <Send size={16} />}{busy ? "Comparing…" : view.compareMode === "general" ? "Ask both offices" : "Run signed-rule check"}<SubmitShortcutHint /></button>{busy && <button type="button" className="button secondary" onClick={cancel}>Stop waiting</button>}</div></div>
       </form>
       {busy && view.comparePane === "results" && <div className="notice" role="status"><LoaderCircle className="spin" size={17} /><span>{ruleBusy ? "Checking signed rules…" : "Asking both offices…"}</span><button className="text-button" onClick={cancel}>Stop waiting</button></div>}

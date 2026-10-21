@@ -30,13 +30,16 @@ export async function api<T>(
     },
   });
   const body = await response.json();
-  if (!response.ok)
+  if (!response.ok) {
+    if (response.status === 401 && body.error?.code === "unauthenticated")
+      window.dispatchEvent(new Event("meridian:unauthenticated"));
     throw new ApiError(
       response.status,
       body.error?.code || "request_failed",
       body.error?.message || "The request could not be completed.",
       body.error?.detail || {},
     );
+  }
   return body as T;
 }
 

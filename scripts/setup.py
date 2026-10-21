@@ -135,6 +135,7 @@ def main() -> int:
         (ROOT / "fixtures" / "cache" / region.lower()).mkdir(
             parents=True, exist_ok=True
         )
+    (runtime / "auth-bridge").mkdir(parents=True, exist_ok=True, mode=0o700)
     (runtime / "gateway").mkdir(parents=True, exist_ok=True)
     (ROOT / "evidence").mkdir(exist_ok=True)
     (ROOT / "docs" / "openapi").mkdir(parents=True, exist_ok=True)

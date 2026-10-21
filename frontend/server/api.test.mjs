@@ -5,7 +5,9 @@ import { createApiHandler } from "./api.mjs";
 
 async function bridge(t, options = {}) {
   const calls = [];
+  const user={id:"transport-test",username:"transport",role:options.env?.UI_ROLE||"reviewer",offices:["dhaka","frankfurt"],readRestricted:true,active:true};
   const handler = createApiHandler({
+    resolveSession:()=>({user}),
     env: {
       DEMO_TOKEN_DHAKA_REVIEWER: "server-only-secret",
       DEMO_TOKEN_FRANKFURT_REVIEWER: "other-office-secret",
@@ -33,7 +35,7 @@ async function bridge(t, options = {}) {
 test("session contains capabilities, never credentials; browser authorization cannot select a principal", async (t) => {
   const { url, calls } = await bridge(t);
   const session = await (await fetch(`${url}/api/session`)).json();
-  assert.deepEqual(session, { role: "reviewer", canReview: true, activity: true, demo: true, comparisons: { rules: false }, queries: { dhaka: true, frankfurt: true }, uploads: {
+  assert.deepEqual(session, { user:{id:"transport-test",username:"transport",role:"reviewer",offices:["dhaka","frankfurt"],readRestricted:true,active:true}, canManageUsers:false, offices:["dhaka","frankfurt"], role: "reviewer", canReview: true, activity: true, demo: true, comparisons: { rules: false }, queries: { dhaka: true, frankfurt: true }, uploads: {
     dhaka: { enabled: false, maxBytes: 20 * 1024 * 1024, processing: "hosted" },
     frankfurt: { enabled: false, maxBytes: 20 * 1024 * 1024, processing: "hosted" },
   } });

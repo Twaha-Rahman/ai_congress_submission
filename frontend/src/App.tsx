@@ -18,6 +18,8 @@ import {
   Files,
   MessageSquare,
   Activity as ActivityIcon,
+  Users as UsersIcon,
+  UserRound,
 } from "lucide-react";
 import { api, ApiError, getFinding, reviewFinding } from "./api";
 import {
@@ -38,6 +40,8 @@ import Verification from "./Verification";
 import Questions from "./Questions";
 import Comparisons from "./Comparisons";
 import Activity from "./Activity";
+import Users from "./Users";
+import Account from "./Account";
 import { reviewQueue, unreviewedFindings } from "./reviewQueue";
 import {
   useKeyboardShortcuts,
@@ -91,8 +95,13 @@ function readBrowserView() {
   return result;
 }
 
-export default function App() {
-  const [screen, setScreen] = useState<"findings" | "sources" | "verification" | "questions" | "comparisons" | "activity">(() => window.location.pathname === "/activity" ? "activity" : window.location.pathname === "/comparisons" ? "comparisons" : window.location.pathname === "/questions" ? "questions" : window.location.pathname === "/sources" ? "sources" : window.location.pathname === "/verification" ? "verification" : "findings");
+export default function App({session,onSessionChange,onLogout}:{session:Session;onSessionChange:(session:Session)=>void;onLogout:()=>Promise<void>}) {
+  function scopedView(){const value=readBrowserView();return session.offices.includes(value.office)?value:{...readView(`?office=${session.offices[0]}`),pane:value.pane};}
+  const [showAccount,setShowAccount]=useState(false);
+  const sessionError="";
+  const canCompare=session.offices.length===2;
+  const [screen, setScreen] = useState<"findings" | "sources" | "verification" | "questions" | "comparisons" | "activity" | "users">(() => window.location.pathname === "/users" ? "users" : window.location.pathname === "/activity" ? "activity" : window.location.pathname === "/comparisons" ? "comparisons" : window.location.pathname === "/questions" ? "questions" : window.location.pathname === "/sources" ? "sources" : window.location.pathname === "/verification" ? "verification" : "findings");
+  const isUsers = screen === "users";
   const isActivity = screen === "activity";
   const isComparisons = screen === "comparisons";
   const isQuestions = screen === "questions";
@@ -100,9 +109,7 @@ export default function App() {
   const isVerification = screen === "verification";
   const isFindings = screen === "findings";
   const [uploadRequest, setUploadRequest] = useState(0);
-  const [view, setView] = useState<View>(readBrowserView);
-  const [session, setSession] = useState<Session | null>(null);
-  const [sessionError, setSessionError] = useState("");
+  const [view, setView] = useState<View>(scopedView);
   const [queueCount,setQueueCount]=useState<{office:Office;value:number}|null>(null);
   const [workspace, setWorkspace] = useState<
     (WorkspaceData & { office: Office }) | null
@@ -123,7 +130,9 @@ export default function App() {
   const pendingKeyboardFocus = useRef(false);
   const data = workspace?.office === view.office ? workspace : null;
 
+  useEffect(()=>{const url=new URL(window.location.href);if(!session.offices.includes(readView(url.search).office)){url.search=viewSearch(view);window.history.replaceState({},"",url);}},[]);
   function navigate(patch: Partial<View>, replace = false) {
+    if(patch.office&&!session.offices.includes(patch.office))return;
     const next = { ...pinSelection(view, selectedRecord), ...patch };
     const url = new URL(window.location.href);
     url.pathname = `/${screen}`;
@@ -131,7 +140,8 @@ export default function App() {
     window.history[replace ? "replaceState" : "pushState"]({}, "", url);
     setView(next);
   }
-  function openScreen(nextScreen: "findings" | "sources" | "verification" | "questions" | "comparisons" | "activity", patch: Partial<View> = {}) {
+  function openScreen(nextScreen: "findings" | "sources" | "verification" | "questions" | "comparisons" | "activity" | "users", patch: Partial<View> = {}) {
+    if(patch.office&&!session.offices.includes(patch.office))return;
     const next = { ...pinSelection(view, selectedRecord), ...patch };
     const url = new URL(window.location.href);
     url.pathname = `/${nextScreen}`;
@@ -151,8 +161,9 @@ export default function App() {
   }
   useEffect(() => {
     const handler = () => {
-      const next = readBrowserView();
-      setScreen(window.location.pathname === "/activity" ? "activity" : window.location.pathname === "/comparisons" ? "comparisons" : window.location.pathname === "/questions" ? "questions" : window.location.pathname === "/sources" ? "sources" : window.location.pathname === "/verification" ? "verification" : "findings");
+      const next = scopedView();
+      if(!session.offices.includes(readView(window.location.search).office)){const url=new URL(window.location.href);url.search=viewSearch(next);window.history.replaceState({},"",url);}
+      setScreen(window.location.pathname === "/users" ? "users" : window.location.pathname === "/activity" ? "activity" : window.location.pathname === "/comparisons" ? "comparisons" : window.location.pathname === "/questions" ? "questions" : window.location.pathname === "/sources" ? "sources" : window.location.pathname === "/verification" ? "verification" : "findings");
       setView(next);
       setNotice("");
       setReviewAction(null);
@@ -162,17 +173,8 @@ export default function App() {
     return () => window.removeEventListener("popstate", handler);
   }, []);
   useEffect(() => {
-    document.title = `${isActivity ? "Activity" : isComparisons ? "Cross-office" : isQuestions ? "Questions" : isSources ? "Sources" : isVerification ? "Verification" : "Findings"} · Meridian`;
+    document.title = `${isUsers ? "Users" : isActivity ? "Activity" : isComparisons ? "Cross-office" : isQuestions ? "Questions" : isSources ? "Sources" : isVerification ? "Verification" : "Findings"} · Meridian`;
   }, [screen]);
-  useEffect(() => {
-    const controller = new AbortController();
-    api<Session>("session", { signal: controller.signal })
-      .then(setSession)
-      .catch((error) => {
-        if (error.name !== "AbortError") { setError(error.message); setSessionError(error.message); }
-      });
-    return () => controller.abort();
-  }, []);
   useEffect(() => {
     if (!isFindings) return;
     const controller = new AbortController();
@@ -490,11 +492,11 @@ export default function App() {
             onClick={(event) => { event.preventDefault(); openScreen("questions"); }}>
             <MessageSquare size={18} /><span>Questions</span>
           </a>
-          <a className={`nav-item ${isComparisons ? "active" : ""}`}
+          {canCompare&&<a className={`nav-item ${isComparisons ? "active" : ""}`}
             href={`/comparisons${viewSearch(view)}`} aria-current={isComparisons ? "page" : undefined}
             onClick={event => { event.preventDefault(); openScreen("comparisons", { document: "", compareCitation: "" }); }}>
             <Globe2 size={18} /><span>Cross-office</span>
-          </a>
+          </a>}
           <a className={`nav-item ${isSources ? "active" : ""}`}
             href={`/sources${viewSearch(view)}`} aria-current={isSources ? "page" : undefined}
             onClick={(event) => { event.preventDefault(); openScreen("sources"); }}>
@@ -506,6 +508,7 @@ export default function App() {
             <Shield size={18} /><span>Verification</span>
           </a>
           {session?.activity && <a className={`nav-item ${isActivity ? "active" : ""}`} href={`/activity${viewSearch(view)}`} aria-current={isActivity ? "page" : undefined} onClick={event => { event.preventDefault(); openScreen("activity"); }}><ActivityIcon size={18}/><span>Activity</span></a>}
+          {session.canManageUsers&&<a className={`nav-item ${isUsers?"active":""}`} href="/users" aria-current={isUsers?"page":undefined} onClick={event=>{event.preventDefault();openScreen("users");}}><UsersIcon size={18}/><span>Users</span></a>}
         </nav>
         <div className="sidebar-context">
           <div className="office-select">
@@ -533,21 +536,11 @@ export default function App() {
                 });
                 setNotice("");
               }}
-              options={[
-                { value: "dhaka", label: "Dhaka office" },
-                { value: "frankfurt", label: "Frankfurt office" },
-              ]}
+              options={session.offices.map(office=>({value:office,label:`${humanize(office)} office`}))}
             />
           </div>
           <ThemeSelect shortcutsEnabled={shortcutsEnabled} />
-          <div className="sidebar-account" role="group" aria-label={session ? `${humanize(session.role)} access` : "Connecting"} title={session ? `${humanize(session.role)} access` : "Connecting"}>
-            <span className="role-label">
-              {session ? humanize(session.role) : "Connecting…"}
-            </span>
-            <span className="avatar" aria-hidden="true">
-              {session?.role === "reader" ? "AN" : "CR"}
-            </span>
-          </div>
+          <button className="sidebar-account account-trigger" onClick={()=>setShowAccount(true)} aria-label={`Your account: ${session.user.username}`} title={`${session.user.username} · ${humanize(session.role)}`}><UserRound size={17}/><span className="account-trigger-name">{session.user.username}<small>{humanize(session.role)}</small></span></button>
         </div>
       </aside>
 
@@ -555,18 +548,19 @@ export default function App() {
         <nav className="mobile-workspace-nav" aria-label="Workspace">
           <a href={`/findings${viewSearch(view)}`} aria-current={isFindings ? "page" : undefined} onClick={(e) => { e.preventDefault(); openScreen("findings"); }}><LayoutList size={16} />Findings</a>
           <a href={`/questions${viewSearch(view)}`} aria-current={isQuestions ? "page" : undefined} onClick={(e) => { e.preventDefault(); openScreen("questions"); }}><MessageSquare size={16} />Questions</a>
-          <a href={`/comparisons${viewSearch(view)}`} aria-current={isComparisons ? "page" : undefined} onClick={e => { e.preventDefault(); openScreen("comparisons", { document: "", compareCitation: "" }); }}><Globe2 size={16} />Cross-office</a>
+          {canCompare&&<a href={`/comparisons${viewSearch(view)}`} aria-current={isComparisons ? "page" : undefined} onClick={e => { e.preventDefault(); openScreen("comparisons", { document: "", compareCitation: "" }); }}><Globe2 size={16} />Cross-office</a>}
           <a href={`/sources${viewSearch(view)}`} aria-current={isSources ? "page" : undefined} onClick={(e) => { e.preventDefault(); openScreen("sources"); }}><Files size={16} />Sources</a>
           <a href={`/verification${viewSearch(view)}`} aria-current={isVerification ? "page" : undefined} onClick={(e) => { e.preventDefault(); openScreen("verification"); }}><Shield size={16} />Verification</a>
           {session?.activity && <a href={`/activity${viewSearch(view)}`} aria-current={isActivity ? "page" : undefined} onClick={event=>{event.preventDefault();openScreen("activity");}}><ActivityIcon size={16}/>Activity</a>}
+          {session.canManageUsers&&<a href="/users" aria-current={isUsers?"page":undefined} onClick={event=>{event.preventDefault();openScreen("users");}}><UsersIcon size={16}/>Users</a>}
         </nav>
         <main id="workspace" className="workspace" tabIndex={-1}>
-          {isActivity ? <Activity key={view.office} office={view.office} view={view} session={session} sessionError={sessionError} shortcutsEnabled={shortcutsEnabled}
+          {isUsers ? <Users session={session} shortcutsEnabled={shortcutsEnabled} onAccount={()=>setShowAccount(true)} onHelp={()=>setShowShortcuts(true)}/> : isActivity ? <Activity key={view.office} office={view.office} view={view} session={session} sessionError={sessionError} shortcutsEnabled={shortcutsEnabled}
             navigate={(patch,replace=true)=>navigate(patch,replace)} onHelp={()=>setShowShortcuts(true)}
             onSource={id=>openScreen("sources",{document:id,page:1,zoom:100,activityId:"",versionSource:""})}
             onJob={id=>openScreen("sources",{uploadJob:id,document:"",activityId:"",versionSource:""})}
             onFinding={id=>openScreen("findings",{finding:id,tag:"",source:"",pane:"detail",activityId:"",document:""})}
-          /> : isComparisons ? <Comparisons key={view.office} view={view} session={session} sessionError={sessionError}
+          /> : isComparisons&&!canCompare ? <EmptyState title="Office access required">Cross-office comparisons require access to both offices.</EmptyState> : isComparisons ? <Comparisons key={view.office} view={view} session={session} sessionError={sessionError}
             navigate={(patch, replace = true) => navigate(patch, replace)} shortcutsEnabled={shortcutsEnabled} onHelp={() => setShowShortcuts(true)}
             onVerify={(office, id) => openScreen("verification", { office, verifyKind: "answer", verifyId: id, verifyTab: "check", verifyScope: "focused", verifyPane: "browse", verifyGroup: "", verifyNode: "", verifyPassage: "", verifySearch: "", verifyChecks: "all", document: "" })}
             onAnswer={(office, id) => openScreen("questions", { office, questionId: id || "", questionPanel: "recent", questionPane: id ? "answer" : "compose", questionCitation: "", document: "" })}
@@ -941,6 +935,7 @@ export default function App() {
           </>}
         </main>
       </div>
+      {showAccount&&<Account session={session} onClose={()=>setShowAccount(false)} onSessionChange={onSessionChange} onLogout={onLogout}/>}
       {showShortcuts && (
         <Modal
           title="Keyboard shortcuts"

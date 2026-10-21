@@ -1,7 +1,7 @@
-"""Server-side demo identity map and scope enforcement.
+"""Server-side account/service identity authentication and scope enforcement.
 
-Tokens live in environment variables; the repository only contains principal
-definitions and permission sets.  Authorisation is evaluated before any retrieval or
+Internal service tokens live in environment variables. Browser accounts arrive as
+short-lived signed identities from the authenticated UI server. Authorisation is evaluated before any retrieval or
 model call, and object access is scoped by server-derived tenant/office, never by a
 client-supplied identifier.
 """
@@ -17,6 +17,7 @@ from pathlib import Path
 
 
 class Role(str, Enum):
+    ADMIN = "admin"
     UPLOADER = "uploader"
     REVIEWER = "reviewer"
     READER = "reader"
@@ -71,7 +72,7 @@ class AuthorizationError(PermissionError):
 
 
 class PrincipalRegistry:
-    """Loads the static demo identity map and authenticates bearer tokens."""
+    """Authenticate delegated UI accounts and the internal static identity map."""
 
     def __init__(self, principals: list[dict], *, offline_token: str | None = None) -> None:
         self._principals = principals
@@ -96,6 +97,10 @@ class PrincipalRegistry:
     def authenticate(self, token: str | None) -> Principal:
         if not token:
             raise AuthenticationError("missing bearer token")
+        if token.startswith("ui1."):
+            from meridian.security.ui_identity import authenticate_ui_token
+
+            return authenticate_ui_token(token)
         for item in self._principals:
             expected = os.environ.get(item["token_env"], "")
             if not expected:

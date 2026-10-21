@@ -1,6 +1,6 @@
 export const shortcutDescriptions = [
   { keys: "/", label: "Search the current page" },
-  { keys: "N", label: "Focus the question form (Questions / Cross-office)" },
+  { keys: "N", label: "Focus the question form / create a user (Users)" },
   { keys: "B", label: "Open Recent answers (Questions)" },
   { keys: "Shift + N", label: "Use the selected question in the composer (Questions)" },
   { keys: "U", label: "Upload a policy PDF (when permitted)" },

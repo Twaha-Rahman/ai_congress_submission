@@ -1,5 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { Readable } from "node:stream";
+import { createAuthStore, AuthError, capabilities, sessionCookie, sameOriginWrite } from "./auth.mjs";
 import { parseSavedSlack, buildSavedSlackManifest, maxSlackBytes } from "../shared/slackImport.mjs";
 
 const MAX_PDF_BYTES = 20 * 1024 * 1024;
@@ -35,19 +36,33 @@ function json(res, status, data) {
   res.end(JSON.stringify(data));
 }
 
-/** Local demo bridge. The configured principal is fixed on the server, never by a browser header. */
-export function createApiHandler({
-  env = process.env,
-  fetchImpl = fetch,
-} = {}) {
-  const role = env.UI_ROLE || "reviewer";
-  if (!["reviewer", "reader"].includes(role))
-    throw new Error("UI_ROLE must be reviewer or reader");
-  return async function handle(req, res) {
+function sessionData(user,env,legacy=false) {
+  const access=capabilities(user);
+  const available=(office,role)=>!legacy||!!env[`DEMO_TOKEN_${office.toUpperCase()}_${role.toUpperCase()}`];
+  return {user,role:user.role,canManageUsers:access.manage,canReview:access.review,demo:true,
+    offices:user.offices,activity:access.audit,
+    comparisons:{rules:access.review&&user.offices.length===2&&user.readRestricted&&(!legacy||!!env.DEMO_TOKEN_GATEWAY_SERVICE)},
+    queries:Object.fromEntries(["dhaka","frankfurt"].map(office=>[office,user.offices.includes(office)&&available(office,user.role)])),
+    uploads:Object.fromEntries(["dhaka","frankfurt"].map(office=>[office,{enabled:access.upload&&user.offices.includes(office)&&available(office,"uploader"),processing:usesApprovedLocalModel(env,office.toUpperCase())?"local":"hosted",maxBytes:MAX_PDF_BYTES}]))};
+}
+async function accountBody(req,keys) {
+  const chunks=[];let size=0;
+  for await(const chunk of req){size+=chunk.length;if(size>16384)throw new AuthError(413,"invalid_input","The account request is too large.");chunks.push(chunk);}
+  let data;try{data=JSON.parse(Buffer.concat(chunks).toString("utf8"));}catch{throw new AuthError(422,"invalid_input","Supply valid account details.");}
+  if(!data||typeof data!=="object"||Array.isArray(data)||Object.keys(data).some(key=>!keys.includes(key)))throw new AuthError(422,"invalid_input","Unsupported account details.");
+  return data;
+}
+
+/** Session-authenticated local bridge. Bearer credentials never enter the browser. */
+export function createApiHandler({env=process.env,fetchImpl=fetch,authStore,resolveSession}={}) {
+  // Dependency injection is used by transport tests; there is no environment login bypass.
+  const auth=authStore||(resolveSession?null:createAuthStore(env));
+  return async function handle(req,res) {
+    try {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Referrer-Policy", "same-origin");
     // Bind browser access to loopback names as well as a loopback listener.
-    // This blocks DNS rebinding to a local demo principal.
+    // This blocks DNS rebinding to a local account session.
     let host;
     try {
       host = new URL(`http://${req.headers.host}`).hostname;
@@ -63,23 +78,33 @@ export function createApiHandler({
       });
     }
     const url = new URL(req.url, "http://localhost");
-    if (req.method === "GET" && url.pathname === "/api/session") {
-      return json(res, 200, {
-        role,
-        canReview: role === "reviewer",
-        demo: true,
-        activity: role === "reviewer",
-        comparisons: { rules: role === "reviewer" && !!env.DEMO_TOKEN_GATEWAY_SERVICE },
-        queries: Object.fromEntries(["dhaka", "frankfurt"].map(office => [office,
-          !!env[`DEMO_TOKEN_${office.toUpperCase()}_${role.toUpperCase()}`],
-        ])),
-        uploads: Object.fromEntries(["dhaka", "frankfurt"].map((office) => [office, {
-          enabled: role === "reviewer" && !!env[`DEMO_TOKEN_${office.toUpperCase()}_UPLOADER`],
-          processing: usesApprovedLocalModel(env, office.toUpperCase()) ? "local" : "hosted",
-          maxBytes: MAX_PDF_BYTES,
-        }])),
-      });
+    if(url.pathname.startsWith("/api/auth/")&&auth){
+      if(req.method!=="GET"&&!sameOriginWrite(req))return json(res,403,{error:{code:"forbidden",message:"Account changes must come from this workspace."}});
+      const secure=!!req.socket.encrypted;
+      if(url.pathname==="/api/auth/login"&&req.method==="POST"){
+        const body=await accountBody(req,["username","password"]);
+        const login=await auth.login(body.username,body.password,req.socket.remoteAddress||"local");
+        res.setHeader("Set-Cookie",sessionCookie(login.token,secure));return json(res,200,sessionData(login.user,env));
+      }
+      const session=auth.authenticate(req);
+      if(url.pathname==="/api/auth/logout"&&req.method==="POST"){auth.logout(session);res.setHeader("Set-Cookie",sessionCookie("",secure));return json(res,200,{loggedOut:true});}
+      if(!session)throw new AuthError(401,"unauthenticated","Sign in to continue.");
+      if(url.pathname==="/api/auth/password"&&req.method==="POST"){
+        const body=await accountBody(req,["currentPassword","newPassword"]);
+        const changed=await auth.changePassword(session,body.currentPassword,body.newPassword);
+        res.setHeader("Set-Cookie",sessionCookie(changed.token,secure));return json(res,200,sessionData(changed.user,env));
+      }
+      if(url.pathname==="/api/auth/users"&&req.method==="GET")return json(res,200,{users:auth.listUsers(session.user)});
+      if(url.pathname==="/api/auth/users"&&req.method==="POST")return json(res,201,{user:await auth.createUser(session.user,await accountBody(req,["username","password","role","offices","readRestricted","active"]))});
+      const userPath=/^\/api\/auth\/users\/([a-f0-9-]{36})(\/password)?$/.exec(url.pathname);
+      if(userPath&&req.method==="PATCH"&&!userPath[2])return json(res,200,{user:auth.updateUser(session.user,userPath[1],await accountBody(req,["role","offices","readRestricted","active"]))});
+      if(userPath&&req.method==="POST"&&userPath[2]){const body=await accountBody(req,["password"]);return json(res,200,{user:await auth.resetPassword(session.user,userPath[1],body.password)});}
+      return json(res,404,{error:{code:"not_found",message:"Account action not found."}});
     }
+    const context=resolveSession?await resolveSession(req):auth.authenticate(req);
+    if(!context){res.setHeader("Set-Cookie",sessionCookie("",!!req.socket.encrypted));throw new AuthError(401,"unauthenticated","Sign in to continue.");}
+    const user=context.user,role=user.role,access=capabilities(user);
+    if(req.method==="GET"&&url.pathname==="/api/session")return json(res,200,sessionData(user,env,!!resolveSession));
     const match =
       /^\/api\/(dhaka|frankfurt|gateway)\/(findings(?:\/[\w:.-]+(?:\/(?:reviews|lineage))?)?|sources(?:\/[\w:.-]+(?:\/(?:content|comparisons|lineage|versions|diff))?)?|answers(?:\/[\w:.-]+(?:\/(?:lineage|bundle))?)?|queries(?:\/gw_\d{8}T\d{12})?|verifications\/(?:source|bundle)|claims(?:\/reviews)?|jobs(?:\/[\w.-]+)?|ingestions\/(?:pdf|slack)|integrations\/slack|activity(?:\/[\w:.-]+)?)$/.exec(
         url.pathname.replace(/%3a/gi, ":"),
@@ -109,24 +134,17 @@ export function createApiHandler({
         },
       });
     }
-    // Federation can import signed claims at another office. Only the configured
-    // reviewer workspace exposes this explicit service-backed operation.
-    if (isActivity && role !== "reviewer")
+    // Federation can import signed claims at another office. Require a reviewer
+    // account with access to both offices before accepting that operation.
+    if (isActivity && !access.audit)
       return json(res, 403, { error: { code: "forbidden", message: "Activity requires audit access." } });
-    if (isSlack && role !== "reviewer")
+    if (isSlack && !access.upload)
       return json(res, 403, { error: { code: "forbidden", message: "Slack connection settings require an authorized workspace." } });
-    if (isGateway && role !== "reviewer")
-      return json(res, 403, { error: { code: "forbidden", message: "Signed-rule comparisons require reviewer access." } });
+    if (isGateway && (!access.review || user.offices.length!==2 || !user.readRestricted))
+      return json(res, 403, { error: { code: "forbidden", message: "Signed-rule comparisons require reviewer access to both offices and restricted sources." } });
     if (req.method === "POST") {
       // Browser writes require this same-origin workspace, regardless of action.
-      const origin = req.headers.origin;
-      let sameOrigin = !origin;
-      try {
-        if (origin) sameOrigin = new URL(origin).host === req.headers.host;
-      } catch {
-        sameOrigin = false;
-      }
-      if (req.headers["x-meridian-ui"] !== "1" || !sameOrigin) {
+      if (!sameOriginWrite(req)) {
         return json(res, 403, {
           error: {
             code: "forbidden",
@@ -134,7 +152,7 @@ export function createApiHandler({
           },
         });
       }
-      if (role !== "reviewer" && !isVerification && !isQuery)
+      if ((isReview&&!access.review)||((isUpload||isSavedSlack||isComparison||isSlack)&&!access.upload))
         return json(res, 403, {
           error: {
             code: "forbidden",
@@ -142,9 +160,10 @@ export function createApiHandler({
           },
         });
     }
+    if(!isGateway&&!user.offices.includes(match[1]))return json(res,403,{error:{code:"forbidden",message:"Your account does not have access to this office."}});
     const office = match[1].toUpperCase();
     const connectionRole = isUpload || isComparison || isSlack || isSavedSlack ? "uploader" : role;
-    const token = env[`DEMO_TOKEN_${office}_${isGateway ? "SERVICE" : connectionRole.toUpperCase()}`];
+    const token = resolveSession ? env[`DEMO_TOKEN_${office}_${isGateway ? "SERVICE" : connectionRole.toUpperCase()}`] : auth.delegationToken(user,office,env.TENANT_ID||"meridian_demo");
     if (!token)
       return json(res, 503, {
         error: {
@@ -274,6 +293,7 @@ export function createApiHandler({
           signal: AbortSignal.timeout(isQuery ? isGateway ? 100000 : 610000 : isUpload || isSavedSlack || isVerification ? 60000 : 15000),
         },
       );
+      if(!resolveSession&&upstream.status===401)return json(res,503,{error:{code:"office_authentication_failed",message:"The office cannot verify account access. Restart the backend services and check the shared UI authentication key."}});
       const headers = {
         "Content-Type":
           upstream.headers.get("content-type") || "application/json",
@@ -298,6 +318,11 @@ export function createApiHandler({
             message: `The ${match[1]} office could not be reached. Check that its backend is running, then retry.`,
           },
         });
+      else res.destroy();
+    }
+    } catch(error) {
+      if(!res.headersSent&&error instanceof AuthError&&error.code==="unauthenticated")res.setHeader("Set-Cookie",sessionCookie("",!!req.socket.encrypted));
+      if(!res.headersSent)json(res,error instanceof AuthError?error.status:500,{error:{code:error instanceof AuthError?error.code:"account_error",message:error instanceof AuthError?error.message:"The account service could not complete this request."}});
       else res.destroy();
     }
   };

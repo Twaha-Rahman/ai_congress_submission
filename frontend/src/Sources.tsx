@@ -140,7 +140,7 @@ export default function Sources({ office, session, view, navigate, shortcutsEnab
         <button className="button primary" disabled={!canUpload} aria-keyshortcuts={shortcutsEnabled && canUpload ? "U" : undefined} onClick={() => setOpenUpload(true)}><ArrowUpFromLine size={16} />Upload PDF{shortcutsEnabled && <ShortcutHint>U</ShortcutHint>}</button>
       </div>
     </div>
-    {session && !canUpload && <div className="notice"><LockKeyhole size={17} /><span>{session.role === "reader" ? "Read-only access. You can inspect sources; uploading requires an authorized workspace." : `The ${humanize(office)} upload connection is not configured. Set the office uploader credential on the frontend server, then restart it.`}</span></div>}
+    {session && !canUpload && <div className="notice"><LockKeyhole size={17} /><span>{session.role === "reader" ? "Read-only access. You can inspect sources; uploading requires an authorized workspace." : "Your account cannot upload to this office."}</span></div>}
     {notice && <div className="notice success" role="status"><Check size={17} /><span>{notice}</span><button className="icon-button" aria-label="Dismiss notification" onClick={() => setNotice("")}><X size={16} /></button></div>}
     {loading ? <Loading label="Loading sources and recent uploads…" /> : error && !sources.length && !jobs.length ? <ErrorState error={error} retry={() => void load()} /> : <>
       {error && <div className="notice warning" role="alert"><AlertCircle size={17} /><span>{error} Previously loaded data is shown.</span><button className="text-button" onClick={() => void load()}>Try again</button></div>}

@@ -55,6 +55,7 @@ services:
       DEMO_TOKEN_DHAKA_SERVICE: ${DEMO_TOKEN_DHAKA_SERVICE:-}
       FIXTURES_DIR: /app/fixtures
     volumes:
+      - ./runtime/auth-bridge:/app/runtime/auth-bridge:ro
       # Only Dhaka's own mutable state, key, replay proposals and cache are visible.
       # Frankfurt's database/key and the raw document corpus are absent.
       - ./runtime/trusted_keys.json:/app/runtime/trusted_keys.json:ro
@@ -92,6 +93,7 @@ services:
       DEMO_TOKEN_FRANKFURT_SERVICE: ${DEMO_TOKEN_FRANKFURT_SERVICE:-}
       FIXTURES_DIR: /app/fixtures
     volumes:
+      - ./runtime/auth-bridge:/app/runtime/auth-bridge:ro
       # Only Frankfurt's own mutable state, key, replay proposals and cache are visible.
       # Dhaka's database/key and the raw document corpus are absent.
       - ./runtime/trusted_keys.json:/app/runtime/trusted_keys.json:ro
@@ -123,6 +125,7 @@ services:
       DEMO_TOKEN_DHAKA_REVIEWER: ${DEMO_TOKEN_DHAKA_REVIEWER:-}
       DEMO_TOKEN_FRANKFURT_READER: ${DEMO_TOKEN_FRANKFURT_READER:-}
     volumes:
+      - ./runtime/auth-bridge:/app/runtime/auth-bridge:ro
       # NOTE: no office source directory, office database, office key, or fixture
       # corpus is mounted here. Only trusted public pins, the gateway's own relay
       # log directory and the shared identity configuration are visible.

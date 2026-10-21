@@ -35,7 +35,11 @@ make frontend-install         # npm ci with the committed lockfile
 make frontend                 # http://127.0.0.1:5173
 ```
 
-Open **http://127.0.0.1:5173/findings**. If there are no findings yet, use
+Open **http://127.0.0.1:5173/findings** and sign in with username `admin` and
+password `admin`. Open your account at the bottom of the sidebar to change the
+password. Admins can create accounts and assign access from **Users**.
+
+If there are no findings yet, use
 `make demo-replay` to prepare the synthetic demo (this resets demo databases). Do
 not run that command during an investigation you want to preserve.
 
@@ -79,23 +83,68 @@ an exact-time input. Share dialogs place an icon-only copy action beside
 the link, with stable confirmation inside the button.
 
 Use the sidebar's **Theme** control for **Light**, **Dark**, or **System** appearance.
-Office, theme and role sit below navigation; on mobile they share a compact header.
+Office, theme and account controls sit below navigation; on mobile they share a compact header.
 System is the default and follows device changes; your choice is saved locally.
 Copy confirmation animates inside the finding tag without moving the page. Dialogs
 close with an outside click, the close button, or Escape, and preserve the page's
 width while background scrolling is locked.
 
-The frontend server reads the root `.env` and keeps bearer tokens on the server.
-It runs as the configured demo reviewer by default. To inspect read-only access:
+### Accounts and login
 
-```bash
-UI_ROLE=reader make frontend
-```
+The first frontend start creates `admin` / `admin` **only when the account database
+is empty**. Password changes survive restarts; demo-data resets do not reset users.
+Click your username/account icon in the sidebar for **Change password** or **Sign
+out**. Every user can change their own password by supplying the current password.
+New and changed passwords must contain 8–128 characters.
 
-The principal is fixed on the server; there is no browser role selector. This is a
-loopback-only demo operator workspace, not a multi-user login system. Real user
-authentication is required before exposing it on an office network. The server
-forwards only the endpoints needed by findings, sources, local questions, verification and gateway comparison queries/receipts. Direct federation, raw gateway source access, model APIs and service credentials are not exposed to browser code.
+Admins manage **Users** (`/users`): create an account with initial credentials,
+choose privileges, office access and restricted-source access, edit that access,
+disable an account or reset its password. Usernames are unique, case-insensitive
+and immutable, so review history keeps the same identity. Accounts are disabled
+rather than deleted. Another admin must change an admin's own privileges, and the
+last enabled admin cannot be disabled or demoted.
+
+| Privilege | Access |
+| --- | --- |
+| Admin | Manage users; review, upload, query, verify and view activity in both offices |
+| Reviewer | Review, upload, query, verify and view activity in assigned offices |
+| Uploader | Upload, query, verify and read in assigned offices |
+| Reader | Query, verify and read in assigned offices |
+
+Restricted-source access is a separate setting; admins always have it. Cross-office
+source answers require both offices. Signed-rule comparisons require Admin or
+Reviewer privileges, access to both offices and restricted-source access. Permissions
+are enforced by the Node bridge **and** each office API; hiding a control is not the authorization gate.
+Reviews and uploads record `user:<username>` as the actor.
+
+Accounts and hashed sessions live in `runtime/ui/accounts.sqlite`; password hashes
+use salted scrypt (N=32768, r=8, p=3). Session cookies are HttpOnly and SameSite=Strict,
+with a 12-hour absolute lifetime and a 30-minute request-idle timeout. Password
+changes rotate the current session and revoke other sessions. Access changes,
+disabling and admin password resets revoke the affected user's sessions. Failed
+sign-ins are rate-limited per username and connection address. No password or
+session token is returned in user lists or stored in browser local storage.
+
+The bridge signs 45-second identities with `runtime/auth-bridge/key`; the office
+and gateway services verify them before deriving role permissions and applying
+existing tenant, office and restricted-evidence checks. Internal federation and CLI
+scripts retain their environment bearer tokens. Browser-supplied Authorization or
+role headers cannot choose an identity. `UI_ROLE` is no longer used for login or
+permissions. Only the existing allowlisted workspace routes are forwarded.
+
+The app still binds to loopback. On an upgrade, restart the frontend and backend
+services to load the new authentication code; for Docker, rebuild/recreate the
+services so they receive the read-only `runtime/auth-bridge` mount. `make setup`
+prepares this directory. Do not reset office databases for this upgrade.
+
+`UI_AUTH_DB_PATH` optionally relocates the account database. `UI_AUTH_KEY_PATH`
+relocates the delegation key; relative paths are resolved from the repository root.
+The key must resolve to the same file for the frontend and
+all backend services (adjust container mounts when using a custom path). Keep the
+account database and key private and back them up; losing the account database
+loses accounts and passwords. See the [Node crypto documentation](https://nodejs.org/api/crypto.html)
+and [OWASP password-storage guidance](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html)
+for the password-hashing parameters.
 
 ### Cross-office comparisons
 
@@ -113,8 +162,9 @@ show incomplete/unavailable evidence explicitly. Export counts and byte totals
 belong to the structured exchange, not hosted-model traffic. Passage inclusion is
 not checked when originals are withheld from the gateway.
 
-The server-side reviewer workspace needs `DEMO_TOKEN_GATEWAY_SERVICE` for signed-rule
-checks; `UI_ROLE=reader` cannot borrow that service identity. The browser supplies
+Signed-rule checks require Admin or Reviewer privileges, both offices and
+restricted-source access. Internal
+gateway-to-office requests still use the configured service tokens. The browser supplies
 neither credentials nor snapshot/import controls. Gateway comparisons import approved
 signed claims only when explicitly submitted. Successful gateway receipts persist
 under `GATEWAY_RUNTIME_DIR/comparison_receipts/<tenant>/`; shared links read those
@@ -300,11 +350,10 @@ export. For a local model, use an approved private/loopback endpoint with
 `LLM_LOCAL_ENDPOINT_APPROVED=1` (or the office-prefixed setting) on both the office
 and frontend server, then restart both.
 
-The frontend needs `DEMO_TOKEN_DHAKA_UPLOADER` and/or
-`DEMO_TOKEN_FRANKFURT_UPLOADER` in the private root `.env`, in addition to its reviewer
-token. These credentials stay on the Node server. Reader mode cannot upload even
-when an uploader credential is configured. Restart the office services and frontend
-when updating from an older checkout, so source details and job summaries match.
+Uploads require Admin, Reviewer or Uploader privileges for the selected office.
+The bridge forwards the signed account identity, and the office enforces ingest
+permissions. Readers cannot upload. Restart office services and the frontend when
+updating from an older checkout, so authentication and job summaries match.
 
 After submission, recent uploads shows the actual queued, processing, processed,
 needs-review or failed state. Auto-refresh turns on with confirmation and checks

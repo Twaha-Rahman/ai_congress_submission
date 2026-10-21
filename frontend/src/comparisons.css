@@ -14,13 +14,11 @@
 .comparison-form .question-field > span { display: flex; align-items: center; gap: 6px; }
 .comparison-form label[for="comparison-question"] { align-items: center; }
 .comparison-form .question-date-options { margin-top: 18px; }
-.comparison-privacy, .comparison-scope { display: flex; align-items: flex-start; gap: 7px; }
-.comparison-form-footer { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-top: 16px; }
-.comparison-footer-notes { flex: 1; min-width: 0; max-width: 720px; }
-.comparison-privacy { margin: 0; gap: 8px; }
+.comparison-scope { display: flex; align-items: flex-start; gap: 7px; }
+.comparison-form-footer { display: flex; align-items: center; justify-content: flex-end; gap: 24px; margin-top: 16px; }
+.comparison-footer-access { flex: 1; min-width: 0; margin: 0; }
 .comparison-form-footer .question-submit { flex-shrink: 0; margin-top: 0; }
-.comparison-form-footer .comparison-footer-notes > .question-help:first-child { margin-top: 0; }
-.comparison-privacy svg, .comparison-scope svg { flex-shrink: 0; margin-top: 3px; }
+.comparison-scope svg { flex-shrink: 0; margin-top: 3px; }
 .comparison-results { margin: 32px 0 48px; min-width: 0; }
 .comparison-result-heading { margin-bottom: 22px; }
 .comparison-result-heading h2 { font: 500 30px/1.2 var(--serif); letter-spacing: -.3px; color: var(--ink); margin: 16px 0 10px; overflow-wrap: anywhere; }

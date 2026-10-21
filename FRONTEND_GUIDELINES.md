@@ -4,6 +4,12 @@ Status: implemented starting point for a style/UX review, not an approved final
 design system. Findings and Sources share the patterns below; refine them before
 applying these rules to the remaining workflows.
 
+## Product copy
+
+Keep interface copy limited to labels, actions, results and information needed to
+complete the task. Do not add promotional filler, architecture explanations or
+privacy reassurance paragraphs to forms. Keep those details in documentation.
+
 ## Scope and visual reference
 
 The first slice is **Findings and investigation**: an office-scoped queue,
@@ -602,8 +608,8 @@ used in these checks.
 Date-filter disclosures use a compact icon/label/status/chevron group. Keep the
 summary width limited to its contents, with text-color hover feedback and a visible
 keyboard focus cue; avoid tinting an entire form-width row. In Cross-office, align
-the disclosure and privacy-note icons to the same leading column. Put the privacy
-note and submit action in one balanced footer row on desktop, stacking them on
-smaller screens. This refinement passed the production build, 72 frontend checks
+the disclosure icon with the field labels. Keep the submit action right-aligned
+on desktop and full-width on smaller screens. Only show an access message in the
+footer when access is unavailable; do not add an explanatory privacy note. This refinement passed the production build, 72 frontend checks
 and read-only browser checks for disclosure behavior and 320–1440px layouts in
 both themes.

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 import uuid
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, closing
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -688,6 +688,24 @@ def create_app(settings: OfficeSettings | None = None) -> FastAPI:
             "answer_key_id": record.key_id,
             "lineage": graph.model_dump(mode="json"),
         }
+
+    @app.get("/v1/answers")
+    def recent_answers(limit: int = Query(50, ge=1, le=100), principal=Depends(authenticate)) -> dict[str, Any]:
+        _require_office_scope(principal, Permission.READ_LOCAL)
+        answers = []
+        with closing(store.iter_answers()) as records:
+            for record in records:
+                if not _answer_readable(principal, record):
+                    continue
+                payload = record.payload
+                answers.append({
+                    "answer_id": payload.answer_id, "question": payload.question,
+                    "status": payload.status.value,
+                    "created_at": canonical_datetime(payload.created_at),
+                })
+                if len(answers) > limit:
+                    break
+        return {"answers": answers[:limit], "has_more": len(answers) > limit}
 
     @app.get("/v1/answers/{answer_id}")
     def get_answer(answer_id: str, principal=Depends(authenticate)) -> dict[str, Any]:

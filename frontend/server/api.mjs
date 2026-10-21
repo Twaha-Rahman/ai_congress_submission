@@ -75,7 +75,7 @@ export function createApiHandler({
       });
     }
     const match =
-      /^\/api\/(dhaka|frankfurt)\/(findings(?:\/[\w:.-]+(?:\/(?:reviews|lineage))?)?|sources(?:\/[\w:.-]+(?:\/(?:content|comparisons|lineage))?)?|answers\/[\w:.-]+(?:\/(?:lineage|bundle))?|verifications\/(?:source|bundle)|claims(?:\/reviews)?|jobs(?:\/[\w.-]+)?|ingestions\/pdf)$/.exec(
+      /^\/api\/(dhaka|frankfurt)\/(findings(?:\/[\w:.-]+(?:\/(?:reviews|lineage))?)?|sources(?:\/[\w:.-]+(?:\/(?:content|comparisons|lineage))?)?|answers(?:\/[\w:.-]+(?:\/(?:lineage|bundle))?)?|verifications\/(?:source|bundle)|claims(?:\/reviews)?|jobs(?:\/[\w.-]+)?|ingestions\/pdf)$/.exec(
         url.pathname,
       );
     const path = match?.[2];

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 
+from ..contracts.common import canonical_datetime
 from ..contracts.qa import LineageEdge, LineageGraph, LineageNode
 from ..storage.store import OfficeStore
 
@@ -119,11 +120,20 @@ def lineage_for_node(
             if clause:
                 attributes.update(source_id=clause.source_id, quote=clause.text,
                                   page=clause.page, section=clause.section or "")
+                source = store.get_source(clause.source_id)
+                if source:
+                    attributes.update(source_identity=source.source_identity,
+                                      version_label=source.version_label)
         elif node_id.startswith("source:"):
             source = store.get_source(node_id.removeprefix("source:"))
             if source:
                 attributes.update(source_id=source.source_id, source_identity=source.source_identity,
                                   version_label=source.version_label)
+        elif node_id.startswith("answer:"):
+            record = store.get_answer(node_id.removeprefix("answer:"))
+            if record:
+                attributes.update(question=record.payload.question,
+                                  created_at=canonical_datetime(record.payload.created_at))
         nodes[row["node_id"]] = LineageNode(
             node_id=row["node_id"],
             node_type=row["node_type"],

@@ -1118,6 +1118,21 @@ class OfficeStore:
             ),
         )
 
+    def iter_answers(self) -> Iterator[AnswerRecord]:
+        """Newest office-scoped answers; callers must authorize before disclosure."""
+        with self.db.reader() as connection:
+            rows = connection.execute(
+                "SELECT * FROM answers WHERE tenant_id = ? AND region = ? "
+                "ORDER BY julianday(created_at) DESC, answer_id DESC",
+                (self.tenant_id, self.region),
+            )
+            for row in rows:
+                yield AnswerRecord(
+                    payload=AnswerPayload.model_validate_json(row["payload_json"]),
+                    payload_hash=row["payload_hash"], signature=row["signature"],
+                    key_id=row["key_id"], answer_text_hash=row["answer_text_hash"],
+                )
+
     def get_answer(self, answer_id: str) -> AnswerRecord | None:
         with self.db.reader() as connection:
             row = connection.execute(

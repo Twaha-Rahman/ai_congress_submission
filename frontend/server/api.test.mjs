@@ -244,7 +244,7 @@ test("readers can verify evidence with their own credential, without gaining wri
 
 test("verification and lineage expose only the intended methods and enforce origin and payload limits", async (t) => {
   const { url, calls } = await bridge(t);
-  for (const path of ["findings/find_1/lineage", "sources/src_1/lineage", "answers/ans_1", "answers/ans_1/lineage", "answers/ans_1/bundle"])
+  for (const path of ["answers", "findings/find_1/lineage", "sources/src_1/lineage", "answers/ans_1", "answers/ans_1/lineage", "answers/ans_1/bundle"])
     assert.equal((await fetch(`${url}/api/dhaka/${path}`)).status, 200);
   calls.length = 0;
   for (const path of ["verifications/source", "verifications/bundle"]) {

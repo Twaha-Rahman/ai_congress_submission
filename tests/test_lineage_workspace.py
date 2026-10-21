@@ -52,3 +52,35 @@ def test_source_and_finding_lineage_preserve_provenance_and_access(dhaka_full, m
         with pytest.raises(ApiError) as missing:
             path(key, principal=reader)
         assert missing.value.code == ErrorCode.NOT_FOUND
+
+
+def test_recent_answers_filter_permissions_before_limiting(dhaka_full, monkeypatch):
+    from conftest import loan_target
+    from meridian.security.auth import AuthorizationError
+
+    office = dhaka_full
+    public = office.query(loan_target(4_000_000), question="Public approval question", allowed_restricted=False)
+    private = office.query(loan_target(200_000_000), question="Restricted approval question", allowed_restricted=True)
+    runtime = OfficeRuntime(settings=office.settings,
+        registry=PrincipalRegistry.from_file(FIXTURES.parent / "config/principals.json"),
+        trusted_keys=office.registry, signer=office.signer, store=office.store,
+        worker=OfficeWorker(store=office.store, settings=office.settings, signer=office.signer))
+    monkeypatch.setattr("meridian.office_api.main.build_runtime", lambda _settings=None: runtime)
+    app = create_app(office.settings)
+    endpoint = next(route.endpoint for route in app.routes if getattr(route, "path", None) == "/v1/answers")
+    reader = Principal(principal_id="reader", tenant_id="meridian_demo", office="DHAKA",
+        role=Role.READER, display_name="Reader", permissions=frozenset({Permission.READ_LOCAL}))
+    result = endpoint(limit=1, principal=reader)
+    assert result["answers"] == [{"answer_id": public.payload.answer_id,
+        "question": public.payload.question, "status": public.payload.status.value,
+        "created_at": public.payload.created_at.isoformat(timespec="microseconds").replace("+00:00", "Z")}]
+    assert result["has_more"] is False
+    privileged = replace(reader, permissions=frozenset({Permission.READ_LOCAL, Permission.READ_RESTRICTED}))
+    result = endpoint(limit=1, principal=privileged)
+    assert result["answers"][0]["answer_id"] == private.payload.answer_id
+    assert result["has_more"] is True
+    assert "answer_text" not in result["answers"][0]
+    with pytest.raises(AuthorizationError):
+        endpoint(limit=50, principal=replace(reader, office="FRANKFURT"))
+    with pytest.raises(AuthorizationError):
+        endpoint(limit=50, principal=replace(reader, tenant_id="other"))

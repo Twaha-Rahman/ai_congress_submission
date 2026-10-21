@@ -39,23 +39,27 @@ export default function DateInput({ type = "date", onClick, onKeyDown, ...props 
         if ((event.altKey && event.key === "ArrowDown") || event.key === "F4") { event.preventDefault(); event.stopPropagation(); show(); }
       }} />
     <CalendarDays className="date-input-icon" size={16} aria-hidden="true" />
-    {open && input.current && createPortal(<DatePicker field={input.current} timed={timed} onClose={close} onApply={commit} />, input.current.closest("dialog") || document.body)}
+    {open && input.current && createPortal(<DatePicker anchor={input.current} value={input.current.value} pickerId={`${fieldId}-picker`} timed={timed} min={input.current.min} max={input.current.max} step={input.current.step} onClose={close} onApply={commit} />, input.current.closest("dialog") || document.body)}
   </span>;
 }
 
-function DatePicker({ field, timed, onClose, onApply }: { field: HTMLInputElement; timed: boolean; onClose: (restore?: boolean) => void; onApply: (value: string) => void }) {
+export function DatePicker({ anchor, value, pickerId, timed, min = "", max = "", step = "", label, onClose, onApply }: {
+  anchor: HTMLElement; value: string; pickerId: string; timed: boolean;
+  min?: string; max?: string; step?: string; label?: string;
+  onClose: (restore?: boolean) => void; onApply: (value: string) => void;
+}) {
   const id = useId();
   const root = useRef<HTMLDivElement>(null);
   const grid = useRef<HTMLTableElement>(null);
   const monthButton = useRef<HTMLButtonElement>(null);
   const timeList = useRef<HTMLDivElement>(null);
-  let initial = validDate(field.value.slice(0, 10)) ? field.value.slice(0, 10) : todayKey();
-  if (validDate(field.min.slice(0, 10)) && initial < field.min.slice(0, 10)) initial = field.min.slice(0, 10);
-  if (validDate(field.max.slice(0, 10)) && initial > field.max.slice(0, 10)) initial = field.max.slice(0, 10);
+  let initial = validDate(value.slice(0, 10)) ? value.slice(0, 10) : todayKey();
+  if (validDate(min.slice(0, 10)) && initial < min.slice(0, 10)) initial = min.slice(0, 10);
+  if (validDate(max.slice(0, 10)) && initial > max.slice(0, 10)) initial = max.slice(0, 10);
   const [day, setDay] = useState(initial);
   const [cursor, setCursor] = useState(initial);
   const [month, setMonth] = useState(initial);
-  const [time, setTime] = useState(field.value.includes("T") ? field.value.split("T")[1] : "09:00");
+  const [time, setTime] = useState(value.includes("T") ? value.split("T")[1] : "09:00");
   const [timeCursor, setTimeCursor] = useState(Math.min(47, Math.floor(timeMinutes(time) / 30)));
   const [chooseMonth, setChooseMonth] = useState(false);
   const [year, setYear] = useState(initial.slice(0, 4));
@@ -64,7 +68,7 @@ function DatePicker({ field, timed, onClose, onApply }: { field: HTMLInputElemen
   const candidate = pickerValue(day, time, timed);
   const probe = document.createElement("input");
   probe.type = timed ? "datetime-local" : "date";
-  probe.min = field.min; probe.max = field.max; probe.step = field.step;
+  probe.min = min; probe.max = max; probe.step = step;
   probe.value = candidate;
   const canApply = !!candidate && probe.validity.valid;
   const title = calendarLabel(month, { month: "long", year: "numeric" });
@@ -76,7 +80,7 @@ function DatePicker({ field, timed, onClose, onApply }: { field: HTMLInputElemen
     const popup = root.current!;
     popup.showPopover?.();
     function place() {
-      const rect = field.getBoundingClientRect(), bounds = popup.getBoundingClientRect();
+      const rect = anchor.getBoundingClientRect(), bounds = popup.getBoundingClientRect();
       const viewport = window.visualViewport;
       const leftEdge = viewport?.offsetLeft || 0, topEdge = viewport?.offsetTop || 0;
       const width = Math.min(document.documentElement.clientWidth, viewport?.width || window.innerWidth);
@@ -89,7 +93,7 @@ function DatePicker({ field, timed, onClose, onApply }: { field: HTMLInputElemen
     window.addEventListener("resize", place); window.addEventListener("scroll", place, true);
     window.visualViewport?.addEventListener("resize", place); window.visualViewport?.addEventListener("scroll", place);
     function outside(event: PointerEvent) {
-      if (!popup.contains(event.target as Node) && event.target !== field) closeRef.current(false);
+      if (!popup.contains(event.target as Node) && !anchor.contains(event.target as Node)) closeRef.current(false);
     }
     function escape(event: globalThis.KeyboardEvent) {
       if (event.key !== "Escape" || event.isComposing) return;
@@ -111,16 +115,16 @@ function DatePicker({ field, timed, onClose, onApply }: { field: HTMLInputElemen
       window.removeEventListener("resize", place); window.removeEventListener("scroll", place, true);
       window.visualViewport?.removeEventListener("resize", place); window.visualViewport?.removeEventListener("scroll", place);
     };
-  }, [field]);
+  }, [anchor]);
   useEffect(() => {
-    if (field.matches(':disabled') || field.readOnly) onClose(false);
+    if (anchor.matches(':disabled') || (anchor instanceof HTMLInputElement && anchor.readOnly)) onClose(false);
   });
   function enabled(value: string) {
-    return !!value && (!field.min || value >= field.min.slice(0, 10)) && (!field.max || value <= field.max.slice(0, 10));
+    return !!value && (!min || value >= min.slice(0, 10)) && (!max || value <= max.slice(0, 10));
   }
   function focusDay(value: string) {
-    if (validDate(field.min.slice(0, 10)) && value < field.min.slice(0, 10)) value = field.min.slice(0, 10);
-    if (validDate(field.max.slice(0, 10)) && value > field.max.slice(0, 10)) value = field.max.slice(0, 10);
+    if (validDate(min.slice(0, 10)) && value < min.slice(0, 10)) value = min.slice(0, 10);
+    if (validDate(max.slice(0, 10)) && value > max.slice(0, 10)) value = max.slice(0, 10);
     setCursor(value); setMonth(value);
     requestAnimationFrame(() => grid.current?.querySelector<HTMLButtonElement>(`[data-date="${value}"]`)?.focus({ preventScroll: true }));
   }
@@ -133,7 +137,7 @@ function DatePicker({ field, timed, onClose, onApply }: { field: HTMLInputElemen
     if (!next) return;
     event.preventDefault(); focusDay(next);
   }
-  return <div ref={root} popover="manual" role="dialog" aria-label={timed ? "Choose date and time" : "Choose date"} id={`${field.id}-picker`} className={`date-picker ${timed ? "date-picker-timed" : ""}`}
+  return <div ref={root} popover="manual" role="dialog" aria-label={label || (timed ? "Choose date and time" : "Choose date")} id={pickerId} className={`date-picker ${timed ? "date-picker-timed" : ""}`}
     style={{ left: position.left, top: position.top, visibility: position.ready ? "visible" : "hidden" }}
     onKeyDown={event => {
       event.stopPropagation();

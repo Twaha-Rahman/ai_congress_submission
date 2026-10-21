@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { AlertCircle, ArrowLeft, ArrowRight, BookOpen, CalendarDays, ChevronDown, CircleHelp, Clock3, FileText, Keyboard, Link, LoaderCircle, LockKeyhole, MessageSquare, Plus, RefreshCw, Search, Send, Shield, X } from "lucide-react";
+import { AlertCircle, ArrowLeft, ArrowRight, BookOpen, CalendarDays, CircleHelp, Clock3, FileText, Keyboard, Link, LoaderCircle, LockKeyhole, MessageSquare, Plus, RefreshCw, Search, Send, Shield, X } from "lucide-react";
 import { api, ApiError } from "./api";
 import { EmptyState, ErrorState, Loading, Modal, ShortcutHint } from "./components";
 import Select from "./Select";
-import DateInput from "./DateInput";
+import DateFilters from "./DateFilters";
 import ShareLink from "./ShareLink";
 import Highlight from "./Highlight";
 import { DocumentDialog } from "./Sources";
@@ -161,12 +161,7 @@ export default function Questions({ office, view, session, sessionError, navigat
                 ...(draft.sourceId && !sources.data?.sources.some(source => source.source_id === draft.sourceId) ? [{ value: draft.sourceId, label: "Selected source unavailable" }] : [])]}
               onChange={sourceId => patch({ sourceId })} /></div>
             <p className="question-help">Original PDF passages and saved Slack messages in this office. Source processing permissions still apply.</p>
-            <details className="question-date-options"><summary><CalendarDays size={14} />Date filters <span>{draft.dated || draft.historical ? "Custom" : "Current"}</span><ChevronDown className="date-filter-chevron" size={14} /></summary>
-              <label className="question-checkbox"><input type="checkbox" checked={draft.dated} onChange={event => patch({ dated: event.target.checked })} />Use a historical policy date</label>
-              {draft.dated && <><label className="question-field">Policy applies at <DateInput type="datetime-local" step="0.001" value={draft.validAt} onChange={event => patch({ validAt: event.target.value })} required aria-describedby="question-valid-help" /></label><p className="question-help" id="question-valid-help">UTC. Which source versions applied at this time?</p></>}
-              <label className="question-checkbox"><input type="checkbox" checked={draft.historical} onChange={event => patch({ historical: event.target.checked })} />Use a historical knowledge cutoff</label>
-              {draft.historical ? <><label className="question-field">Information known by <DateInput type="datetime-local" step="0.001" value={draft.knownAt} onChange={event => patch({ knownAt: event.target.value })} required aria-describedby="question-known-help" /></label><p className="question-help" id="question-known-help">UTC. Exclude information learned after this time.</p></> : <p className="question-help">Use everything this office knows when answering.</p>}
-            </details>
+            <DateFilters draft={draft} onChange={patch} />
           </fieldset>
           {!session && (sessionError ? <div className="notice warning" role="alert"><AlertCircle size={17} /><span>Question access could not be loaded. {sessionError} <button type="button" className="text-button" onClick={() => window.location.reload()}>Reload workspace</button></span></div> : <p className="question-help" role="status">Connecting question access…</p>)}
           {session && !canAsk && <div className="notice warning" role="status"><LockKeyhole size={17} /><span>This office’s question connection is not configured. Run make setup and restart the frontend.</span></div>}

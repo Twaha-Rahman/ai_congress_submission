@@ -1,0 +1,17 @@
+.query-date-controls { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
+.date-filter-control { display: flex; align-items: stretch; flex: 1 1 220px; min-width: 0; border: 1px solid var(--line); border-radius: 8px; background: var(--field-surface); }
+.date-filter-trigger { display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; min-height: 58px; padding: 10px 12px; border: 0; border-radius: 7px; text-align: left; outline-offset: -2px; }
+.date-filter-trigger > svg { color: var(--muted); }
+.date-filter-trigger > svg:last-child { margin-left: auto; }
+.date-filter-content { display: block; min-width: 0; }
+.date-filter-content > span { display: block; font-size: 11px; color: var(--muted); line-height: 1.4; }
+.date-filter-content > strong { display: block; font-size: 12px; line-height: 1.5; font-weight: 500; margin-top: 2px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.date-filter-control.has-custom-date { border-color: var(--control-line); }
+.date-filter-control.has-custom-date .date-filter-trigger > svg:first-child { color: var(--primary); }
+.date-filter-trigger[aria-expanded="true"] { background: var(--selected-surface); }
+.date-filter-control .date-filter-reset { width: 32px; min-width: 32px; height: auto; border: 0; border-radius: 0 7px 7px 0; margin: 0; outline-offset: -2px; }
+.date-filter-control:has(.date-filter-reset) .date-filter-trigger { border-radius: 7px 0 0 7px; }
+@media (hover: hover) {
+  .date-filter-trigger:enabled:hover { background: var(--interaction-surface); }
+  .date-filter-trigger:enabled:hover > svg { color: var(--primary); }
+}

@@ -148,9 +148,9 @@ retention fields to fill in. Source passages are retrieved before the configured
 OpenRouter/OpenAI-compatible model writes a cited answer. The same path can use an
 operator-approved local model in production.
 
-**Date filters** optionally restrict policy applicability and the knowledge cutoff;
-these are separate UTC timestamps. Otherwise the question uses the current time
-and latest office knowledge. Reuse a saved question with **Use this question**;
+**Policy date** and **Knowledge cutoff** are always visible and open the UTC date
+and time picker in one click. They default to **Now** and **Latest**; apply a custom
+date or use its reset icon to return to the default. Reuse a saved question with **Use this question**;
 its exact original timestamp precision is retained until the displayed time changes.
 
 Answers contain clickable statement references, exact source quotations and page/

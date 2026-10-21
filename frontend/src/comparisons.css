@@ -13,7 +13,7 @@
 .comparison-form .question-field { margin-top: 15px; }
 .comparison-form .question-field > span { display: flex; align-items: center; gap: 6px; }
 .comparison-form label[for="comparison-question"] { align-items: center; }
-.comparison-form .question-date-options { margin-top: 18px; }
+.comparison-form .query-date-controls { margin-top: 18px; }
 .comparison-scope { display: flex; align-items: flex-start; gap: 7px; }
 .comparison-form-footer { display: flex; align-items: center; justify-content: flex-end; gap: 24px; margin-top: 16px; }
 .comparison-footer-access { flex: 1; min-width: 0; margin: 0; }

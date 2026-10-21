@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { AlertCircle, ArrowRight, BookOpen, CalendarDays, ChevronDown, CircleHelp, Clock3, FileText, Globe2, Keyboard, Link, LoaderCircle, LockKeyhole, MessageSquare, Network, Plus, Send, Shield, ShieldCheck } from "lucide-react";
+import { AlertCircle, ArrowRight, BookOpen, CalendarDays, CircleHelp, Clock3, FileText, Globe2, Keyboard, Link, LoaderCircle, LockKeyhole, MessageSquare, Network, Plus, Send, Shield, ShieldCheck } from "lucide-react";
 import { api, ApiError } from "./api";
 import { EmptyState, ErrorState, Loading, Modal, ShortcutHint } from "./components";
 import Select from "./Select";
-import DateInput from "./DateInput";
+import DateFilters from "./DateFilters";
 import ShareLink from "./ShareLink";
 import { DocumentDialog } from "./Sources";
 import VerificationExports from "./VerificationTools";
@@ -174,10 +174,7 @@ export default function Comparisons({ view, session, sessionError, navigate, sho
             <p className="question-help comparison-scope"><BookOpen size={14} />{rules.subject === "record_retention" ? "Loan records · MTF_CROSS_OFFICE · Retention measured from loan closure. The processing office compares its policy with the origin’s exported rules." : "Business loans · USD · Both offices export rules applicable to this origin and amount."}</p>
             <p className="question-help">This strict protocol supports these two numeric rule types. Use Source answers for any other policy topic.</p>
           </>}
-          <details className="question-date-options"><summary><CalendarDays size={14} />Date filters<span>{draft.dated || draft.historical ? "Custom · UTC" : "Current"}</span><ChevronDown className="date-filter-chevron" size={14} /></summary><div className="comparison-form-grid">
-            <div><label className="question-checkbox"><input type="checkbox" checked={draft.dated} onChange={event => patch({ dated: event.target.checked })} />Choose policy date</label>{draft.dated && <label className="question-field">Policy applies at (UTC)<DateInput type="datetime-local" step="0.001" required value={draft.validAt} onChange={event => patch({ validAt: event.target.value })} /></label>}</div>
-            <div><label className="question-checkbox"><input type="checkbox" checked={draft.historical} onChange={event => patch({ historical: event.target.checked })} />Choose knowledge cutoff</label>{draft.historical && <label className="question-field">Information known by (UTC)<DateInput type="datetime-local" step="0.001" required value={draft.knownAt} onChange={event => patch({ knownAt: event.target.value })} /></label>}</div>
-          </div><p className="question-help">Policy date controls applicability; knowledge cutoff excludes information learned later.{view.compareMode === "rules" ? " An export received after a historical cutoff cannot complete that historical comparison." : " Both offices receive the same cutoffs."}</p></details>
+          <DateFilters draft={draft} onChange={patch} />
         </fieldset>
         <div className="comparison-form-footer">
         {(!session || !canSubmit) && <p className="question-help comparison-footer-access" role="status">{sessionError || (!session ? "Connecting workspace access…" : view.compareMode === "rules" ? session.role === "reader" ? "Signed-rule checks require reviewer access." : "Configure DEMO_TOKEN_GATEWAY_SERVICE and restart the frontend to enable signed-rule checks." : "Office question connections are not configured.")}</p>}

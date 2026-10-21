@@ -478,11 +478,13 @@ checked with 56 frontend tests, a production build and desktop/mobile browser ch
   hosted-processing restrictions; never silently substitute another selected source.
   General questions use the backend's configured model, including an approved local
   endpoint, rather than asking users to configure a provider in the browser.
-- Date filters are an optional disclosure. Default to current applicability/latest
-  knowledge; expose policy and knowledge times independently in UTC. Browser date
-  inputs display milliseconds, while saved cutoffs may contain microseconds; keep
-  their original precision until edited. Persist neither draft nor source choices
-  in shared URLs before submission.
+- Keep Policy date and Knowledge cutoff visible in the composer, defaulting to
+  Now and Latest. Either control opens the calendar and UTC time picker directly;
+  no disclosure or checkbox is required. Apply activates the custom cutoff; Cancel
+  leaves it unchanged. Each custom value has a reset action returning to its live
+  default. The picker edits milliseconds, while saved cutoffs may contain
+  microseconds; keep their original precision until edited. Persist neither draft
+  nor source choices in shared URLs before submission.
 - Mark general answers as model-assisted. Display clickable statement references
   leading to their original-passage cards, with an inset keyboard focus cue. Preserve
   exact quoted text, source names, versions, authority and page/section locations.
@@ -609,14 +611,18 @@ whole-field date picker opening in Questions/Sources/Cross-office, reduced motio
 and 320–1440px layouts. No question submissions, source changes or paid calls were
 used in these checks.
 
-Date-filter disclosures use a compact icon/label/status/chevron group. Keep the
-summary width limited to its contents, with text-color hover feedback and a visible
-keyboard focus cue; avoid tinting an entire form-width row. In Cross-office, align
-the disclosure icon with the field labels. Keep the submit action right-aligned
-on desktop and full-width on smaller screens. Only show an access message in the
-footer when access is unavailable; do not add an explanatory privacy note. This refinement passed the production build, 72 frontend checks
-and read-only browser checks for disclosure behavior and 320–1440px layouts in
-both themes.
+Questions and Cross-office share always-visible Policy date and Knowledge cutoff
+controls. Use an icon, small label, readable current value and chevron, with uniform
+borders and inset keyboard focus. Place them side by side when space permits and
+stack them on narrow screens. Open the existing calendar directly from the whole
+control, and show a separate reset icon only for custom dates. Do not add checkboxes
+or an explanatory paragraph. Keep the submit action right-aligned on desktop and
+full-width on smaller screens. Only show an access message in the footer when
+access is unavailable; do not add an explanatory privacy note. Validation covered
+the production build, 75 frontend checks, keyboard and pointer selection, exact
+timestamp submission, Cancel/reset behavior, upload-date compatibility and
+320–1440px layouts in both themes. Submission checks intercepted requests before
+they reached the backend; no paid calls or source changes were made.
 
 Office answer cards use a uniform one-pixel border and a quiet surface. Do not add
 a thick top edge or accent rail. Use the existing heading, status badge and spacing

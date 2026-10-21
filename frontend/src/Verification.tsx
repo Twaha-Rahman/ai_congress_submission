@@ -6,6 +6,7 @@ import Select from "./Select";
 import Lineage from "./Lineage";
 import VerificationExports from "./VerificationTools";
 import { DocumentDialog } from "./Sources";
+import ShareLink from "./ShareLink";
 import { date, findingTag, findingTitle, humanize, sourceTitle } from "./presentation";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 import { useVerificationData } from "./useVerificationData";
@@ -40,7 +41,6 @@ export default function Verification({ office, view, navigate, shortcutsEnabled,
   const [checkErrorValue, setCheckError] = useState("");
   const [checkingValue, setChecking] = useState(false);
   const [sharing, setSharing] = useState(false);
-  const [copied, setCopied] = useState<"idle" | "copied" | "failed">("idle");
   const [tagCopy, setTagCopy] = useState<"idle" | "copied" | "failed">("idle");
   const form = useRef<HTMLFormElement>(null);
   const input = useRef<HTMLInputElement>(null);
@@ -83,10 +83,10 @@ export default function Verification({ office, view, navigate, shortcutsEnabled,
     return () => { verificationRequest.current?.abort(); fileGeneration.current++; };
   }, [key]);
   useEffect(() => {
-    if (copied === "idle" && tagCopy === "idle") return;
-    const timer = window.setTimeout(() => { setCopied("idle"); setTagCopy("idle"); }, 1800);
+    if (tagCopy === "idle") return;
+    const timer = window.setTimeout(() => { setTagCopy("idle"); }, 1800);
     return () => window.clearTimeout(timer);
-  }, [copied, tagCopy]);
+  }, [tagCopy]);
   useEffect(() => {
     if (view.verifyNode && availableGraph?.nodes.some(node => node.node_id === view.verifyNode) && !focusedGraph?.nodes.some(node => node.node_id === view.verifyNode) && view.verifyScope === "focused")
       navigate({ verifyScope: "related" }, true);
@@ -143,9 +143,6 @@ export default function Verification({ office, view, navigate, shortcutsEnabled,
       const result = await api<{ report: VerificationReport }>(`${office}/verifications/${view.verifyKind === "source" ? "source" : "bundle"}`, { method: "POST", body, signal: controller.signal });
       if (!controller.signal.aborted) { setReport(result.report); setChecking(false); }
     } catch (error) { if (!controller.signal.aborted) { setCheckError((error as Error).message); setChecking(false); } }
-  }
-  async function share() {
-    try { await navigator.clipboard.writeText(window.location.href); setCopied("copied"); } catch { setCopied("failed"); }
   }
   async function copyTag() {
     if (!current?.finding) return;
@@ -254,7 +251,7 @@ export default function Verification({ office, view, navigate, shortcutsEnabled,
         </section> : view.verifyKind !== "bundle" ? emptyEvidence() : <div className="verification-trace-empty"><Network size={24} /><p>{view.verifyKind === "bundle" ? "Choose a bundle in Check integrity to explore its supplied evidence." : "Choose evidence above to trace its statements, passages and sources."}</p>{view.verifyKind === "bundle" && <button className="button secondary" onClick={() => switchTask("check")}>Choose a bundle<ArrowRight size={15} /></button>}</div>}
       </div>
     </>}
-    {sharing && <Modal title="Share view" onClose={() => setSharing(false)} className="verification-share-dialog"><div className="dialog-body"><p>This link opens the same office, evidence, filters and selected record.</p><p className="verification-share-limit"><Info size={16} />Local files and verification results are not included. Export the report to keep or share the completed checks.</p><label htmlFor="verification-share-url">View link</label><input id="verification-share-url" readOnly value={window.location.href} onFocus={event => event.currentTarget.select()} /><button className={`button primary copy-${copied}`} title={copied === "copied" ? "Link copied" : copied === "failed" ? "Could not copy; select the link and copy it manually" : "Copy view link"} onClick={() => void share()}>{copied === "copied" ? <Check size={15} /> : copied === "failed" ? <AlertCircle size={15} /> : <Copy size={15} />}Copy link</button><span className="sr-only" role="status">{copied === "copied" ? "View link copied" : copied === "failed" ? "Could not copy the view link" : ""}</span></div></Modal>}
+    {sharing && <Modal title="Share view" onClose={() => setSharing(false)} className="verification-share-dialog"><div className="dialog-body"><p>This link opens the same office, evidence, filters and selected record.</p><p className="verification-share-limit"><Info size={16} />Local files and verification results are not included. Export the report to keep or share the completed checks.</p><ShareLink /></div></Modal>}
     {view.document && <DocumentDialog office={office} sourceId={view.document} view={view} navigate={navigate} onClose={() => navigate({ document: "", verifyPassage: "" })} onVerify={id => choose("source", id, "check")} evidence={inspectedPassage?.attributes.source_id === view.document && inspectedPassage.attributes.quote ? { source_id: view.document, quote: inspectedPassage.attributes.quote, page: Math.max(1, Number(inspectedPassage.attributes.page) || 1), section: inspectedPassage.attributes.section || null } : undefined} />}
   </div>;
 }

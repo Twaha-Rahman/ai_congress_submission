@@ -1,6 +1,8 @@
 export const shortcutDescriptions = [
   { keys: "/", label: "Search the current page" },
   { keys: "N", label: "Focus the question form (Questions / Cross-office)" },
+  { keys: "B", label: "Open Recent answers (Questions)" },
+  { keys: "Shift + N", label: "Use the selected question in the composer (Questions)" },
   { keys: "U", label: "Upload a policy PDF (when permitted)" },
   { keys: "J / K", label: "Next / previous finding, answer or evidence record" },
   { keys: "A", label: "Acknowledge selected finding" },
@@ -40,7 +42,9 @@ export type ShortcutAction =
   | "integrity"
   | "export"
   | "share"
-  | "compose";
+  | "compose"
+  | "recent"
+  | "reuse";
 // Upload opens a form and never sends a file immediately.
 export function shortcutForKey(
   event: { key: string; ctrlKey: boolean; metaKey: boolean; altKey: boolean },
@@ -52,6 +56,8 @@ export function shortcutForKey(
   const actions: Record<string, ShortcutAction> = {
     "/": "search",
     n: "compose",
+    b: "recent",
+    N: "reuse",
     j: "next",
     k: "previous",
     a: "acknowledge",

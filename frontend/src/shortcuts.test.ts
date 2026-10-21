@@ -35,3 +35,13 @@ test("verification shortcuts distinguish task selection, running checks, exports
   assert.equal(shortcutForKey(key('e'), true), 'evidence');
   assert.equal(shortcutForKey(key('s'), true), 'sort');
 });
+
+test("question browsing and reuse shortcuts stay distinct and honor preferences and modifiers", () => {
+  for (const [character, action] of [["b", "recent"], ["N", "reuse"]] as const) {
+    assert.equal(shortcutForKey(key(character), true), action);
+    assert.equal(shortcutForKey(key(character), false), null);
+    assert.equal(shortcutForKey(key(character, { ctrlKey: true }), true), null);
+    assert.equal(shortcutForKey(key(character, { altKey: true }), true), null);
+  }
+  assert.equal(shortcutForKey(key("n"), true), "compose");
+});

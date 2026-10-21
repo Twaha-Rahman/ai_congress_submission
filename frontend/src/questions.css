@@ -116,3 +116,12 @@
   .question-dates { gap: 14px; }
   .question-details dl { grid-template-columns: minmax(85px, 1fr) minmax(0, 2fr); gap: 10px; }
 }
+
+/* Keep the cached list at the same position through pending/success/error reads. */
+.question-history-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 40px; min-width: 0; }
+.question-history-meta .question-list-count { margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.question-refresh-status { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: 10px; white-space: nowrap; flex-shrink: 0; }
+.question-refresh-status.refresh-failed { color: var(--warning-ink); }
+.question-section-heading .icon-button[aria-busy="true"] { opacity: 1; color: var(--primary); }
+.question-panel-tabs { gap: 10px; }
+.question-panel-tabs .shortcut-hint { font-size: 9px; }

@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { AlertCircle, ArrowRight, BookOpen, CalendarDays, Check, CircleHelp, Clock3, Copy, FileText, Globe2, Keyboard, Link, LoaderCircle, LockKeyhole, MessageSquare, Network, Plus, Send, Shield, ShieldCheck } from "lucide-react";
+import { AlertCircle, ArrowRight, BookOpen, CalendarDays, CircleHelp, Clock3, FileText, Globe2, Keyboard, Link, LoaderCircle, LockKeyhole, MessageSquare, Network, Plus, Send, Shield, ShieldCheck } from "lucide-react";
 import { api, ApiError } from "./api";
 import { EmptyState, ErrorState, Loading, Modal, ShortcutHint } from "./components";
 import Select from "./Select";
+import DateInput from "./DateInput";
+import ShareLink from "./ShareLink";
 import { DocumentDialog } from "./Sources";
 import VerificationExports from "./VerificationTools";
 import { date, humanize, sourceTitle } from "./presentation";
@@ -46,7 +48,6 @@ export default function Comparisons({ view, session, sessionError, navigate, sho
   const [error, setError] = useState("");
   const [errorOffices, setErrorOffices] = useState<OfficeDelivery[]>([]);
   const [sharing, setSharing] = useState(false);
-  const [copied, setCopied] = useState<"idle" | "copied" | "failed">("idle");
   const request = useRef<AbortController | null>(null);
   const expectedKey = useRef("");
   const questionInput = useRef<HTMLTextAreaElement>(null);
@@ -85,7 +86,6 @@ export default function Comparisons({ view, session, sessionError, navigate, sho
     if (!busy || view.comparePane !== "results") return;
     requestAnimationFrame(() => { resultSection.current?.focus({ preventScroll: true }); resultSection.current?.scrollIntoView({ block: "start" }); });
   }, [busy, view.comparePane]);
-  useEffect(() => { if (copied === "idle") return; const timer = setTimeout(() => setCopied("idle"), 1800); return () => clearTimeout(timer); }, [copied]);
   function patch(value: Partial<QuestionDraft>) { setDraft(previous => ({ ...previous, ...value })); setError(""); }
   function focusForm() {
     if (busy) return;
@@ -147,7 +147,6 @@ export default function Comparisons({ view, session, sessionError, navigate, sho
       }
     }
   }
-  async function copyLink() { try { await navigator.clipboard.writeText(window.location.href); setCopied("copied"); } catch { setCopied("failed"); } }
   const canSubmit = view.compareMode === "rules" ? !!session?.comparisons?.rules : offices.some(office => session?.queries?.[office]);
   const exports = view.compareMode === "rules" ? receipt ? [{ label: "Gateway comparison receipt", filename: `${receipt.request_id}.json`, value: receipt }] : [] : offices.flatMap(office => answers[office] ? [{ label: `${humanize(office)} saved answer`, filename: `${office}-${answers[office]!.answer_id}.json`, value: { answer: answers[office] } }] : []);
 
@@ -156,7 +155,7 @@ export default function Comparisons({ view, session, sessionError, navigate, sho
       <button className="button secondary shortcuts-button" onClick={onHelp} title="Keyboard shortcuts (F1)"><Keyboard size={16} />Shortcuts<ShortcutHint>F1</ShortcutHint></button>
       {view.comparePane === "results" && <button className="button secondary" onClick={focusForm} disabled={busy}><Plus size={15} />New comparison{shortcutsEnabled && <ShortcutHint>N</ShortcutHint>}</button>}
       <VerificationExports items={busy ? [] : exports} shortcutsEnabled={shortcutsEnabled} />
-      <button ref={shareButton} className="button secondary" disabled={busy} onClick={() => { setCopied("idle"); setSharing(true); }} aria-keyshortcuts={shortcutsEnabled ? "Shift+S" : undefined}><Link size={15} />Share view{shortcutsEnabled && <ShortcutHint>Shift+S</ShortcutHint>}</button>
+      <button ref={shareButton} className="button secondary" disabled={busy} onClick={() => { setSharing(true); }} aria-keyshortcuts={shortcutsEnabled ? "Shift+S" : undefined}><Link size={15} />Share view{shortcutsEnabled && <ShortcutHint>Shift+S</ShortcutHint>}</button>
     </div></div>
     <div className="comparison-tabs" role="tablist" aria-label="Comparison method" onKeyDown={event => {
       if (busy || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
@@ -176,8 +175,8 @@ export default function Comparisons({ view, session, sessionError, navigate, sho
             <p className="question-help">This strict protocol supports these two numeric rule types. Use Source answers for any other policy topic.</p>
           </>}
           <details className="question-date-options"><summary><CalendarDays size={14} />Date filters<span>{draft.dated || draft.historical ? "Custom · UTC" : "Current"}</span></summary><div className="comparison-form-grid">
-            <div><label className="question-checkbox"><input type="checkbox" checked={draft.dated} onChange={event => patch({ dated: event.target.checked })} />Choose policy date</label>{draft.dated && <label className="question-field">Policy applies at (UTC)<input type="datetime-local" step="0.001" required value={draft.validAt} onChange={event => patch({ validAt: event.target.value })} /></label>}</div>
-            <div><label className="question-checkbox"><input type="checkbox" checked={draft.historical} onChange={event => patch({ historical: event.target.checked })} />Choose knowledge cutoff</label>{draft.historical && <label className="question-field">Information known by (UTC)<input type="datetime-local" step="0.001" required value={draft.knownAt} onChange={event => patch({ knownAt: event.target.value })} /></label>}</div>
+            <div><label className="question-checkbox"><input type="checkbox" checked={draft.dated} onChange={event => patch({ dated: event.target.checked })} />Choose policy date</label>{draft.dated && <label className="question-field">Policy applies at (UTC)<DateInput type="datetime-local" step="0.001" required value={draft.validAt} onChange={event => patch({ validAt: event.target.value })} /></label>}</div>
+            <div><label className="question-checkbox"><input type="checkbox" checked={draft.historical} onChange={event => patch({ historical: event.target.checked })} />Choose knowledge cutoff</label>{draft.historical && <label className="question-field">Information known by (UTC)<DateInput type="datetime-local" step="0.001" required value={draft.knownAt} onChange={event => patch({ knownAt: event.target.value })} /></label>}</div>
           </div><p className="question-help">Policy date controls applicability; knowledge cutoff excludes information learned later.{view.compareMode === "rules" ? " An export received after a historical cutoff cannot complete that historical comparison." : " Both offices receive the same cutoffs."}</p></details>
         </fieldset>
         {view.compareMode === "general" && <p className="question-help comparison-privacy"><LockKeyhole size={14} />This browser reads both offices using your configured access. Source text is shown here; it is not exchanged through the gateway. Each office’s model permissions still apply.</p>}
@@ -220,6 +219,6 @@ export default function Comparisons({ view, session, sessionError, navigate, sho
       </section>}
     </div>
     {view.document && <DocumentDialog key={`${evidenceOffice}/${view.document}`} office={evidenceOffice} sourceId={view.document} view={view} navigate={navigate} evidence={evidence ? { source_id: evidence.source_id, page: evidence.page, section: evidence.section, quote: evidence.quote || "" } : undefined} onClose={() => navigate({ document: "", compareCitation: "" })} />}
-    {sharing && <Modal title="Share cross-office view" onClose={() => setSharing(false)}><div className="dialog-body"><p className="dialog-description">The link opens the saved office answers or gateway receipt, without submitting again. Recipients need the same office access. Drafts, unsaved failures and source files are not included.</p><label className="question-field">View link<input readOnly value={window.location.href} onFocus={event => event.currentTarget.select()} /></label><button className={`button secondary question-copy copy-${copied}`} onClick={copyLink} title={copied === "copied" ? "Copied" : copied === "failed" ? "Copy failed; select the link and copy manually" : "Copy link"}>{copied === "copied" ? <Check size={16} /> : copied === "failed" ? <AlertCircle size={16} /> : <Copy size={16} />}Copy link</button><span className="sr-only" role="status">{copied === "copied" ? "Link copied" : copied === "failed" ? "Copy failed. Select the link and copy it manually." : ""}</span></div></Modal>}
+    {sharing && <Modal title="Share cross-office view" onClose={() => setSharing(false)}><div className="dialog-body"><p className="dialog-description">The link opens the saved office answers or gateway receipt, without submitting again. Recipients need the same office access. Drafts, unsaved failures and source files are not included.</p><ShareLink /></div></Modal>}
   </div>;
 }

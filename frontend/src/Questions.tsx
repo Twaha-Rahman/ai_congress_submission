@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { AlertCircle, ArrowLeft, ArrowRight, BookOpen, CalendarDays, Check, CircleHelp, Clock3, Copy, FileText, Keyboard, Link, LoaderCircle, LockKeyhole, MessageSquare, Plus, RefreshCw, Search, Send, Shield, X } from "lucide-react";
+import { AlertCircle, ArrowLeft, ArrowRight, BookOpen, CalendarDays, CircleHelp, Clock3, FileText, Keyboard, Link, LoaderCircle, LockKeyhole, MessageSquare, Plus, RefreshCw, Search, Send, Shield, X } from "lucide-react";
 import { api, ApiError } from "./api";
 import { EmptyState, ErrorState, Loading, Modal, ShortcutHint } from "./components";
 import Select from "./Select";
+import DateInput from "./DateInput";
+import ShareLink from "./ShareLink";
 import Highlight from "./Highlight";
 import { DocumentDialog } from "./Sources";
 import { date, humanize, sourceTitle, scopeLabel } from "./presentation";
@@ -32,7 +34,6 @@ export default function Questions({ office, view, session, sessionError, navigat
   const [asking, setAsking] = useState(false);
   const [error, setError] = useState("");
   const [sharing, setSharing] = useState(false);
-  const [copied, setCopied] = useState<"idle" | "copied" | "failed">("idle");
   const form = useRef<HTMLFormElement>(null);
   const search = useRef<HTMLInputElement>(null);
   const questionInput = useRef<HTMLTextAreaElement>(null);
@@ -51,14 +52,9 @@ export default function Questions({ office, view, session, sessionError, navigat
   const citation = answer?.citations[Number(view.questionCitation)];
   const inspected = view.questionCitation !== "" && citation?.source_id === view.document && !citation.remote ? citation : undefined;
 
-  useEffect(() => { request.current?.abort(); setAsking(false); setError(""); setCopied("idle"); }, [view.questionId]);
+  useEffect(() => { request.current?.abort(); setAsking(false); setError(""); }, [view.questionId]);
   useEffect(() => () => request.current?.abort(), []);
   useEffect(() => { setShown(10); }, [view.questionSearch]);
-  useEffect(() => {
-    if (copied === "idle") return;
-    const timer = window.setTimeout(() => setCopied("idle"), 1800);
-    return () => clearTimeout(timer);
-  }, [copied]);
   useEffect(() => {
     if (answer && pendingFocus.current) {
       pendingFocus.current = false;
@@ -73,6 +69,14 @@ export default function Questions({ office, view, session, sessionError, navigat
   function focusComposer() {
     navigate({ questionPane: "compose", questionPanel: "ask", document: "", questionCitation: "" });
     requestAnimationFrame(() => questionInput.current?.focus());
+  }
+  function focusRecent() {
+    navigate({ questionPane: "compose", questionPanel: "recent" });
+    requestAnimationFrame(() => document.getElementById("question-tab-recent")?.focus());
+  }
+  function reuseQuestion() {
+    if (!answer || asking) return;
+    patch(draftFromAnswer(answer)); focusComposer();
   }
   function selectAnswer(id: string, keyboard = false) {
     if (view.questionPane === "compose") browseScroll.current = window.scrollY;
@@ -98,6 +102,8 @@ export default function Questions({ office, view, session, sessionError, navigat
     share: () => { share.current?.focus(); setSharing(true); },
     verify: () => { if (answer) onVerify(answer.answer_id); },
     compose: () => focusComposer(),
+    recent: focusRecent,
+    reuse: reuseQuestion,
   });
 
   async function ask(event: FormEvent) {
@@ -123,10 +129,6 @@ export default function Questions({ office, view, session, sessionError, navigat
       }
     }
   }
-  async function copyLink() {
-    try { await navigator.clipboard.writeText(window.location.href); setCopied("copied"); }
-    catch { setCopied("failed"); }
-  }
   function cancel() { request.current?.abort(); request.current = null; setAsking(false); history.retry(); }
 
   return <div className="questions-page">
@@ -143,8 +145,8 @@ export default function Questions({ office, view, session, sessionError, navigat
           const panel = event.key === "Home" ? "ask" : event.key === "End" ? "recent" : view.questionPanel === "ask" ? "recent" : "ask";
           navigate({ questionPanel: panel }); requestAnimationFrame(() => document.getElementById(`question-tab-${panel}`)?.focus());
         }}>
-          <button id="question-tab-ask" role="tab" aria-selected={view.questionPanel === "ask"} aria-controls="question-panel-ask" tabIndex={view.questionPanel === "ask" ? 0 : -1} onClick={() => navigate({ questionPanel: "ask" })}><Plus size={15} />New question{shortcutsEnabled && <ShortcutHint>N</ShortcutHint>}</button>
-          <button id="question-tab-recent" role="tab" aria-selected={view.questionPanel === "recent"} aria-controls="question-panel-recent" tabIndex={view.questionPanel === "recent" ? 0 : -1} onClick={() => navigate({ questionPanel: "recent" })}><Clock3 size={15} />Recent answers</button>
+          <button id="question-tab-ask" role="tab" aria-selected={view.questionPanel === "ask"} aria-controls="question-panel-ask" tabIndex={view.questionPanel === "ask" ? 0 : -1} onClick={() => navigate({ questionPanel: "ask" })} aria-keyshortcuts={shortcutsEnabled ? "N" : undefined}><Plus size={15} />New question{shortcutsEnabled && <ShortcutHint>N</ShortcutHint>}</button>
+          <button id="question-tab-recent" role="tab" aria-selected={view.questionPanel === "recent"} aria-controls="question-panel-recent" tabIndex={view.questionPanel === "recent" ? 0 : -1} onClick={() => navigate({ questionPanel: "recent" })} aria-keyshortcuts={shortcutsEnabled ? "B" : undefined}><Clock3 size={15} />Recent answers{shortcutsEnabled && <ShortcutHint>B</ShortcutHint>}</button>
         </div>
         <form className="question-form" id="question-panel-ask" role="tabpanel" aria-labelledby="question-tab-ask" hidden={view.questionPanel !== "ask"} ref={form} onSubmit={ask} onKeyDown={event => {
           if ((event.ctrlKey || event.metaKey) && event.key === "Enter" && !event.nativeEvent.isComposing) { event.preventDefault(); form.current?.requestSubmit(); }
@@ -161,9 +163,9 @@ export default function Questions({ office, view, session, sessionError, navigat
             <p className="question-help">Original PDF passages and saved Slack messages in this office. Source processing permissions still apply.</p>
             <details className="question-date-options"><summary><CalendarDays size={14} />Date filters <span>{draft.dated || draft.historical ? "Custom" : "Current"}</span></summary>
               <label className="question-checkbox"><input type="checkbox" checked={draft.dated} onChange={event => patch({ dated: event.target.checked })} />Use a historical policy date</label>
-              {draft.dated && <><label className="question-field">Policy applies at <input type="datetime-local" step="0.001" value={draft.validAt} onChange={event => patch({ validAt: event.target.value })} required aria-describedby="question-valid-help" /></label><p className="question-help" id="question-valid-help">UTC. Which source versions applied at this time?</p></>}
+              {draft.dated && <><label className="question-field">Policy applies at <DateInput type="datetime-local" step="0.001" value={draft.validAt} onChange={event => patch({ validAt: event.target.value })} required aria-describedby="question-valid-help" /></label><p className="question-help" id="question-valid-help">UTC. Which source versions applied at this time?</p></>}
               <label className="question-checkbox"><input type="checkbox" checked={draft.historical} onChange={event => patch({ historical: event.target.checked })} />Use a historical knowledge cutoff</label>
-              {draft.historical ? <><label className="question-field">Information known by <input type="datetime-local" step="0.001" value={draft.knownAt} onChange={event => patch({ knownAt: event.target.value })} required aria-describedby="question-known-help" /></label><p className="question-help" id="question-known-help">UTC. Exclude information learned after this time.</p></> : <p className="question-help">Use everything this office knows when answering.</p>}
+              {draft.historical ? <><label className="question-field">Information known by <DateInput type="datetime-local" step="0.001" value={draft.knownAt} onChange={event => patch({ knownAt: event.target.value })} required aria-describedby="question-known-help" /></label><p className="question-help" id="question-known-help">UTC. Exclude information learned after this time.</p></> : <p className="question-help">Use everything this office knows when answering.</p>}
             </details>
           </fieldset>
           {!session && (sessionError ? <div className="notice warning" role="alert"><AlertCircle size={17} /><span>Question access could not be loaded. {sessionError} <button type="button" className="text-button" onClick={() => window.location.reload()}>Reload workspace</button></span></div> : <p className="question-help" role="status">Connecting question access…</p>)}
@@ -173,12 +175,17 @@ export default function Questions({ office, view, session, sessionError, navigat
         </form>
         <section className="question-history" id="question-panel-recent" role="tabpanel" aria-labelledby="question-tab-recent" hidden={view.questionPanel !== "recent"}>
           {asking && <div className="notice" role="status"><LoaderCircle size={16} className="spin" /><span>Answering your question… <button className="text-button" onClick={cancel}>Cancel request</button></span></div>}
-          <div className="question-section-heading"><h2 id="recent-questions-title">Recent answers</h2><button className="icon-button" aria-label="Refresh recent answers" title="Refresh recent answers" onClick={history.retry}><RefreshCw size={16} className={history.loading ? "spin" : ""} /></button></div>
+          <div className="question-section-heading"><h2 id="recent-questions-title">Recent answers</h2><button className="icon-button" aria-label="Refresh recent answers" title="Refresh recent answers" onClick={history.retry} disabled={history.loading} aria-busy={history.loading}><RefreshCw size={16} className={history.loading ? "spin" : ""} /></button></div>
           <div className="search-input"><Search size={17} /><input ref={search} type="search" aria-label="Search recent answers" placeholder="Search questions or dates…" value={view.questionSearch} onChange={event => navigate({ questionSearch: event.target.value }, true)} onKeyDown={event => { if (event.key === "Escape") { event.preventDefault(); event.currentTarget.blur(); } }} />{view.questionSearch ? <button className="icon-button" aria-label="Clear answer search" onClick={() => { navigate({ questionSearch: "" }); search.current?.focus(); }}><X size={15} /></button> : shortcutsEnabled && <ShortcutHint>/</ShortcutHint>}</div>
-          {history.error && <ErrorState title="Recent answers unavailable" error={history.error} retry={history.retry} />}
+          {history.error && !history.data && <ErrorState title="Recent answers unavailable" error={history.error} retry={history.retry} />}
           {!history.data && history.loading && <Loading label="Loading recent answers…" />}
           {history.data && <>
-            <p className="question-list-count">{visible.length} {view.questionSearch ? "matching" : "recent"} {visible.length === 1 ? "answer" : "answers"}{history.data.has_more ? " · Latest 50 loaded" : ""}</p>
+            <div className="question-history-meta">
+              <p className="question-list-count">{visible.length} {view.questionSearch ? "matching" : "recent"} {visible.length === 1 ? "answer" : "answers"}{history.data.has_more ? " · Latest 50 loaded" : ""}</p>
+              <span className={`question-refresh-status ${history.error ? "refresh-failed" : ""}`} role="status" title={history.error ? `${history.error}. Showing the previously loaded answers. Use Refresh to try again.` : undefined}>
+                {history.loading ? "Refreshing…" : history.error ? <><AlertCircle size={13} /><span>Refresh failed</span><span className="sr-only">{history.error}. Showing previously loaded answers. Use Refresh to try again.</span></> : null}
+              </span>
+            </div>
             {!visible.length && <p className="question-help">{view.questionSearch ? "No matching answers. Try another question or date." : "Your saved answers will appear here."}</p>}
             <div className="question-answer-list">{visible.slice(0, shown).map(item => <button key={item.answer_id} data-answer-id={item.answer_id} className={`question-answer-card ${view.questionId === item.answer_id ? "selected" : ""}`} aria-current={view.questionId === item.answer_id ? "true" : undefined} onClick={() => selectAnswer(item.answer_id)}>
               <strong><Highlight text={item.question} query={view.questionSearch} /></strong><span className="question-card-meta"><AnswerBadge status={item.status as Answer["status"]} query={view.questionSearch} /><time><Highlight text={date(item.created_at)} query={view.questionSearch} /></time></span>
@@ -206,7 +213,7 @@ export default function Questions({ office, view, session, sessionError, navigat
             <div className={`question-answer-text answer-${answer.status}`}><MessageSquare size={20} /><p>{answer.answer_text ? answer.target.subject === "general_policy" ? answer.answer_text.split(/(\[S\d+\])/).map((part, index) => /^\[S\d+\]$/.test(part) && answer.citations.some(c => `[${c.statement_id}]` === part) ? <button className="question-citation-ref" key={index} title={`Show supporting evidence for ${part}`} onClick={() => {
               const citation = document.querySelector<HTMLElement>(`[data-answer-statement="${part.slice(1, -1)}"]`); citation?.scrollIntoView({ block: "center", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" }); citation?.focus({ preventScroll: true });
             }}>{part}</button> : part) : answer.answer_text : "The office could not establish an answer from the available evidence. Review the warnings below."}</p></div>
-            <div className="question-result-actions"><button className="button secondary" onClick={() => { const next = draftFromAnswer(answer); patch(next); focusComposer(); }}><Plus size={15} />Use this question</button><button className="button secondary" onClick={() => onVerify(answer.answer_id)} aria-keyshortcuts={shortcutsEnabled ? "V" : undefined}><Shield size={15} />Verify answer{shortcutsEnabled && <ShortcutHint>V</ShortcutHint>}</button></div>
+            <div className="question-result-actions"><button className="button secondary" onClick={reuseQuestion} disabled={asking} aria-keyshortcuts={shortcutsEnabled ? "Shift+N" : undefined}><Plus size={15} />Use this question{shortcutsEnabled && <ShortcutHint>Shift+N</ShortcutHint>}</button><button className="button secondary" onClick={() => onVerify(answer.answer_id)} aria-keyshortcuts={shortcutsEnabled ? "V" : undefined}><Shield size={15} />Verify answer{shortcutsEnabled && <ShortcutHint>V</ShortcutHint>}</button></div>
             {!!additionalReasons.length && <div className="notice warning"><AlertCircle size={17} /><div><strong>Coverage is incomplete</strong><ul>{additionalReasons.map((reason, index) => <li key={index}>{humanize(reason)}</li>)}</ul></div></div>}
             {!!answer.warnings.length && <section className="question-warnings"><h3><AlertCircle size={17} />What needs attention</h3>{answer.warnings.map((warning, index) => <div className="question-warning" key={index}><p>{warning.message.replace(/^([a-z]+(?:_[a-z]+)+):\s*/, (_, code: string) => `${humanize(code)}: `)}</p>{warning.finding_ids.map(id => <button key={id} className="text-button" onClick={() => onFinding(id)}>View finding <span className="question-warning-tag">#{id.slice(-8).toUpperCase()}</span><ArrowRight size={14} /></button>)}</div>)}</section>}
             <section className="question-evidence"><div className="question-section-heading"><h3><BookOpen size={17} />Supporting evidence</h3><span>{answer.citations.length} {answer.citations.length === 1 ? "citation" : "citations"}</span></div>
@@ -234,6 +241,6 @@ export default function Questions({ office, view, session, sessionError, navigat
       </section>
     </div>
     {view.document && <DocumentDialog key={view.document} office={office} sourceId={view.document} view={view} navigate={navigate} evidence={inspected ? { source_id: inspected.source_id, page: inspected.page, section: inspected.section, quote: inspected.quote || "" } : undefined} onClose={() => navigate({ document: "", questionCitation: "" })} />}
-    {sharing && <Modal title="Share Questions view" onClose={() => setSharing(false)}><div className="dialog-body"><p className="dialog-description">The link includes this office, selected saved answer, search and source location. Unsent questions and source filters stay out of the link. Recipients need access to the same office and evidence.</p><label className="question-field">View link<input readOnly value={window.location.href} onFocus={event => event.currentTarget.select()} /></label><button className={`button secondary question-copy copy-${copied}`} onClick={copyLink} title={copied === "copied" ? "Copied" : copied === "failed" ? "Copy failed; select the link and copy it manually" : "Copy link"}>{copied === "copied" ? <Check size={16} /> : copied === "failed" ? <AlertCircle size={16} /> : <Copy size={16} />}Copy link</button><span className="sr-only" role="status">{copied === "copied" ? "Link copied" : copied === "failed" ? "Could not copy. Select the link and copy it manually." : ""}</span></div></Modal>}
+    {sharing && <Modal title="Share Questions view" onClose={() => setSharing(false)}><div className="dialog-body"><p className="dialog-description">The link includes this office, selected saved answer, search and source location. Unsent questions and source filters stay out of the link. Recipients need access to the same office and evidence.</p><ShareLink /></div></Modal>}
   </div>;
 }

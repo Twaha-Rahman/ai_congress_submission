@@ -28,7 +28,15 @@
   --chrome-surface: var(--surface);
   --header-surface: transparent;
   --queue-surface: #f7f4ee;
-  --selected-surface: #f9ece2;
+  --selected-surface: #f1dccd;
+  --nav-active-surface: #f0d9c9;
+  --nav-active-ink: #713d2a;
+  --nav-active-line: #ba795b;
+  --selection-surface: #a9583e;
+  --selection-ink: #fffdf8;
+  --interaction-surface: #ede4d9;
+  --primary-hover: #91472f;
+  --tap-feedback: #a9583e30;
   --scope-surface: var(--surface);
   --field-surface: var(--canvas);
   --raised-surface: #fffdf8;
@@ -76,7 +84,15 @@
   --chrome-surface: #171719;
   --header-surface: #1b1b1d;
   --queue-surface: #242426;
-  --selected-surface: #3b2c27;
+  --selected-surface: #493229;
+  --nav-active-surface: #50382e;
+  --nav-active-ink: #ffd2bb;
+  --nav-active-line: #bb8065;
+  --selection-surface: #efab90;
+  --selection-ink: #241813;
+  --interaction-surface: #3a3432;
+  --primary-hover: #e7a58b;
+  --tap-feedback: #efab9030;
   --scope-surface: #28282b;
   --field-surface: #222224;
   --raised-surface: #2c2c2f;
@@ -105,7 +121,7 @@ textarea {
 button,
 a,
 select {
-  -webkit-tap-highlight-color: transparent;
+  -webkit-tap-highlight-color: var(--tap-feedback);
 }
 button,
 select {
@@ -155,7 +171,9 @@ svg {
   flex-shrink: 0;
 }
 ::selection {
-  background: var(--card);
+  background: var(--selection-surface);
+  color: var(--selection-ink);
+  text-shadow: none;
 }
 .sr-only {
   position: absolute;
@@ -322,6 +340,7 @@ svg {
   margin: 0 12px 12px;
 }
 .nav-item {
+  border: 1px solid transparent;
   min-height: 44px;
   padding: 10px 12px;
   border-radius: 7px;
@@ -332,8 +351,11 @@ svg {
   font-weight: 500;
 }
 .nav-item.active {
-  background: var(--card);
-  color: var(--ink);
+  background: var(--nav-active-surface);
+  color: var(--nav-active-ink);
+  border-color: var(--nav-active-line);
+  box-shadow: inset 3px 0 var(--primary);
+  font-weight: 600;
 }
 .nav-count {
   margin-left: auto;
@@ -2191,3 +2213,57 @@ textarea {
 @media (prefers-reduced-motion: reduce) {
   .auto-refresh-toggle > span { transition: none; }
 }
+
+
+/* Shared feedback: surface changes on hover, a pressed state, and visible focus.
+   No transforms or changing border widths that move controls or their contents. */
+:where(button, a, summary, input, textarea, select) {
+  transition: background-color .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease;
+}
+button:enabled:active, summary:active, .nav-item:active {
+  filter: brightness(.9);
+}
+:where(input, textarea, select):not(:disabled):focus {
+  border-color: var(--primary);
+}
+:where(input[type="checkbox"], input[type="radio"]) { accent-color: var(--primary); cursor: pointer; }
+:where(input[type="date"], input[type="datetime-local"]) { cursor: pointer; }
+.select-trigger[aria-expanded="true"] { background: var(--selected-surface); }
+.select-option.option-active { background: var(--selected-surface); }
+.select-option[aria-selected="true"] { box-shadow: inset 3px 0 var(--primary); }
+@media (hover: hover) {
+  .button.primary:enabled:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+  .button.secondary:enabled:hover, .icon-button:enabled:hover, .select-trigger:enabled:hover {
+    background: var(--interaction-surface); color: var(--ink); border-color: var(--control-line);
+  }
+  .button.primary:enabled:active { background: var(--primary-pressed); }
+  .button.secondary:enabled:active { background: var(--selected-surface); }
+  .text-button:enabled:hover, .source-name:enabled:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .nav-item:not(.active):hover { background: var(--interaction-surface); color: var(--ink); }
+  .nav-item.active:hover { border-color: var(--primary); }
+  :is(.finding-list-item, .question-answer-card, .upload-job, .lineage-node):enabled:hover { border-color: var(--primary); }
+  :is(.finding-list-item, .question-answer-card, .upload-job, .lineage-node):not(.selected):enabled:hover { background: var(--interaction-surface); }
+  :is(.detail-tabs, .question-panel-tabs, .comparison-tabs, .verification-task-tabs) button:enabled:hover { color: var(--primary); background: var(--interaction-surface); }
+  .search-input:hover { border-color: var(--primary); }
+  :where(input, textarea, select):not(:disabled):not([readonly]):hover { border-color: var(--primary); }
+  summary:hover { color: var(--primary); background: color-mix(in srgb, var(--interaction-surface) 65%, transparent); }
+  .question-citation-ref:enabled:hover { background: var(--primary); color: var(--on-primary); }
+}
+.mobile-workspace-nav a[aria-current="page"] { color: var(--nav-active-ink); background: var(--nav-active-surface); border-bottom-color: var(--primary); }
+
+/* One shared URL/copy row across Questions, Cross-office and Verification. */
+.share-link { margin-top: 20px; min-width: 0; }
+.share-link > label { display: block; font-size: 12px; font-weight: 500; color: var(--body); margin-bottom: 8px; }
+.share-link-control { display: flex; align-items: stretch; gap: 8px; min-width: 0; }
+.share-link .share-link-control > input { flex: 1; min-width: 0; width: 0; height: 42px; padding: 10px 12px; background: var(--field-surface); color: var(--body); border: 1px solid var(--control-line); border-radius: 7px; font-size: 12px; }
+.share-link .share-link-copy { width: 42px; min-width: 42px; height: 42px; border: 1px solid var(--control-line); background: var(--secondary-surface); color: var(--body); }
+.share-link .copy-copied { color: var(--teal); border-color: var(--teal-line); background: var(--teal-surface); }
+.share-link .copy-copied svg { animation: copy-confirm 280ms ease-out; }
+.share-link .copy-failed { color: var(--warning-ink); }
+.share-link-status.copy-failed { font-size: 12px; margin-top: 10px; }
+@media (hover: hover) {
+  :is(.verification-exports > div, .lineage-groups) > button:enabled:hover,
+  .evidence-file > button:first-child:enabled:hover { background: var(--interaction-surface); color: var(--ink); }
+  .finding-tag:enabled:hover, .verification-finding-tag:enabled:hover { border-color: var(--primary); background: var(--selected-surface); }
+}
+.select-trigger[aria-expanded="true"] { border-color: var(--primary); }

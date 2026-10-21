@@ -3,6 +3,7 @@ import { AlertCircle, ArrowUpFromLine, Check, FileText, LoaderCircle, LockKeyhol
 import { api, ApiError } from "./api";
 import { Modal, ShortcutHint } from "./components";
 import Select from "./Select";
+import DateInput from "./DateInput";
 import type { Office, Session, Source, SourceDetail, UploadJob } from "./types";
 import { blankDraft, buildPolicyManifest, fileSize, maxPdfBytes, validatePdf, type PolicyDraft } from "./uploads";
 
@@ -149,10 +150,10 @@ export default function UploadPdf({ open, office, sources, config, shortcutsEnab
               options={[{ value: "policy", label: "Policy" }, { value: "procedure", label: "Operating procedure" }]}
               onChange={(value) => edit("authority", value as PolicyDraft["authority"])} /></div>
             <label className="upload-field"><span className="upload-label">Publication date <span>Required</span></span>
-              <input type="date" value={draft.published} onChange={(e) => edit("published", e.target.value)} required />
+              <DateInput type="date" value={draft.published} onChange={(e) => edit("published", e.target.value)} required />
             </label>
             <label className="upload-field"><span className="upload-label">Effective from <span>{replaceId ? "Required" : "Optional"}</span></span>
-              <input type="date" value={draft.effective} onChange={(e) => edit("effective", e.target.value)} required={!!replaceId} />
+              <DateInput type="date" value={draft.effective} onChange={(e) => edit("effective", e.target.value)} required={!!replaceId} />
             </label>
             <label className="upload-field span-two"><span className="upload-label">Applies to <span>Required</span></span>
               <textarea rows={2} value={draft.scope} onChange={(e) => edit("scope", e.target.value)} required maxLength={1000} readOnly={!!replaceId} placeholder="Who and what this policy covers, including location or team" />
@@ -162,7 +163,7 @@ export default function UploadPdf({ open, office, sources, config, shortcutsEnab
 
           <details className="upload-advanced"><summary>Additional settings</summary>
             <div className="upload-form-grid">
-              <label className="upload-field"><span className="upload-label">Stops applying before <span>Optional</span></span><input type="date" value={draft.until} onChange={(e) => edit("until", e.target.value)} /></label>
+              <label className="upload-field"><span className="upload-label">Stops applying before <span>Optional</span></span><DateInput type="date" value={draft.until} onChange={(e) => edit("until", e.target.value)} /></label>
               <div className="upload-field"><span className="upload-label">Who can read this source</span><Select label="Source access" value={draft.sensitivity}
                 options={[{ value: "demo_shareable", label: "Office readers" }, { value: "restricted", label: "Restricted readers" }]}
                 onChange={(value) => edit("sensitivity", value as PolicyDraft["sensitivity"])} /></div>

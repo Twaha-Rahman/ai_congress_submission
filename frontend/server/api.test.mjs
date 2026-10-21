@@ -33,7 +33,7 @@ async function bridge(t, options = {}) {
 test("session contains capabilities, never credentials; browser authorization cannot select a principal", async (t) => {
   const { url, calls } = await bridge(t);
   const session = await (await fetch(`${url}/api/session`)).json();
-  assert.deepEqual(session, { role: "reviewer", canReview: true, demo: true, uploads: {
+  assert.deepEqual(session, { role: "reviewer", canReview: true, demo: true, queries: { dhaka: true, frankfurt: true }, uploads: {
     dhaka: { enabled: false, maxBytes: 20 * 1024 * 1024, processing: "hosted" },
     frankfurt: { enabled: false, maxBytes: 20 * 1024 * 1024, processing: "hosted" },
   } });
@@ -255,5 +255,25 @@ test("verification and lineage expose only the intended methods and enforce orig
   assert.equal((await fetch(`${url}/api/dhaka/verifications/source`, { method: "POST", headers: { "X-Meridian-UI": "1" }, body: "{}" })).status, 422);
   assert.equal((await fetch(`${url}/api/dhaka/verifications/bundle`, { method: "POST", headers: { "X-Meridian-UI": "1" }, body: "[invalid JSON]" })).status, 422);
   assert.equal((await fetch(`${url}/api/dhaka/verifications/bundle`, { method: "POST", headers: { "X-Meridian-UI": "1" }, body: '"' + "x".repeat(20 * 1024 * 1024) + '"' })).status, 413);
+  assert.equal(calls.length, 0);
+});
+
+test("local queries use the reader principal, enforce origin, and reject gateway controls", async (t) => {
+  const { url, calls } = await bridge(t, { env: { UI_ROLE: "reader", DEMO_TOKEN_DHAKA_READER: "query-reader" } });
+  const query = { question: "Approvals?", target: { subject: "loan_approval", amount_minor: 3000000, currency: "USD", loan_type: "business", origin_office: "DHAKA" }, valid_at: "2026-03-03T00:00:00Z" };
+  const post = (body, headers = { "X-Meridian-UI": "1", Origin: url }) => fetch(`${url}/api/dhaka/queries`, { method: "POST", headers, body: JSON.stringify(body) });
+  assert.equal((await post(query)).status, 200);
+  assert.equal(calls[0].headers.Authorization, "Bearer query-reader");
+  assert.deepEqual(JSON.parse(calls[0].body), query);
+  assert.equal(calls[0].url.endsWith("/v1/queries"), true);
+  assert.equal((await (await fetch(`${url}/api/session`)).json()).queries.dhaka, true);
+  calls.length = 0;
+  assert.equal((await fetch(`${url}/api/dhaka/queries`)).status, 404);
+  assert.equal((await post(query, {})).status, 403);
+  assert.equal((await post(query, { "X-Meridian-UI": "1", Origin: "https://elsewhere.example" })).status, 403);
+  for (const body of [[], { ...query, tenant_id: "other" }, { ...query, remote_snapshot_ids: ["snapshot"] },
+    { ...query, mode: "live" }, { ...query, target: { subject: "general_policy" } }])
+    assert.equal((await post(body)).status, 422);
+  assert.equal((await fetch(`${url}/api/dhaka/queries`, { method: "POST", headers: { "X-Meridian-UI": "1" }, body: "{" })).status, 422);
   assert.equal(calls.length, 0);
 });

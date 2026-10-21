@@ -108,6 +108,7 @@ export interface Session {
   role: "reviewer" | "reader";
   canReview: boolean;
   demo: boolean;
+  queries?: Record<Office, boolean>;
   uploads?: Record<Office, { enabled: boolean; processing: "local" | "hosted"; maxBytes: number }>;
 }
 
@@ -214,8 +215,52 @@ export interface LineageGraph {
 }
 export interface RecentAnswer { answer_id: string; question: string; status: string; created_at: string; }
 export interface StoredAnswer {
-  answer: {
-    answer_id: string; question: string; answer_text: string; status: string; created_at: string;
-    valid_at: string; known_at: string; modes: Record<string, string>;
-  };
+  answer: Answer;
+}
+
+export interface QuestionTarget {
+  subject: "loan_approval" | "record_retention";
+  amount_minor?: number;
+  currency?: "USD";
+  loan_type?: "business";
+  origin_office?: "DHAKA" | "FRANKFURT";
+  processing_office?: "DHAKA" | "FRANKFURT";
+  record_class?: "loan_records";
+  starting_event?: "loan_closure";
+  product?: "MTF_CROSS_OFFICE";
+}
+export interface QuestionRequest {
+  question: string;
+  target: QuestionTarget;
+  valid_at: string;
+  known_at?: string;
+}
+export interface AnswerCitation extends Omit<Evidence, "quote"> {
+  statement_id: string;
+  claim_id: string;
+  source_identity: string;
+  source_version_label: string;
+  authority: string;
+  restricted: boolean;
+  remote: boolean;
+  quote: string | null;
+}
+export interface Answer {
+  answer_id: string;
+  question: string;
+  answer_text: string;
+  status: "answered" | "needs_review" | "abstained" | "partial";
+  created_at: string;
+  valid_at: string;
+  known_at: string;
+  modes: Record<string, string>;
+  target: QuestionTarget;
+  citations: AnswerCitation[];
+  warnings: { code: string; message: string; finding_ids: string[]; claim_revision_ids: string[] }[];
+  partial_reasons: string[];
+  governing_facts: {
+    claim_revision_id: string; authority: string; policy_family: string;
+    rule_summary: string; scope_summary: string;
+    valid_interval: { start: string | null; end: string | null };
+  }[];
 }

@@ -40,6 +40,10 @@ export interface View {
   verifyPassage: string;
   verifySearch: string;
   verifyChecks: "all" | "passed" | "failed" | "not_checked";
+  questionId: string;
+  questionSearch: string;
+  questionPane: "compose" | "answer";
+  questionCitation: string;
 }
 
 export function readView(search: string): View {
@@ -94,6 +98,10 @@ export function readView(search: string): View {
     verifyPassage: p.get("passage") || "",
     verifySearch: p.get("vq") || "",
     verifyChecks: allowed("checks", ["passed", "failed", "not_checked"]) as View["verifyChecks"],
+    questionId: p.get("answer") || "",
+    questionSearch: p.get("qq") || "",
+    questionPane: allowed("questionPane", ["compose", "answer"], p.get("answer") ? "answer" : "compose") as View["questionPane"],
+    questionCitation: p.get("citation") || "",
   };
 }
 
@@ -132,6 +140,10 @@ export function viewSearch(view: View) {
   if (view.verifyPassage) p.set("passage", view.verifyPassage);
   if (view.verifySearch) p.set("vq", view.verifySearch);
   if (view.verifyChecks !== "all") p.set("checks", view.verifyChecks);
+  if (view.questionId) p.set("answer", view.questionId);
+  if (view.questionSearch) p.set("qq", view.questionSearch);
+  p.set("questionPane", view.questionPane);
+  if (view.questionCitation) p.set("citation", view.questionCitation);
   if (view.source) {
     p.set("source", view.source);
     p.set("sourceMode", view.sourceMode);

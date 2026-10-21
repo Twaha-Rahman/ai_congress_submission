@@ -67,6 +67,9 @@ export function createApiHandler({
         role,
         canReview: role === "reviewer",
         demo: true,
+        queries: Object.fromEntries(["dhaka", "frankfurt"].map(office => [office,
+          !!env[`DEMO_TOKEN_${office.toUpperCase()}_${role.toUpperCase()}`],
+        ])),
         uploads: Object.fromEntries(["dhaka", "frankfurt"].map((office) => [office, {
           enabled: role === "reviewer" && !!env[`DEMO_TOKEN_${office.toUpperCase()}_UPLOADER`],
           processing: usesApprovedLocalModel(env, office.toUpperCase()) ? "local" : "hosted",
@@ -75,20 +78,21 @@ export function createApiHandler({
       });
     }
     const match =
-      /^\/api\/(dhaka|frankfurt)\/(findings(?:\/[\w:.-]+(?:\/(?:reviews|lineage))?)?|sources(?:\/[\w:.-]+(?:\/(?:content|comparisons|lineage))?)?|answers(?:\/[\w:.-]+(?:\/(?:lineage|bundle))?)?|verifications\/(?:source|bundle)|claims(?:\/reviews)?|jobs(?:\/[\w.-]+)?|ingestions\/pdf)$/.exec(
+      /^\/api\/(dhaka|frankfurt)\/(findings(?:\/[\w:.-]+(?:\/(?:reviews|lineage))?)?|sources(?:\/[\w:.-]+(?:\/(?:content|comparisons|lineage))?)?|answers(?:\/[\w:.-]+(?:\/(?:lineage|bundle))?)?|queries|verifications\/(?:source|bundle)|claims(?:\/reviews)?|jobs(?:\/[\w.-]+)?|ingestions\/pdf)$/.exec(
         url.pathname,
       );
     const path = match?.[2];
     const isReview = path && /^findings\/[\w:.-]+\/reviews$/.test(path);
     const isUpload = path === "ingestions/pdf";
+    const isQuery = path === "queries";
     const isComparison = path && /^sources\/[\w:.-]+\/comparisons$/.test(path);
     const isVerification = path?.startsWith("verifications/");
     const isSourceVerification = path === "verifications/source";
     if (
       !match ||
       !(
-        (req.method === "GET" && !isReview && !isUpload && !isComparison && !isVerification) ||
-        (req.method === "POST" && (isReview || isUpload || isComparison || isVerification))
+        (req.method === "GET" && !isReview && !isUpload && !isComparison && !isVerification && !isQuery) ||
+        (req.method === "POST" && (isReview || isUpload || isComparison || isVerification || isQuery))
       )
     ) {
       return json(res, 404, {
@@ -115,7 +119,7 @@ export function createApiHandler({
           },
         });
       }
-      if (role !== "reviewer" && !isVerification)
+      if (role !== "reviewer" && !isVerification && !isQuery)
         return json(res, 403, {
           error: {
             code: "forbidden",
@@ -206,6 +210,17 @@ export function createApiHandler({
             contentType = undefined;
           } catch {
             return json(res, 422, { error: { code: "invalid_input", message: "Choose a source and a nonempty copy up to 20 MB." } });
+          }
+        } else if (isQuery) {
+          try {
+            const query = JSON.parse(body.toString("utf8"));
+            // Local questions cannot supply gateway snapshot controls or select
+            // another tenant, principal, execution mode, or office connection.
+            if (!query || typeof query !== "object" || Array.isArray(query) ||
+                Object.keys(query).some(key => !["question", "target", "valid_at", "known_at"].includes(key)) ||
+                !["loan_approval", "record_retention"].includes(query.target?.subject)) throw new Error();
+          } catch {
+            return json(res, 422, { error: { code: "invalid_input", message: "Supply a local loan-approval or record-retention question with its facts and dates." } });
           }
         } else if (isVerification) {
           try {

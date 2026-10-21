@@ -107,14 +107,16 @@ checks and **Trace evidence** to follow evidence connections. Switching tabs ret
 your selected file and results for the same evidence. Choose an evidence type:
 
 - **Source copy:** select an authorized source, choose its PDF or saved Slack JSON
-  copy, then run verification. File bytes, normalized text, passage text and the
-  commitment tree are checked independently. A metadata-only PDF edit can fail
+  copy, then run verification. The original and your copy appear together; opening
+  Verification never chooses a source for you. File bytes, normalized text, passage
+  text and the commitment tree are checked independently. A metadata-only PDF edit can fail
   file identity while its text checks pass. The immutable original is never changed.
-- **Finding lineage:** follow the finding's statements, passages and source versions;
+- **Finding:** follow the finding's statements, passages and source versions;
   inspect exact passages and open the source at its location. Source-copy and
   answer-bundle checks do not verify finding snapshot signatures.
-- **Stored answer:** enter an answer ID from an API response or demo. Inspect its
-  answer and authorized lineage, export its signed bundle, and check that bundle.
+- **Saved answer:** search recent authorized answers by question or creation date.
+  Manual ID entry is available under Open by answer ID. Inspect its answer and
+  authorized lineage, export its signed bundle, and check that bundle.
   Creating answers remains an API/demo workflow; a Questions page is not built yet.
 - **Uploaded bundle:** choose an exported JSON bundle (a bare bundle or a
   `{ "bundle": ... }` response). Inspect supplied connections and check its
@@ -126,24 +128,30 @@ Readers can run verification using their existing read access. Verification does
 require uploader privileges or make model calls. The UI sends copies only to the
 selected local office backend. Files are limited to 20 MiB. Neither uploaded copies,
 imported bundles nor verification reports are published as sources or stored in URL
-state; export a report if you need to keep it.
+state; use the header **Export** menu to keep a report, trace, or saved answer bundle.
+**Share view** explains what the link includes before copying it.
 
 The trace starts with the selected record’s supporting evidence; **Show related
 evidence** expands the wider authorized graph. Browse conclusions, statements,
 passages and sources one group at a time, with more records loaded on request.
-Selecting a record shows its connections and exact passage beside the list on desktop.
-On mobile it opens a detail view; **Back to evidence** restores your scroll and focus. Connections represent stored
+Statements use literal excerpts and citations as labels, and source versions are grouped
+under their document. Selecting a record shows its connections and exact passage beside
+the list on desktop. On mobile it opens a detail view; **Back to evidence** restores
+your scroll and focus. Connections represent stored
 provenance, not an integrity result. Uploaded-bundle connections are explicitly
 labelled as supplied data. Server-authorized traces omit inaccessible nodes and
 dangling edges; a bounded trace warns when it reaches the node limit.
 
 `/` focuses lineage search; `Escape` leaves it without clearing the query. `J`/`K`
 move through matching records, `L` opens Trace evidence, and `V` opens Check integrity
-and runs a ready verification form. `Ctrl+Enter` / `⌘+Enter` also submits that form. Share view preserves office,
+and runs a ready verification form. `Ctrl+Enter` / `⌘+Enter` also submits that form.
+Share view preserves office,
 task, trace scope/group, mobile pane, evidence type/ID, selected node, search, result
 filter and source page/zoom/passage.
-Local files and check results must be supplied or rerun after reload. Browser history
-restores the evidence view, with explicit unavailable states for missing IDs.
+Saved-answer search is retained in the link. Local files and check results must be
+supplied or rerun after reload. Browser history restores the evidence view, with explicit unavailable states for missing IDs. Evidence,
+lineage, and bundle requests fail independently: a trace failure does not prevent a
+source-copy check, and a bundle failure does not hide a saved answer’s trace.
 
 ### Upload your own PDF
 
@@ -384,6 +392,7 @@ GET  /v1/sources/{id}/lineage, /v1/findings/{id}/lineage
 GET  /v1/findings, /v1/findings/{id}
 POST /v1/findings/{id}/reviews
 POST /v1/queries
+GET  /v1/answers?limit=50 (1–100; filters access before limiting)
 GET  /v1/answers/{id}, /v1/answers/{id}/lineage, /v1/answers/{id}/bundle
 POST /v1/verifications/source, /v1/verifications/bundle
 POST /v1/comparisons                 federation comparator (service auth)

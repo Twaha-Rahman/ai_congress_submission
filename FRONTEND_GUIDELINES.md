@@ -330,7 +330,7 @@ model quality still require rehearsal.
   hints. Keep the page heading to “Verification.” The heading wraps at narrow widths;
   do not squeeze the Share button outside the viewport.
 - Entry points are Trace evidence from a finding and Verify source from source
-  inspection. The workspace also opens source copies, stored answers by ID and
+  inspection. The workspace also opens source copies, recent authorized answers and
   imported answer bundles. Do not imply that a source-copy check verifies a finding
   snapshot signature or an answer, or that general-policy Q&A now exists.
 - Keep Passed, Failed and Not checked independent, with a labelled icon, semantic
@@ -370,16 +370,35 @@ model quality still require rehearsal.
   explicitly supplied data, not verified local history, and cannot open local source
   records through a claimed ID.
 - URL state includes task, trace scope, group, mobile browse/detail pane, kind/target,
-  node, passage, search, check filter and source
+  node, passage, search, saved-answer search, check filter and source
   location. File bytes, filenames, unsaved answer IDs and check results stay out of
   shared links. Explain that imported files need to be selected again after reload.
 - `/` searches lineage, Escape leaves search, J/K move matching records in group order,
   L opens Trace evidence, and V opens Check integrity and runs a ready check (or opens the current finding's trace
   from Findings). Show keycaps for the primary actions on desktop only. Preserve
   F1, theme/office shortcuts and the existing shortcut preference.
-- Header finding tags and Share view copy with a fixed-size in-button icon animation
-  and a screen-reader announcement. Clipboard success/failure must not insert visible
-  text beneath controls or move the layout.
+- Header finding tags copy with a fixed-size in-button animation and screen-reader
+  announcement. Share view opens the shared Modal and explains that a URL carries
+  evidence/navigation state, not files or reports. Its Copy link action uses the same
+  stable icon feedback. Outside click/Escape dismiss the dialog and restore focus.
+  Use one header Export disclosure for the available report, trace and signed bundle;
+  label supplied traces explicitly. Escape, outside click and leaving focus dismiss it.
+- Show Stored original and Your copy together. Initial entry never chooses an arbitrary
+  source. Keep unchecked file selection neutral and reserve success accents for returned
+  passed checks. Zero-result counters are neutral. Use a compact unchecked line rather
+  than a large result placeholder. Technical scope belongs in one expandable note.
+- Important result text is 14px; evidence context and version/status badges are readable
+  at 12px with a consistent 24px minimum height. Source versions stay on one line.
+  Statement labels use exact excerpts without modifying evidence; passage labels identify
+  their section or page. Nest version cards beneath their document in the Sources group.
+- Saved answers use a recent-answer picker searchable by question/date. Keep manual ID
+  entry under an advanced disclosure; Escape exits search without clearing it. The list
+  applies the same source authorization as individual answer reads, before limiting it.
+- Load each evidence library, selected record, lineage and answer bundle independently.
+  Distinguish pending, empty, unavailable and loaded states. A failed trace cannot disable
+  source verification; a failed bundle cannot hide an answer or its trace. Retries preserve
+  local files/results for the same target. Changing targets aborts pending work and gates
+  previous files/results immediately so they cannot flash under the new selection.
 - The bridge uses the configured reader/reviewer principal for verification, never
   an uploader/service credential. Verification POSTs are read operations but still
   require the workspace origin/header. Allowlist only the source/bundle and lineage
@@ -411,3 +430,13 @@ across task tabs, imported bundle preview, URL reloads, tab arrow keys, search E
 J/K across pagination boundaries, mobile Back scroll/focus restoration, incremental
 record loading, and 320–1440px layouts in both themes. The browser review also caught
 and fixed a focus race when keyboard navigation revealed the next page of records.
+
+
+The remaining verification refinements passed the production build, all 53 frontend
+checks, and the full offline backend suite. Read-only browser checks against an isolated
+copy of the demo database covered deliberate selection, real source-copy and answer-bundle
+verification, question/date selection and URL reloads, missing lineage/bundle/library
+responses and recovery, grouped downloads, copy feedback, outside/Escape dismissal,
+late-response cancellation, mobile list/detail navigation and both themes at 320–1440px.
+The wide PDF inspector and one-line source version badge remain intact. No hosted model
+calls or changes to the working demo database were needed.

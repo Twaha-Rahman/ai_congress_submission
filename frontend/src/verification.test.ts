@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { bundleLineage, checkCounts, checkSummary, focusedLineage, lineageNodes, evidenceFileError, parseEvidenceBundle } from "./verification.ts";
+import { bundleLineage, checkCounts, checkSummary, focusedLineage, lineageNodes, lineageNodeTitle, sourceFamily, evidenceFileError, parseEvidenceBundle } from "./verification.ts";
 import { readView, viewSearch } from "./viewState.ts";
 
 test("verification URLs retain target, selected node, filters and original-source location", () => {
@@ -88,4 +88,20 @@ test("result summaries distinguish byte mismatch, missing checks, undisclosed pr
   assert.equal(checkSummary(partial).tone, "not_checked");
   assert.equal(checkSummary({ ...partial, checks: [{ check: "signature", status: "not_checked", detail: {} }] }).title, "No checks passed; verification is incomplete.");
   assert.equal(checkSummary({ ...mismatch, checks: mismatch.checks.map(check => ({ ...check, status: "failed" })) }).tone, "failed");
+});
+
+test("evidence labels use literal excerpts and clear locators without modifying evidence", () => {
+  const quote = 'Employees must never send customer data to personal email accounts.';
+  const node = { node_id: 'revision:r', node_type: 'claim_revision', label: 'general_policy:statement', attributes: { quote, source_identity: 'security_policy', version_label: 'v1' }, restricted: false };
+  assert.equal(lineageNodeTitle(node), quote);
+  assert.equal(node.attributes.quote, quote);
+  assert.equal(lineageNodeTitle({ ...node, node_type: 'clause', attributes: { section: '3.1', page: '2' } }), 'Section 3.1');
+  assert.equal(lineageNodeTitle({ ...node, node_type: 'clause', attributes: { page: '2' } }), 'Passage on page 2');
+  assert.equal(lineageNodeTitle({ ...node, node_type: 'answer', attributes: { question: 'What policy applies?' } }), 'What policy applies?');
+  const version = { ...node, node_type: 'version', node_id: 'source:s' };
+  assert.equal(sourceFamily(version), sourceFamily({ ...node, node_type: 'document', node_id: 'document:security_policy' }));
+  const graph = { root_id: node.node_id, nodes: [version, node], edges: [], truncated: false };
+  assert.equal(lineageNodes(graph, 'email accounts')[0].node_id, node.node_id);
+  const view = { ...readView(''), verifyAnswerSearch: 'policy & date' };
+  assert.deepEqual(readView(viewSearch(view)), view);
 });

@@ -34,6 +34,7 @@ export interface View {
   verifyScope: "focused" | "related";
   verifyPane: "browse" | "detail";
   verifyGroup: string;
+  verifyAnswerSearch: string;
   verifyId: string;
   verifyNode: string;
   verifyPassage: string;
@@ -87,6 +88,7 @@ export function readView(search: string): View {
     verifyScope: p.get("scope") === "related" ? "related" : "focused",
     verifyPane: p.get("tracePane") === "detail" ? "detail" : "browse",
     verifyGroup: allowed("group", ["Conclusions", "Statements", "Passages", "Sources"], ""),
+    verifyAnswerSearch: p.get("aq") || "",
     verifyId: p.get("target") || "",
     verifyNode: p.get("node") || "",
     verifyPassage: p.get("passage") || "",
@@ -124,6 +126,7 @@ export function viewSearch(view: View) {
   if (view.verifyScope !== "focused") p.set("scope", view.verifyScope);
   if (view.verifyPane !== "browse") p.set("tracePane", view.verifyPane);
   if (view.verifyGroup) p.set("group", view.verifyGroup);
+  if (view.verifyAnswerSearch) p.set("aq", view.verifyAnswerSearch);
   if (view.verifyId) p.set("target", view.verifyId);
   if (view.verifyNode) p.set("node", view.verifyNode);
   if (view.verifyPassage) p.set("passage", view.verifyPassage);

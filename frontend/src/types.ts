@@ -212,9 +212,10 @@ export interface LineageGraph {
   edges: { edge_id: string; edge_type: string; from_node_id: string; to_node_id: string; attributes: Record<string, string> }[];
   truncated: boolean;
 }
+export interface RecentAnswer { answer_id: string; question: string; status: string; created_at: string; }
 export interface StoredAnswer {
   answer: {
-    answer_id: string; question: string; answer_text: string; status: string;
+    answer_id: string; question: string; answer_text: string; status: string; created_at: string;
     valid_at: string; known_at: string; modes: Record<string, string>;
   };
 }

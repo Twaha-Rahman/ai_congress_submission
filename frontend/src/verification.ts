@@ -65,8 +65,16 @@ export function focusedLineage(graph: LineageGraph): LineageGraph {
 }
 export function lineageNodes(graph: LineageGraph, search: string) {
   const query = search.trim().toLowerCase();
-  return lineageGroups.flatMap(group => graph.nodes.filter(node => group.types.includes(node.node_type)))
+  return lineageGroups.flatMap(group => {
+    const nodes = graph.nodes.filter(node => group.types.includes(node.node_type));
+    return group.label === "Sources" ? nodes.sort((a, b) => sourceFamily(a).localeCompare(sourceFamily(b)) ||
+      Number(b.node_type === "document") - Number(a.node_type === "document") ||
+      (a.attributes.version_label || "").localeCompare(b.attributes.version_label || "", undefined, { numeric: true })) : nodes;
+  })
     .filter(node => !query || `${lineageNodeTitle(node)} ${node.node_id} ${Object.values(node.attributes).join(" ")}`.toLowerCase().includes(query));
+}
+export function sourceFamily(node: LineageNode) {
+  return node.node_type === "document" ? node.node_id.replace(/^document:/, "") : node.attributes.source_identity || node.node_id;
 }
 export function evidenceFileError(file: Pick<File, "size">) {
   if (!file.size) return "Choose a nonempty evidence file.";
@@ -136,11 +144,13 @@ export const lineageGroups = [
   { label: "Sources", types: ["version", "source", "document"] },
 ];
 export function lineageNodeTitle(node: LineageNode) {
-  if (node.node_type === "clause" && /^message \d+$/.test(node.label)) return `Page ${node.attributes.page || "unknown"} passage`;
+  const excerpt = node.attributes.quote?.trim().replace(/\s+/g, " ");
+  if (["clause", "message"].includes(node.node_type)) return node.attributes.section ? `Section ${node.attributes.section}` :
+    node.attributes.page ? `Passage on page ${node.attributes.page}` : node.node_type === "message" ? "Saved message" : "Cited passage";
   if (node.attributes.source_identity && ["version", "source"].includes(node.node_type)) return sourceTitle({ source_identity: node.attributes.source_identity });
   if (node.node_type === "document") return sourceTitle({ source_identity: node.node_id.replace(/^document:/, "") });
-  if (node.node_type === "answer" && /^(answered|abstained|partial|needs_review) answer$/.test(node.label)) return "Recorded answer";
-  if (["claim_revision", "revision"].includes(node.node_type)) return node.label.startsWith("general_policy:") ? "Policy statement" : node.label.replace(/^(loan_approval|record_retention):\s*/, "");
+  if (node.node_type === "answer") return node.attributes.question || (/^(answered|abstained|partial|needs_review) answer$/.test(node.label) ? "Recorded answer" : node.label);
+  if (["claim_revision", "revision"].includes(node.node_type)) return excerpt ? excerpt.length > 110 ? `${excerpt.slice(0, 110).trimEnd()}…` : excerpt : node.label.startsWith("general_policy:") ? "Policy statement" : node.label.replace(/^(loan_approval|record_retention):\s*/, "");
   return node.label.replace(/_/g, " ");
 }
 export function downloadJson(value: unknown, filename: string) {

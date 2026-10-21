@@ -76,6 +76,9 @@ Tokens live in `frontend/src/styles.css`; use variables when extending component
   the current screen without a separate breadcrumb/top bar. Source passages sit side
   by side where readable. Remove the old “Office workspace / Access follows your role”
   footer copy.
+- Office and theme use the same shared select styling, including border contrast,
+  surface, typography, spacing and interaction feedback. Do not add office-specific
+  border overrides. Keep their existing responsive label/icon layouts.
 - At medium widths the sidebar becomes an icon rail; office and theme retain labelled
   combobox semantics and native tooltips, while role remains available through the
   account group's accessible name. At mobile widths the same sidebar becomes a compact

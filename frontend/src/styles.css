@@ -394,9 +394,6 @@ svg {
   gap: 8px;
   align-items: center;
 }
-.theme-select .select-trigger {
-  min-width: 104px;
-}
 .role-label {
   color: var(--muted);
 }
@@ -652,10 +649,6 @@ textarea::placeholder {
   min-height: 32px;
   padding: 6px 8px;
   font-size: 11px;
-  border-color: var(--line);
-}
-.office-select .select-trigger {
-  font-size: 12px;
   border-color: var(--line);
 }
 .select-options {
@@ -1945,12 +1938,13 @@ textarea {
   .sidebar .brand { margin: 0; flex-shrink: 0; }
   .sidebar .brand img { width: 28px; height: 28px; }
   .sidebar-context { flex: 1; flex-direction: row; gap: 8px; width: auto; min-width: 0; padding: 0; margin: 0; border: 0; }
+  .sidebar-context .select-trigger { height: 36px; min-height: 36px; padding: 8px; font-size: 11px; gap: 6px; }
   .sidebar-context .office-select { flex: 1; min-width: 0; }
-  .sidebar-context .office-select .select-trigger { width: 100%; min-width: 0; height: 36px; min-height: 36px; padding: 8px; font-size: 11px; justify-content: flex-start; gap: 6px; }
+  .sidebar-context .office-select .select-trigger { width: 100%; min-width: 0; justify-content: flex-start; }
   .sidebar-context .office-select .select-trigger > span:not(.shortcut-hint), .sidebar-context .office-select .select-chevron { display: block; }
   .sidebar-context .office-select .select-trigger > svg { flex-shrink: 0; }
   .sidebar-context .theme-select { flex-shrink: 0; }
-  .sidebar-context .theme-select .select-trigger { width: 36px; min-width: 36px; min-height: 36px; height: 36px; padding: 8px; }
+  .sidebar-context .theme-select .select-trigger { width: 36px; min-width: 36px; }
   .sidebar-context .sidebar-account { flex-shrink: 0; padding: 0; }
   .sidebar-context .role-label { display: block; font-size: 10px; white-space: nowrap; }
   .sidebar-context .avatar { display: none; }

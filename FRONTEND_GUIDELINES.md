@@ -592,10 +592,10 @@ themes at 320, 390, 760, 1024 and 1440px. The offline evaluation suite used
   labelled button sits beside the field, with fixed dimensions and in-button check
   confirmation. Announce success to screen readers; keep clipboard failures visible
   with manual-copy instructions. Escape/outside dismissal remains unchanged.
-- Native date/datetime fields open their picker when clicked anywhere in the field,
-  including within upload dialogs. Preserve native keyboard editing and Alt+Down
-  activation, and retain normal input behavior when showPicker is unavailable or
-  cannot open. Do not open calendars merely on keyboard focus.
+- Shared date/datetime fields open the themed calendar when clicked anywhere in the
+  field, including within upload dialogs. Alt+Down and F4 also open it. Preserve
+  native keyboard editing, values and required/min/max/step validation. Do not open
+  calendars merely on keyboard focus.
 
 Validation passed 72 frontend tests and the production build. Read-only browser
 checks covered zero list movement across refresh/pending/failure/recovery, real icon
@@ -617,3 +617,33 @@ both themes.
 Office answer cards use a uniform one-pixel border and a quiet surface. Do not add
 a thick top edge or accent rail. Use the existing heading, status badge and spacing
 to establish hierarchy.
+
+
+## Calendar and time picker
+
+- Use the shared DateInput: a compact calendar, Monday-first weekday grid, month/year
+  navigation, selected date in the project accent, and a separate UTC time panel for
+  datetime fields. Do not add decorative event dots or scheduling copy. Date-only
+  fields omit the time panel. Today has a quiet outline separate from selection.
+- Half-hour time choices accompany an exact-time field supporting seconds and
+  milliseconds. Preserve the existing source-date and historical-cutoff semantics;
+  do not round an existing cutoff to a convenient time slot.
+- Day/time choices are local drafts. Apply alone updates the native controlled form
+  value; Cancel, Escape and outside dismissal discard the draft. Escape closes the
+  picker before an enclosing upload dialog. Restore focus on explicit dismissal.
+- Calendar arrows move by day/week, Home/End move within the week, PageUp/PageDown
+  move by month, and Shift+PageUp/PageDown move by year. Time options have arrow
+  navigation. Keep one day and one time option in the Tab order, contain Tab within
+  the open picker, and prevent workspace shortcuts from stealing focus. Month/year
+  selection supports distant historical dates without repeated navigation.
+- Place the picker in the top layer, within an enclosing dialog when applicable,
+  without changing page width. Keep it in the viewport on scroll/resize; short
+  windows scroll the body while retaining footer actions. On narrow screens the
+  time panel moves below the calendar with a horizontal time list. Both themes use
+  shared palette tokens and existing focus/hover behavior.
+
+Validation passed 75 frontend tests and the production build. Read-only browser
+checks exercised Apply/Cancel, exact cutoffs, controlled-value remounts, invalid time,
+required/min/max constraints, day/month/year and time navigation, Tab containment,
+outside dismissal, nested upload Escape, short windows and 320–1440px layouts in
+both themes. No questions or uploads were submitted and no model calls were made.

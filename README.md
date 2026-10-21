@@ -70,8 +70,10 @@ button are hidden in the mobile layout.
 
 On Questions, `B` opens **Recent answers** and `Shift+N` reuses the selected question
 in the composer without submitting. Refresh failures keep the loaded answer list in
-place. Date fields open their native picker from the whole field; keyboard editing
-and `Alt+Down` remain available. Share dialogs place an icon-only copy action beside
+place. Date fields open the shared calendar/time picker from the whole field;
+keyboard editing and `Alt+Down` remain available. Choose a date/time, then **Apply**;
+**Cancel** leaves the field unchanged. Datetime fields include UTC time choices and
+an exact-time input. Share dialogs place an icon-only copy action beside
 the link, with stable confirmation inside the button.
 
 Use the sidebar's **Theme** control for **Light**, **Dark**, or **System** appearance.

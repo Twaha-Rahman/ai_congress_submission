@@ -60,3 +60,16 @@ test("new uploads preserve the open job and duration displays handle live, finis
   assert.equal(elapsedMilliseconds("invalid", null), null);
   assert.equal(durationLabel(10), "<1s");
 });
+
+test("upload badges follow current review progress while preserving processing failures and warnings",async()=>{
+  const {jobDisplayState,jobDisplayLabel,processingWarnings}=await import("./uploads");
+  const job={status:"needs_review",review_reason:"policy_comparison_limit",review_summary:{total:2,open:1,acknowledged:0,resolved:1,dismissed:0,state:"needs_review"}} as UploadJob;
+  assert.equal(jobDisplayLabel(job),"Needs review");assert.match(jobDescription(job),/1 of 2/);
+  const ack={...job,review_summary:{...job.review_summary!,open:0,acknowledged:1,state:"acknowledged" as const}};
+  assert.equal(jobDisplayLabel(ack),"Acknowledged");assert.match(jobDescription(ack),/follow-up remains/);
+  const done={...job,review_summary:{total:2,open:0,acknowledged:0,resolved:1,dismissed:1,state:"reviewed" as const}};
+  assert.equal(jobDisplayLabel(done),"Reviewed");assert.match(jobDescription(done),/resolved or dismissed/);
+  assert.match(processingWarnings(done),/comparison limit/);assert.equal(done.status,"needs_review");
+  for(const status of ["running","failed","queued"] as const)assert.equal(jobDisplayState({...done,status}),status);
+  assert.equal(jobDisplayState({...job,review_summary:{total:0,open:0,acknowledged:0,resolved:0,dismissed:0,state:"none"}}),"needs_review");
+});

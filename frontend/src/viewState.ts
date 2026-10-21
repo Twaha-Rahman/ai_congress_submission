@@ -76,7 +76,7 @@ export function readView(search: string): View {
     office: p.get("office") === "frankfurt" ? "frankfurt" : "dhaka",
     activitySearch: p.get("activityQ") || "",
     activityCategory: allowed("activityType", ["transfer", "processing", "review", "source", "withdrawal"]) as View["activityCategory"],
-    activityOutcome: allowed("activityOutcome", ["delivered", "failed", "blocked", "timeout", "queued", "running", "succeeded", "needs_review", "acknowledged", "resolved", "dismissed", "published", "withdrawn"]),
+    activityOutcome: allowed("activityOutcome", ["delivered", "failed", "blocked", "timeout", "queued", "running", "succeeded", "needs_review", "acknowledged", "resolved", "dismissed", "published", "withdrawn", "reviewed"]),
     activitySince: /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(p.get("activitySince") || "") ? p.get("activitySince")! : "",
     activityUntil: /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(p.get("activityUntil") || "") ? p.get("activityUntil")! : "",
     activityId: p.get("activity") || "",

@@ -95,6 +95,12 @@ export default function Sources({ office, session, view, navigate, shortcutsEnab
     return () => window.clearInterval(timer);
   }, [view.autoRefresh, view.document, openUpload, active, load]);
 
+  useEffect(()=>{
+    function refreshOnReturn(){if(!document.hidden&&!document.querySelector("dialog[open]:not(.upload-status-dialog)"))void load();}
+    window.addEventListener("focus",refreshOnReturn);document.addEventListener("visibilitychange",refreshOnReturn);
+    return()=>{window.removeEventListener("focus",refreshOnReturn);document.removeEventListener("visibilitychange",refreshOnReturn);};
+  },[load]);
+
   const visible = useMemo(() => visibleSources(sources, view.sourceSearch, view.sourceType, view.sourceSort), [sources, view.sourceSearch, view.sourceType, view.sourceSort]);
   useKeyboardShortcuts(shortcutsEnabled, {
     search: () => { search.current?.focus(); search.current?.select(); },

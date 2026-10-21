@@ -118,6 +118,7 @@ export interface Session {
 }
 
 export interface UploadJob {
+  review_summary?: { total: number; open: number; acknowledged: number; resolved: number; dismissed: number; state: "none" | "needs_review" | "acknowledged" | "reviewed" } | null;
   display_name?: string | null;
   job_id: string;
   kind: "pdf" | "slack" | "policy_comparison";

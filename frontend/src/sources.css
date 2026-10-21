@@ -200,3 +200,7 @@
   .upload-status-body { padding: 20px 18px; }
   .upload-status-dialog .upload-status-footer { flex-direction: column; align-items: stretch; }
 }
+.job-badge.job-reviewed { background:var(--teal-surface); color:var(--teal); border-color:var(--teal-line); }
+.job-processing-warnings { padding:13px 15px; border:1px solid var(--line); border-radius:8px; margin-top:16px; background:var(--scope-surface); }
+.job-processing-warnings strong { font-size:12px; font-weight:500; }
+.job-processing-warnings p { font-size:12px; line-height:1.75; margin:7px 0 0; color:var(--muted); }

@@ -18,7 +18,7 @@ import "./activity.css";
 
 const transferSize = (bytes: number) => bytes < 1024 ? `${bytes} B` : fileSize(bytes);
 const categories = [{value:"all",label:"All activity"},{value:"transfer",label:"Data transfers"},{value:"processing",label:"Processing"},{value:"review",label:"Review decisions"},{value:"source",label:"Published sources"},{value:"withdrawal",label:"Source withdrawals"}];
-const outcomes = ["delivered", "failed", "blocked", "timeout", "queued", "running", "succeeded", "needs_review", "acknowledged", "resolved", "dismissed", "published", "withdrawn"];
+const outcomes = ["delivered", "failed", "blocked", "timeout", "queued", "running", "succeeded", "needs_review", "acknowledged", "resolved", "dismissed", "published", "withdrawn", "reviewed"];
 const icons = { transfer: Globe2, processing: Clock3, review: ShieldCheck, source: FileText, withdrawal: FileText };
 function matchContext(event: ActivityEvent, query: string) {
   const value=query.trim().toLocaleLowerCase();

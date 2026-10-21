@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { AlertCircle, ArrowRight, ArrowUpFromLine, Check, Clock3, FileSearch, GitCompareArrows, LoaderCircle, Save, ShieldCheck, Sparkles, Timer, RefreshCw, MessageSquare } from "lucide-react";
 import { date } from "./presentation";
-import { durationLabel, elapsedMilliseconds, isProcessing, jobDescription, jobLabels, stageLabels } from "./uploads";
+import { durationLabel, elapsedMilliseconds, isProcessing, jobDescription, jobLabels, jobDisplayLabel, jobDisplayState, processingWarnings, stageLabels } from "./uploads";
 import type { UploadJob } from "./types";
 
 export function JobBadge({ job }: { job: UploadJob }) {
-  const Icon = isProcessing(job) ? (job.status === "running" ? LoaderCircle : Clock3) : job.status === "succeeded" ? Check : AlertCircle;
-  return <span className={`job-badge job-${job.status}`}><Icon size={13} className={job.status === "running" ? "spin" : ""} />{jobLabels[job.status]}</span>;
+  const state=jobDisplayState(job);
+  const Icon = isProcessing(job) ? (job.status === "running" ? LoaderCircle : Clock3) : ["succeeded","reviewed","acknowledged"].includes(state) ? Check : AlertCircle;
+  return <span className={`job-badge job-${state}`}><Icon size={13} className={job.status === "running" ? "spin" : ""} />{jobDisplayLabel(job)}</span>;
 }
 
 export default function UploadStatus({ job, canRetry, retrying, onRetry, onInspect, onFindings, onUpload, onImportSlack }: {
@@ -45,12 +46,13 @@ export default function UploadStatus({ job, canRetry, retrying, onRetry, onInspe
           <time aria-live="off">{stage ? durationLabel(stage.elapsed_ms ?? (running ? elapsedMilliseconds(stage.started_at, null, now) : null)) : "—"}</time>
         </li>;
       })}</ol> : <p className="job-progress-unavailable">{job.status === "queued" ? "Stage timings will appear when processing starts." : "Stage timings were not recorded for this earlier upload."}</p>}
-      <p className="selected-upload-description">{jobDescription(job)}</p>
+      <p className="selected-upload-description" role="status">{jobDescription(job)}</p>
+      {!!job.review_summary?.total && !!job.review_reason && !isProcessing(job) && job.status!=="failed" && <div className="job-processing-warnings"><strong>Processing warnings</strong><p>{processingWarnings(job)}</p></div>}
       <div className="upload-result-actions">
         {job.source_id && <><button className="text-button" onClick={onFindings}>View findings<ArrowRight size={14} /></button><button className="text-button" onClick={onInspect}>Inspect source</button></>}
       </div>
       <details className="job-technical"><summary>Processing details</summary><dl>
-        <dt>Job</dt><dd>{job.job_id}</dd><dt>Mode</dt><dd>{job.mode}</dd>
+        <dt>Original processing result</dt><dd>{jobLabels[job.status]}</dd><dt>Job</dt><dd>{job.job_id}</dd><dt>Mode</dt><dd>{job.mode}</dd>
         <dt>Attempts</dt><dd>{job.attempts ?? "Not recorded"}{job.max_attempts ? ` of ${job.max_attempts}` : ""}</dd>
         <dt>Submitted</dt><dd>{date(job.created_at, true)}</dd>{job.finished_at && <><dt>Finished</dt><dd>{date(job.finished_at, true)}</dd></>}
         {job.error_code && <><dt>Error</dt><dd>{job.error_code}</dd></>}

@@ -70,6 +70,7 @@ from ..security.auth import Permission, PrincipalRegistry
 from ..storage.db import SCHEMA_VERSION, Database
 from ..storage.store import JobRow, OfficeStore, SourceRow, new_id
 from ..temporal.snapshots import select_snapshot
+from .job_reviews import source_review_summaries
 from .workspace_views import activity_page, activity_record, compare_source_text
 
 
@@ -425,10 +426,9 @@ def create_app(settings: OfficeSettings | None = None) -> FastAPI:
         principal=Depends(authenticate),
     ) -> dict[str, Any]:
         _require_office_scope(principal, Permission.READ_LOCAL)
-        visible = [
-            _job_dict(job) for job in store.list_jobs(limit=limit) if _job_readable(principal, job)
-        ]
-        return {"jobs": visible, "count": len(visible)}
+        visible = [job for job in store.list_jobs(limit=limit) if _job_readable(principal, job)]
+        summaries = source_review_summaries(store, [job.source_id for job in visible], finding_readable=lambda record: _finding_readable(principal, record))
+        return {"jobs": [{**_job_dict(job), "review_summary": summaries.get(job.source_id)} for job in visible], "count": len(visible)}
 
     @app.get("/v1/jobs/{job_id}")
     def get_job(job_id: str, principal=Depends(authenticate)) -> dict[str, Any]:
@@ -436,7 +436,8 @@ def create_app(settings: OfficeSettings | None = None) -> FastAPI:
         job = store.get_job(job_id)
         if job is None or not _job_readable(principal, job):
             raise ApiError(ErrorCode.NOT_FOUND, "no such job")
-        return {"job": _job_dict(job)}
+        summary = source_review_summaries(store, [job.source_id], finding_readable=lambda record: _finding_readable(principal, record))
+        return {"job": {**_job_dict(job), "review_summary": summary.get(job.source_id)}}
 
     # ----------------------------------------------------------------- sources
     @app.get("/v1/sources")

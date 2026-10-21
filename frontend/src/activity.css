@@ -41,3 +41,4 @@
 .activity-match-context { color:var(--muted); font-size:11px; overflow-wrap:anywhere; }
 .activity-date-range { grid-column:1/-1; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
 @media(max-width:480px) { .activity-date-range { grid-template-columns:minmax(0,1fr); } }
+.activity-outcome.outcome-reviewed { border-color:var(--teal-line); background:var(--teal-surface); color:var(--teal); }

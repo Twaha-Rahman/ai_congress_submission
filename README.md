@@ -251,6 +251,8 @@ source-copy check, and a bundle failure does not hide a saved answer’s trace.
 Open **Activity** to search office transfer records, processing snapshots, source
 publication/withdrawal and review decisions. Filter by type, outcome or UTC date,
 inspect a record, or export/share the current view. Audit access is required.
+Completed uploads update to Acknowledged or Reviewed as their findings are reviewed;
+processing warnings remain visible separately.
 
 In **Sources**, choose **Compare versions** on a source row or in its inspector.
 Compare preserved text and metadata, swap the base/compared versions, search changes,

@@ -7,7 +7,9 @@ chooses the office whose records and counters are displayed. The viewer includes
 
 - Published sources and recorded source withdrawals.
 - Current durable processing-job snapshots, with mode, attempts, timestamps,
-  current stage and errors. Open the job for its full stage timings. These rows
+  current stage and errors. Completed job badges also reflect current finding
+  review: Needs review, Acknowledged or Reviewed. Original processing status and
+  warnings remain in the details. Open the job for its full stage timings. These rows
   are not an append-only history of every processing transition.
 - Persisted finding review decisions, including actor, reason and referenced
   snapshot.

@@ -11,6 +11,7 @@ from cryptography.fernet import InvalidToken
 
 from ..api_common import ApiError
 from ..contracts.common import ErrorCode, canonical_datetime
+from .job_reviews import source_review_summaries, job_review_state
 
 
 def _invalid(message):
@@ -109,8 +110,9 @@ def activity_record(store, category, identifier, *, source_readable, job_readabl
         if not job_readable(job):
             return None
         manifest = job.request.get("manifest") or {}
+        review = source_review_summaries(store, [job.source_id], finding_readable=finding_readable).get(job.source_id)
         base.update(title=(manifest.get("rationale") if job.request.get("slack") else None) or manifest.get("source_identity") or "Source processing",
-                    outcome=job.status, description=f"{job.kind} · {job.mode}", details={"kind": job.kind, "mode": job.mode, "attempts": job.attempts, "stage": job.progress.get("current_stage"), "submitted": canonical_datetime(job.created_at), "started": canonical_datetime(job.started_at) if job.started_at else None, "finished": canonical_datetime(job.finished_at) if job.finished_at else None, "error": job.error_code, "reason": job.review_reason, "source_id": job.source_id, "version": manifest.get("version_label"), "request_id": job.request.get("request_id")})
+                    outcome=job_review_state(job, review), description=f"{job.kind} · {job.mode}", details={"finding_review": review, "original_processing_status": job.status, "kind": job.kind, "mode": job.mode, "attempts": job.attempts, "stage": job.progress.get("current_stage"), "submitted": canonical_datetime(job.created_at), "started": canonical_datetime(job.started_at) if job.started_at else None, "finished": canonical_datetime(job.finished_at) if job.finished_at else None, "error": job.error_code, "reason": job.review_reason, "source_id": job.source_id, "version": manifest.get("version_label"), "request_id": job.request.get("request_id")})
     elif category == "review":
         finding = store.get_finding(row["finding_id"])
         if not finding or not finding_readable(finding):

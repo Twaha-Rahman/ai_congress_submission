@@ -27,6 +27,22 @@ export const jobLabels: Record<UploadJob["status"], string> = {
   needs_review: "Needs review", failed: "Failed",
 };
 
+export function jobDisplayState(job: UploadJob): UploadJob["status"] | "acknowledged" | "reviewed" {
+  const review=job.review_summary;
+  return ["succeeded","needs_review"].includes(job.status)&&review?.total&&review.state!=="none" ? review.state : job.status;
+}
+export function jobDisplayLabel(job: UploadJob) {
+  const state=jobDisplayState(job);
+  return state==="reviewed"?"Reviewed":state==="acknowledged"?"Acknowledged":jobLabels[state];
+}
+export function jobReviewDescription(job: UploadJob) {
+  const review=job.review_summary;
+  if(!review?.total||!["succeeded","needs_review"].includes(job.status))return "";
+  if(review.open)return `${review.total-review.open} of ${review.total} findings reviewed; ${review.open} still open.`;
+  if(review.acknowledged)return `${review.acknowledged} ${review.acknowledged===1?"finding is":"findings are"} acknowledged; follow-up remains.`;
+  return `${review.total} ${review.total===1?"finding has":"findings have"} been resolved or dismissed.`;
+}
+
 export function fileSize(bytes: number) {
   return bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
@@ -123,6 +139,9 @@ const reasonLabels: Record<string, string> = {
   comparison_evidence_mismatch: "The model's quotations did not match the source. Its assessment was withheld.",
   pending_replacement: "The replacement could not be fully validated. The earlier policy remains current.",
 };
+export function processingWarnings(job: UploadJob) {
+  return (job.review_reason?.split(";").map(s=>s.trim()).filter(Boolean)||[]).map(s=>reasonLabels[s]||s.replaceAll("_"," ")).join(" ");
+}
 export function jobDescription(job: UploadJob) {
   if (job.status === "queued") return "Waiting for this office to begin processing.";
   if (job.status === "running") {
@@ -135,7 +154,8 @@ export function jobDescription(job: UploadJob) {
     };
     return descriptions[job.progress?.current_stage || ""] || (job.kind === "policy_comparison" ? "Comparing accepted statements with relevant policies." : job.kind === "slack" ? "Reading Slack messages, extracting statements and checking relevant policies." : "Reading the PDF, extracting statements and checking relevant policies.");
   }
+  const review=jobReviewDescription(job);
+  if(review)return review;
   if (job.status === "succeeded") return "Processing finished. Findings are candidates for review; this does not certify compliance.";
-  const reasons = job.review_reason?.split(";").map((s) => s.trim()).filter(Boolean) || [];
-  return reasons.map((s) => reasonLabels[s] || s.replaceAll("_", " ")).join(" ") || "Open the source and review its context before drawing a conclusion.";
+  return processingWarnings(job) || "Open the source and review its context before drawing a conclusion.";
 }

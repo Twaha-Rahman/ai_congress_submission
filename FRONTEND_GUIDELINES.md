@@ -728,3 +728,22 @@ Both PDF and Slack jobs remain in Recent activity with their actual stage timing
 - Inspection reuses the wide original viewer at the selected page and returns to
   the comparison. Share/export controls show desktop shortcuts and respect typing,
   modal and preference guards. Comparison exports contain the complete loaded diff.
+
+
+## Upload review progress
+
+Completed upload badges reflect the current, authorized findings for that exact
+source version. Show Needs review while any are open, Acknowledged when none are
+open but follow-up remains, and Reviewed once every finding is resolved/dismissed.
+Do not clear a warning merely because there are no findings. New findings restore
+Needs review. Apply this to PDF, saved/live Slack and comparison jobs, including
+the Activity viewer. Failed/queued/running states retain their actual job status.
+
+Read summaries from the backend without a finding-list limit. Filter restricted
+findings before counting and exclude explicitly retired historical assessments.
+Keep original processing status, warnings, attempts and timings intact. In the
+status dialog show review progress separately from Processing warnings, and keep
+comparison retry available where applicable. Existing uploads update on read;
+there is no migration or automatic model retry. Refresh Sources when returning to
+the browser as well as during the existing explicit polling cycle. Preserve the
+selected job and loaded cards during refresh.

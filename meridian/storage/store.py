@@ -971,7 +971,8 @@ class OfficeStore:
         alert: bool | None = None,
         review_state: str | None = None,
         revision_id: str | None = None,
-        limit: int = 200,
+        limit: int | None = 200,
+        source_ids: Sequence[str] | None = None,
         connection: sqlite3.Connection | None = None,
     ) -> list[FindingRecord]:
         sql = (
@@ -981,6 +982,15 @@ class OfficeStore:
             "WHERE f.tenant_id = ? AND f.region = ?"
         )
         params: list[Any] = [self.tenant_id, self.region]
+        if source_ids is not None:
+            if not source_ids:
+                return []
+            placeholders = ",".join("?" for _ in source_ids)
+            sql += (" AND EXISTS (SELECT 1 FROM json_each(f.claim_revision_ids_json) refs "
+                    "JOIN claim_revisions c ON c.revision_id = refs.value "
+                    "WHERE c.tenant_id = f.tenant_id AND c.region = f.region "
+                    f"AND c.source_id IN ({placeholders}))")
+            params.extend(source_ids)
         if finding_type:
             sql += " AND f.finding_type = ?"
             params.append(finding_type)
@@ -990,8 +1000,10 @@ class OfficeStore:
         if review_state:
             sql += " AND f.review_state = ?"
             params.append(review_state)
-        sql += " ORDER BY f.created_at ASC LIMIT ?"
-        params.append(limit)
+        sql += " ORDER BY f.created_at ASC"
+        if limit is not None:
+            sql += " LIMIT ?"
+            params.append(limit)
         with self._read(connection) as conn:
             rows = conn.execute(sql, params).fetchall()
         records: list[FindingRecord] = []

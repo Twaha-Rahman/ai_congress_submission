@@ -740,16 +740,6 @@ textarea::placeholder {
   background: var(--selected-surface);
   border-color: var(--coral);
 }
-.finding-list-item.selected::before {
-  content: "";
-  width: 3px;
-  border-radius: 2px;
-  background: var(--primary);
-  position: absolute;
-  left: 0;
-  top: 10px;
-  bottom: 10px;
-}
 .list-item-meta {
   display: flex;
   align-items: center;
@@ -1738,8 +1728,9 @@ textarea {
   font-size: 16px;
   line-height: 1.8;
   color: var(--body);
-  border-left: 2px solid var(--coral);
-  padding: 4px 0 4px 17px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
   margin: 24px 0;
 }
 .source-facts {
@@ -2235,7 +2226,6 @@ button:enabled:active, summary:active, .nav-item:active {
 :where(input[type="date"], input[type="datetime-local"]) { cursor: pointer; }
 .select-trigger[aria-expanded="true"] { background: var(--selected-surface); }
 .select-option.option-active { background: var(--selected-surface); }
-.select-option[aria-selected="true"] { box-shadow: inset 3px 0 var(--primary); }
 @media (hover: hover) {
   .button.primary:enabled:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
   .button.secondary:enabled:hover, .icon-button:enabled:hover, .select-trigger:enabled:hover {

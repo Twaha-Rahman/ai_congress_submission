@@ -10,6 +10,10 @@ Keep interface copy limited to labels, actions, results and information needed t
 complete the task. Do not add promotional filler, architecture explanations or
 privacy reassurance paragraphs to forms. Keep those details in documentation.
 
+Do not use decorative colored left-edge rails anywhere: dropdown options, selected
+cards, navigation, quotes and result panels use fills, labels/checkmarks and uniform
+borders. Keep full-perimeter keyboard focus outlines and structural dividers.
+
 ## Scope and visual reference
 
 The first slice is **Findings and investigation**: an office-scoped queue,
@@ -44,7 +48,7 @@ Tokens live in `frontend/src/styles.css`; use variables when extending component
   follow system changes while System is selected. Dark mode uses neutral charcoal
   surfaces and warm cream text. Navigation is `#171719`, the workspace `#1e1e20`,
   queue cards `#242426`, and raised evidence/dialogs `#2c2c2f`. Selected findings
-  use a coral-tinted `#3b2c27` surface and an inset vertical marker. Use the
+  use the shared selected surface and a uniform border. Use the
   shared variables for controls, popups, dialogs and scrollbars. Original PDF pages
   retain their document colors. Theme preference stays out of shared finding URLs.
 - Surface tokens describe their role: chrome, header, queue, selected, scope, field,
@@ -53,7 +57,7 @@ Tokens live in `frontend/src/styles.css`; use variables when extending component
   Policy evidence gets a teal header/icon/top edge; informal evidence gets coral.
   Keep authority labels explicit and retain neutral styling for procedures or
   unavailable metadata. These accents do not indicate integrity verification.
-- Both themes share the finding-card selection marker, quieter navigation counter,
+- Both themes share selected-card fills and uniform borders, quieter navigation counter,
   authority-colored evidence headers/icons/top edges, 10px authority/version labels and
   27px rule summaries (increasing on wide screens). Keep these component rules
   outside theme selectors; vary palette tokens between themes.

@@ -39,7 +39,7 @@
 .activity-paused .text-button { font-size: 11px; }
 .upload-job-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
 .upload-job { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 8px; width: 100%; border: 1px solid var(--line); background: var(--queue-surface); border-radius: 8px; padding: 14px 12px; text-align: left; outline-offset: -3px; }
-.upload-job.selected { background: var(--selected-surface); border-color: var(--coral); box-shadow: inset 3px 0 var(--coral); }
+.upload-job.selected { background: var(--selected-surface); border-color: var(--coral); }
 .upload-job-name { flex: 1 1 90px; font-size: 12px; font-weight: 500; overflow-wrap: anywhere; }
 .upload-job-date { flex-basis: 100%; color: var(--muted); font-size: 10px; }
 .job-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 6px; border: 1px solid var(--neutral-line); border-radius: 4px; background: var(--neutral-surface); color: var(--neutral-ink); font-size: 10px; font-weight: 500; white-space: nowrap; }

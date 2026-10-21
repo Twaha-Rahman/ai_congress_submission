@@ -62,7 +62,7 @@
 .comparison-proof summary { cursor: pointer; }
 .comparison-proof code, .comparisons-page .question-details > code { display: block; overflow-wrap: anywhere; margin-top: 12px; line-height: 1.8; }
 .comparison-saved-at { color: var(--muted); font-size: 10px; display: flex; gap: 6px; align-items: center; margin-top: 22px; }
-.comparison-verdict { padding: 4px 24px; background: var(--raised-surface); border: 1px solid var(--line); border-left: 3px solid var(--primary); border-radius: 8px; font-size: 15px; line-height: 1.9; white-space: pre-wrap; overflow-wrap: anywhere; margin-bottom: 20px; }
+.comparison-verdict { padding: 4px 24px; background: var(--raised-surface); border: 1px solid var(--line); border-radius: 8px; font-size: 15px; line-height: 1.9; white-space: pre-wrap; overflow-wrap: anywhere; margin-bottom: 20px; }
 .comparison-rule-list { margin-top: 28px; }
 .comparison-rule-list h3 { font: 500 15px var(--sans); }
 .comparison-rule-list > div { padding: 16px 0; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; border-bottom: 1px solid var(--line); font-size: 13px; }

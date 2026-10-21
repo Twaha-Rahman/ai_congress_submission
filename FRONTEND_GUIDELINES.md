@@ -580,6 +580,8 @@ themes at 320, 390, 760, 1024 and 1440px. The offline evaluation suite used
   moving their borders or contents. Underlined tabs use text-color feedback on hover,
   without a rectangular background behind the label. Disabled controls retain their
   inactive state; keyboard focus rings and reduced-motion preferences remain intact.
+  Text-entry focus rings follow the field edge without a separated outer halo. Keep
+  field shortcut hints next to their labels, rather than at the far edge of the form.
 - Questions, Cross-office and Verification share one URL/copy row: an icon-only
   labelled button sits beside the field, with fixed dimensions and in-button check
   confirmation. Announce success to screen readers; keep clipboard failures visible

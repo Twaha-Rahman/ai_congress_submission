@@ -940,8 +940,8 @@ textarea::placeholder {
   background: var(--card);
   border-color: var(--primary);
 }
-.source-dialog.source-preview-dialog {
-  width: min(1060px, calc(100vw - 32px));
+.dialog.source-preview-dialog {
+  width: min(1440px, calc(100vw - 32px));
 }
 .pdf-toolbar,
 .pdf-toolbar > div {

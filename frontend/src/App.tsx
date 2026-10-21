@@ -35,6 +35,7 @@ import ThemeSelect from "./ThemeSelect";
 import Sources from "./Sources";
 import Verification from "./Verification";
 import Questions from "./Questions";
+import Comparisons from "./Comparisons";
 import {
   useKeyboardShortcuts,
   useShortcutPreference,
@@ -89,7 +90,8 @@ function readBrowserView() {
 }
 
 export default function App() {
-  const [screen, setScreen] = useState<"findings" | "sources" | "verification" | "questions">(() => window.location.pathname === "/questions" ? "questions" : window.location.pathname === "/sources" ? "sources" : window.location.pathname === "/verification" ? "verification" : "findings");
+  const [screen, setScreen] = useState<"findings" | "sources" | "verification" | "questions" | "comparisons">(() => window.location.pathname === "/comparisons" ? "comparisons" : window.location.pathname === "/questions" ? "questions" : window.location.pathname === "/sources" ? "sources" : window.location.pathname === "/verification" ? "verification" : "findings");
+  const isComparisons = screen === "comparisons";
   const isQuestions = screen === "questions";
   const isSources = screen === "sources";
   const isVerification = screen === "verification";
@@ -125,7 +127,7 @@ export default function App() {
     window.history[replace ? "replaceState" : "pushState"]({}, "", url);
     setView(next);
   }
-  function openScreen(nextScreen: "findings" | "sources" | "verification" | "questions", patch: Partial<View> = {}) {
+  function openScreen(nextScreen: "findings" | "sources" | "verification" | "questions" | "comparisons", patch: Partial<View> = {}) {
     const next = { ...pinSelection(view, selectedRecord), ...patch };
     const url = new URL(window.location.href);
     url.pathname = `/${nextScreen}`;
@@ -146,7 +148,7 @@ export default function App() {
   useEffect(() => {
     const handler = () => {
       const next = readBrowserView();
-      setScreen(window.location.pathname === "/questions" ? "questions" : window.location.pathname === "/sources" ? "sources" : window.location.pathname === "/verification" ? "verification" : "findings");
+      setScreen(window.location.pathname === "/comparisons" ? "comparisons" : window.location.pathname === "/questions" ? "questions" : window.location.pathname === "/sources" ? "sources" : window.location.pathname === "/verification" ? "verification" : "findings");
       setView(next);
       setNotice("");
       setReviewAction(null);
@@ -156,7 +158,7 @@ export default function App() {
     return () => window.removeEventListener("popstate", handler);
   }, []);
   useEffect(() => {
-    document.title = `${isQuestions ? "Questions" : isSources ? "Sources" : isVerification ? "Verification" : "Findings"} · Meridian`;
+    document.title = `${isComparisons ? "Cross-office" : isQuestions ? "Questions" : isSources ? "Sources" : isVerification ? "Verification" : "Findings"} · Meridian`;
   }, [screen]);
   useEffect(() => {
     const controller = new AbortController();
@@ -492,6 +494,11 @@ export default function App() {
             onClick={(event) => { event.preventDefault(); openScreen("questions"); }}>
             <MessageSquare size={18} /><span>Questions</span>
           </a>
+          <a className={`nav-item ${isComparisons ? "active" : ""}`}
+            href={`/comparisons${viewSearch(view)}`} aria-current={isComparisons ? "page" : undefined}
+            onClick={event => { event.preventDefault(); openScreen("comparisons", { document: "", compareCitation: "" }); }}>
+            <Globe2 size={18} /><span>Cross-office</span>
+          </a>
           <a className={`nav-item ${isSources ? "active" : ""}`}
             href={`/sources${viewSearch(view)}`} aria-current={isSources ? "page" : undefined}
             onClick={(event) => { event.preventDefault(); openScreen("sources"); }}>
@@ -550,11 +557,16 @@ export default function App() {
         <nav className="mobile-workspace-nav" aria-label="Workspace">
           <a href={`/findings${viewSearch(view)}`} aria-current={isFindings ? "page" : undefined} onClick={(e) => { e.preventDefault(); openScreen("findings"); }}><LayoutList size={16} />Findings</a>
           <a href={`/questions${viewSearch(view)}`} aria-current={isQuestions ? "page" : undefined} onClick={(e) => { e.preventDefault(); openScreen("questions"); }}><MessageSquare size={16} />Questions</a>
+          <a href={`/comparisons${viewSearch(view)}`} aria-current={isComparisons ? "page" : undefined} onClick={e => { e.preventDefault(); openScreen("comparisons", { document: "", compareCitation: "" }); }}><Globe2 size={16} />Cross-office</a>
           <a href={`/sources${viewSearch(view)}`} aria-current={isSources ? "page" : undefined} onClick={(e) => { e.preventDefault(); openScreen("sources"); }}><Files size={16} />Sources</a>
           <a href={`/verification${viewSearch(view)}`} aria-current={isVerification ? "page" : undefined} onClick={(e) => { e.preventDefault(); openScreen("verification"); }}><Shield size={16} />Verification</a>
         </nav>
         <main id="workspace" className="workspace" tabIndex={-1}>
-          {isQuestions ? <Questions key={view.office} office={view.office} session={session} sessionError={sessionError} view={view}
+          {isComparisons ? <Comparisons key={view.office} view={view} session={session} sessionError={sessionError}
+            navigate={(patch, replace = true) => navigate(patch, replace)} shortcutsEnabled={shortcutsEnabled} onHelp={() => setShowShortcuts(true)}
+            onVerify={(office, id) => openScreen("verification", { office, verifyKind: "answer", verifyId: id, verifyTab: "check", verifyScope: "focused", verifyPane: "browse", verifyGroup: "", verifyNode: "", verifyPassage: "", verifySearch: "", verifyChecks: "all", document: "" })}
+            onAnswer={(office, id) => openScreen("questions", { office, questionId: id || "", questionPanel: "recent", questionPane: id ? "answer" : "compose", questionCitation: "", document: "" })}
+          /> : isQuestions ? <Questions key={view.office} office={view.office} session={session} sessionError={sessionError} view={view}
             navigate={(patch, replace = true) => navigate(patch, replace)} shortcutsEnabled={shortcutsEnabled}
             onHelp={() => setShowShortcuts(true)}
             onVerify={(id) => openScreen("verification", { verifyKind: "answer", verifyId: id, verifyTab: "check", verifyScope: "focused", verifyPane: "browse", verifyGroup: "", verifyNode: "", verifyPassage: "", verifySearch: "", verifyChecks: "all", document: "" })}

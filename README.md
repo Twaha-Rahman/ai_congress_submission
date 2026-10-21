@@ -11,14 +11,14 @@ labels, command-line demos and an offline test suite. The frontend includes a
 Claude-inspired findings workspace with persisted reviews and a Sources workspace
 for PDF uploads, processing status and original-document inspection, plus a Verification
 workspace for source-copy checks, signed answer bundles and evidence lineage. Questions
-supports natural-language questions across accessible PDF and saved Slack sources, with citations and optional source/date filters.
+supports natural-language questions across accessible PDF and saved Slack sources, with citations and optional source/date filters. Cross-office shows both offices’ cited answers together and offers signed numeric-rule checks through the gateway.
 
 For your own policy subjects, use `subject: "general_policy"`. This path retrieves
 relevant statements, checks source quotations, and publishes model-assisted conflict
 candidates for human review. See the [general policy demo guide](docs/general_policy_demo.md)
 for manifests, PDF/Slack API examples, comparison retries, limits and model evaluation.
 The existing numeric checks remain available. General source Q&A is office-local;
-cross-office text comparison is not implemented. A live Slack listener remains separate
+automated cross-office text conflict judgments are not implemented. The browser can present independently authorized office answers side by side. A live Slack listener remains separate
 integration work; saved Slack messages can already be ingested through the API.
 
 ## Browser workspace
@@ -85,12 +85,42 @@ UI_ROLE=reader make frontend
 The principal is fixed on the server; there is no browser role selector. This is a
 loopback-only demo operator workspace, not a multi-user login system. Real user
 authentication is required before exposing it on an office network. The server
-forwards only the endpoints needed by findings, sources, local questions and verification, not federation or model APIs.
+forwards only the endpoints needed by findings, sources, local questions, verification and gateway comparison queries/receipts. Direct federation, raw gateway source access, model APIs and service credentials are not exposed to browser code.
+
+### Cross-office comparisons
+
+Open **Cross-office** in the sidebar (`/comparisons`). **Source answers** sends the
+same natural-language question and UTC cutoffs independently to Dhaka and Frankfurt,
+with an optional source selection per office. Answers appear independently with
+status, limitations, exact citations, original-source inspection and verification.
+This requires access to both offices and uses their configured models; it does not
+send source passages through the federation gateway or infer a combined verdict.
+
+**Signed-rule check** uses the existing strict gateway protocol for numeric loan
+approval or record retention rules. Record retention specifies originating and
+processing offices, loan records, `MTF_CROSS_OFFICE` and loan closure. Both workflows
+show incomplete/unavailable evidence explicitly. Export counts and byte totals
+belong to the structured exchange, not hosted-model traffic. Passage inclusion is
+not checked when originals are withheld from the gateway.
+
+The server-side reviewer workspace needs `DEMO_TOKEN_GATEWAY_SERVICE` for signed-rule
+checks; `UI_ROLE=reader` cannot borrow that service identity. The browser supplies
+neither credentials nor snapshot/import controls. Gateway comparisons import approved
+signed claims only when explicitly submitted. Successful gateway receipts persist
+under `GATEWAY_RUNTIME_DIR/comparison_receipts/<tenant>/`; shared links read those
+receipts without submitting another comparison. Clearing gateway runtime removes
+those links. General links reference the separately saved office answers; recipients
+still need access to each answer’s complete source scope.
+
+`N` opens the comparison form, `Ctrl/⌘+Enter` submits it, and `Shift+E` / `Shift+S`
+open exports / sharing. Stopping a request stops browser waiting; server work may
+finish. Check each office’s recent answers before submitting again after an uncertain
+failure. No polling or automatic POST retries are used.
 
 For a built version, run `make frontend-build`, then `npm start --prefix frontend`.
 The built server also listens on loopback port 5173; stop the dev server first.
 `UI_PORT` changes the built server port, and `DHAKA_BASE_URL` / `FRANKFURT_BASE_URL`
-change office connections. Restart the frontend server after changing these values.
+change office connections. `GATEWAY_BASE_URL` changes the gateway connection. Restart the frontend server after changing these values.
 Fonts and PDF.js resources are bundled locally, so the built UI makes no CDN/model
 requests. `predev`/`prebuild` copy PDF resources from the locked package into the
 ignored `frontend/public/pdfjs/` directory; no additional download is needed onsite.
@@ -565,6 +595,6 @@ verification unless the old public keys remain pinned.
   or reviewed. Office-local general-policy findings use model-assisted comparison
   and require human interpretation. General source Q&A is model-assisted, bounded to
   retrieved authorized passages, and can abstain or be incomplete. Cross-office text
-  comparison remains unimplemented.
+  conflict detection remains unimplemented; Cross-office presents the independent answers for human review.
 - Buyer interviews, NRB participation, venue logistics and backup-laptop rehearsals are
   team tasks and are not claimed here.

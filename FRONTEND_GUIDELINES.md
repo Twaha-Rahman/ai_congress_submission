@@ -12,7 +12,7 @@ second slice is **Sources and PDF ingestion**: a source library, trusted upload
 metadata, processing status and whole-version replacement. The third slice is **Verification and lineage**: source-copy checks, signed answer
 bundles and authorized evidence connections. The fourth slice is **Questions**:
 natural-language source questions, historical cutoffs, saved answers and cited passages.
-Cross-office queries and audit remain later slices.
+The fifth slice is **Cross-office**: independent general-source answers and strict signed-rule comparisons. A dedicated egress-audit workspace remains a later slice.
 Do not add navigation destinations until their workflows exist.
 
 `DESIGN.md` was installed using `npx getdesign@latest add claude`. Use its warm
@@ -515,3 +515,46 @@ light and dark. Live OpenRouter checks against an isolated copy of the uploaded
 sample PDFs exercised both supported questions and abstention; the final supported
 question returned cited procurement review/reporting information in about 3.3 seconds.
 Signatures and source-passage bindings were checked through the real verification API.
+
+
+## Cross-office
+
+- Keep Source answers and Signed-rule check distinct, with keyboard-accessible tabs.
+  Source answers accepts any policy topic, sends identical UTC cutoffs to each office,
+  and displays their independent cited answers without inventing a shared verdict.
+  The browser's authorized access to both originals is separate from federation.
+- General calls settle independently. A completed office remains visible when another
+  is unavailable. Preserve source choices and drafts after failures; stop waiting
+  without claiming server work was cancelled or automatically repeating a POST.
+- Signed-rule checks disclose their supported numeric scope, original/processing office
+  roles, signed export/import states, withheld counts and missing rules. “Answered”
+  does not mean compliant. Any unavailable, empty or withheld contribution keeps the
+  comparison incomplete. Show warnings and passage-inclusion limits separately from
+  transport signatures. Exchange-byte counts do not describe hosted-model traffic.
+- Give results priority on saved links. New comparison/N reveals setup, with styled
+  source/rule/office selectors and optional UTC date filters. Details stay collapsible;
+  citation references open their exact passage card. Original-source inspection uses
+  the citation's office, page and quote, with its own office/location URL state.
+- Keep both answer IDs, gateway receipt, method, setup/results pane and original
+  inspection state in shared links. Reload reads saved records and never repeats a
+  query/import. Drafts, files and transient errors are not included. Missing or
+  unauthorized answers never show a previous selection's successful result.
+- Reuse light/dark tokens, desktop-only hints, stable in-button copy confirmation,
+  outside/Escape modal dismissal, wide PDF viewing and Verification entry points.
+  Office cards stack on narrow displays; mobile navigation scrolls within its own bar.
+- Gateway query/receipt routes are server-allowlisted, reviewer-only, same-origin for
+  POSTs, and use the fixed server service identity. General questions retain the
+  configured office reader/reviewer principal and all source/model permissions.
+
+Validation uses isolated office databases and pinned keys with real federation,
+import, receipt reads, original-source access and signed evidence verification. Model
+responses in browser checks are controlled fixtures, not a claim of model quality.
+No working-office resets or paid model calls are needed for these UI checks.
+
+Cross-office validation passed 176 backend tests, 71 frontend tests and a production
+build. Browser checks covered independent answers, partial/offline responses, stopped
+requests, unauthorized saved IDs, exact-office PDF inspection, shared links without
+repeat POSTs, stable copy/outside dismissal, real signed bundle checks, the 5-versus-7
+year federation gap, missing loan rules, reader capability restrictions, and both
+themes at 320, 390, 760, 1024 and 1440px. The offline evaluation suite used
+`LLM_RESPONSE_FORMAT=json_schema`, matching its controlled schema fixture.

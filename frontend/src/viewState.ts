@@ -41,6 +41,7 @@ export interface View {
   verifySearch: string;
   verifyChecks: "all" | "passed" | "failed" | "not_checked";
   compareMode: "general" | "rules";
+  comparePane: "setup" | "results";
   compareDhaka: string;
   compareFrankfurt: string;
   compareRequest: string;
@@ -106,6 +107,7 @@ export function readView(search: string): View {
     verifySearch: p.get("vq") || "",
     verifyChecks: allowed("checks", ["passed", "failed", "not_checked"]) as View["verifyChecks"],
     compareMode: p.get("compareMode") === "rules" ? "rules" : "general",
+    comparePane: allowed("comparePane", ["setup", "results"], p.get("dhaAnswer") || p.get("fraAnswer") || p.get("comparison") ? "results" : "setup") as View["comparePane"],
     compareDhaka: p.get("dhaAnswer") || "",
     compareFrankfurt: p.get("fraAnswer") || "",
     compareRequest: p.get("comparison") || "",
@@ -155,6 +157,7 @@ export function viewSearch(view: View) {
   if (view.verifySearch) p.set("vq", view.verifySearch);
   if (view.verifyChecks !== "all") p.set("checks", view.verifyChecks);
   p.set("compareMode", view.compareMode);
+  p.set("comparePane", view.comparePane);
   if (view.compareDhaka) p.set("dhaAnswer", view.compareDhaka);
   if (view.compareFrankfurt) p.set("fraAnswer", view.compareFrankfurt);
   if (view.compareRequest) p.set("comparison", view.compareRequest);

@@ -1,6 +1,6 @@
 export const shortcutDescriptions = [
   { keys: "/", label: "Search the current page" },
-  { keys: "N", label: "Focus the question form (Questions)" },
+  { keys: "N", label: "Focus the question form (Questions / Cross-office)" },
   { keys: "U", label: "Upload a policy PDF (when permitted)" },
   { keys: "J / K", label: "Next / previous finding, answer or evidence record" },
   { keys: "A", label: "Acknowledge selected finding" },
@@ -13,8 +13,8 @@ export const shortcutDescriptions = [
   { keys: "Shift + T", label: "Open theme options" },
   { keys: "V", label: "Open verification from a finding or answer / run the selected check" },
   { keys: "I / L", label: "Check integrity / trace evidence (Verification)" },
-  { keys: "Shift + E", label: "Open exports (Questions / Verification)" },
-  { keys: "Shift + S", label: "Share view (Questions / Verification)" },
+  { keys: "Shift + E", label: "Open exports (Questions / Cross-office / Verification)" },
+  { keys: "Shift + S", label: "Share view (Questions / Cross-office / Verification)" },
   { keys: "Ctrl / ⌘ + Enter", label: "Submit the open review, upload, question or verification form" },
   { keys: "Esc", label: "Leave search or close a dropdown or dialog" },
   { keys: "? / F1", label: "Show keyboard shortcuts" },

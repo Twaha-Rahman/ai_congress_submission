@@ -91,7 +91,7 @@ export function createApiHandler({
     const isVerification = path?.startsWith("verifications/");
     const isSourceVerification = path === "verifications/source";
     if (
-      !match || (isGateway && path !== "queries" && !/^queries\/gw_\d{8}T\d{12}$/.test(path)) ||
+      !match || (!isGateway && path?.startsWith("queries/")) || (isGateway && path !== "queries" && !/^queries\/gw_\d{8}T\d{12}$/.test(path)) ||
       !(
         (req.method === "GET" && !isReview && !isUpload && !isComparison && !isVerification && !isQuery) ||
         (req.method === "POST" && (isReview || isUpload || isComparison || isVerification || isQuery))

@@ -42,6 +42,11 @@ export function ShortcutHint({
   );
 }
 
+export function SubmitShortcutHint() {
+  const mac = /Mac|iPhone|iPad|iPod/.test(navigator.platform);
+  return <ShortcutHint className="submit-key-hint">{mac ? "⌘" : "Ctrl"} ↵</ShortcutHint>;
+}
+
 export function SeverityBadge({ severity }: { severity: Finding["severity"] }) {
   const Icon = severity === "high" ? AlertCircle : Info;
   return (

@@ -624,6 +624,12 @@ timestamp submission, Cancel/reset behavior, upload-date compatibility and
 320–1440px layouts in both themes. Submission checks intercepted requests before
 they reached the backend; no paid calls or source changes were made.
 
+Questions and Cross-office submit buttons use balanced icon/label spacing and a
+quiet, borderless shortcut hint. Show only the platform's modifier (⌘ on macOS,
+Ctrl elsewhere) with Return, rather than both alternatives in a nested keycap.
+Keep the label visually dominant and hide shortcut hints on touch-sized layouts.
+The existing Ctrl/⌘+Enter behavior, focus cue and busy/disabled states still apply.
+
 Office answer cards use a uniform one-pixel border and a quiet surface. Do not add
 a thick top edge or accent rail. Use the existing heading, status badge and spacing
 to establish hierarchy.

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { AlertCircle, ArrowLeft, ArrowRight, BookOpen, CalendarDays, CircleHelp, Clock3, FileText, Keyboard, Link, LoaderCircle, LockKeyhole, MessageSquare, Plus, RefreshCw, Search, Send, Shield, X } from "lucide-react";
 import { api, ApiError } from "./api";
-import { EmptyState, ErrorState, Loading, Modal, ShortcutHint } from "./components";
+import { EmptyState, ErrorState, Loading, Modal, ShortcutHint, SubmitShortcutHint } from "./components";
 import Select from "./Select";
 import DateFilters from "./DateFilters";
 import ShareLink from "./ShareLink";
@@ -166,7 +166,7 @@ export default function Questions({ office, view, session, sessionError, navigat
           {!session && (sessionError ? <div className="notice warning" role="alert"><AlertCircle size={17} /><span>Question access could not be loaded. {sessionError} <button type="button" className="text-button" onClick={() => window.location.reload()}>Reload workspace</button></span></div> : <p className="question-help" role="status">Connecting question access…</p>)}
           {session && !canAsk && <div className="notice warning" role="status"><LockKeyhole size={17} /><span>This office’s question connection is not configured. Run make setup and restart the frontend.</span></div>}
           {error && <div className="notice warning" role="alert"><AlertCircle size={17} /><span>{error}</span></div>}
-          <div className="question-submit"><button className="button primary" type="submit" disabled={!canAsk || asking} aria-keyshortcuts="Control+Enter Meta+Enter">{asking ? <LoaderCircle size={16} className="spin" /> : <Send size={16} />}{asking ? "Answering…" : "Ask question"}<ShortcutHint>⌘ / Ctrl ↵</ShortcutHint></button>{asking && <button type="button" className="button secondary" onClick={cancel}>Cancel</button>}</div>
+          <div className="question-submit"><button className="button primary" type="submit" disabled={!canAsk || asking} aria-keyshortcuts="Control+Enter Meta+Enter">{asking ? <LoaderCircle size={16} className="spin" /> : <Send size={16} />}{asking ? "Answering…" : "Ask question"}<SubmitShortcutHint /></button>{asking && <button type="button" className="button secondary" onClick={cancel}>Cancel</button>}</div>
         </form>
         <section className="question-history" id="question-panel-recent" role="tabpanel" aria-labelledby="question-tab-recent" hidden={view.questionPanel !== "recent"}>
           {asking && <div className="notice" role="status"><LoaderCircle size={16} className="spin" /><span>Answering your question… <button className="text-button" onClick={cancel}>Cancel request</button></span></div>}

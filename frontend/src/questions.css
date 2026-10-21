@@ -20,8 +20,9 @@
 .question-checkbox { display: flex; gap: 9px; align-items: flex-start; font-size: 12px; margin-top: 18px; }
 .question-checkbox input { accent-color: var(--primary); margin: 3px 0 0; flex-shrink: 0; }
 .question-submit { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
-.question-submit .button { min-height: 42px; }
-.question-submit .shortcut-hint { font-size: 9px; }
+.question-submit .button { min-height: 44px; }
+.question-submit .button.primary { gap: 10px; padding: 11px 16px; }
+.question-submit .button.primary .submit-key-hint { margin-left: 8px; min-width: 0; min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent; color: inherit; opacity: .8; font: 400 11px/1.4 var(--sans); white-space: nowrap; }
 .question-form .notice { margin-top: 16px; font-size: 13px; }
 .question-history { padding-top: 16px; }
 .question-panel-tabs { display: flex; gap: 12px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }

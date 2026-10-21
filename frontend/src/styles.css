@@ -31,7 +31,6 @@
   --selected-surface: #f1dccd;
   --nav-active-surface: #f0d9c9;
   --nav-active-ink: #713d2a;
-  --nav-active-line: #ba795b;
   --selection-surface: #a9583e;
   --selection-ink: #fffdf8;
   --interaction-surface: #ede4d9;
@@ -87,7 +86,6 @@
   --selected-surface: #493229;
   --nav-active-surface: #50382e;
   --nav-active-ink: #ffd2bb;
-  --nav-active-line: #bb8065;
   --selection-surface: #efab90;
   --selection-ink: #241813;
   --interaction-surface: #3a3432;
@@ -353,7 +351,6 @@ svg {
 .nav-item.active {
   background: var(--nav-active-surface);
   color: var(--nav-active-ink);
-  border-color: var(--nav-active-line);
   box-shadow: inset 3px 0 var(--primary);
   font-weight: 600;
 }
@@ -2240,10 +2237,9 @@ button:enabled:active, summary:active, .nav-item:active {
   .button.secondary:enabled:active { background: var(--selected-surface); }
   .text-button:enabled:hover, .source-name:enabled:hover { text-decoration: underline; text-underline-offset: 3px; }
   .nav-item:not(.active):hover { background: var(--interaction-surface); color: var(--ink); }
-  .nav-item.active:hover { border-color: var(--primary); }
   :is(.finding-list-item, .question-answer-card, .upload-job, .lineage-node):enabled:hover { border-color: var(--primary); }
   :is(.finding-list-item, .question-answer-card, .upload-job, .lineage-node):not(.selected):enabled:hover { background: var(--interaction-surface); }
-  :is(.detail-tabs, .question-panel-tabs, .comparison-tabs, .verification-task-tabs) button:enabled:hover { color: var(--primary); background: var(--interaction-surface); }
+  :is(.detail-tabs, .question-panel-tabs, .comparison-tabs, .verification-task-tabs) button:enabled:hover { color: var(--primary); }
   .search-input:hover { border-color: var(--primary); }
   :where(input, textarea, select):not(:disabled):not([readonly]):hover { border-color: var(--primary); }
   summary:hover { color: var(--primary); background: color-mix(in srgb, var(--interaction-surface) 65%, transparent); }

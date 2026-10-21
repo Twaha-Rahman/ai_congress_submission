@@ -571,13 +571,15 @@ themes at 320, 390, 760, 1024 and 1440px. The offline evaluation suite used
 - Questions adds B for Recent answers and Shift+N for Use this question. Both have
   desktop keycaps and honor typing/modal guards and the shortcut preference. Reuse
   fills the composer with the question and source/date context without submitting.
-- Make the current navigation item visibly distinct with a warm fill, accent border,
-  inset leading marker and stronger text. Text selection uses its own high-contrast
-  foreground/background pair in each theme, including within form fields. Selected
+- Make the current navigation item visibly distinct with a warm fill,
+  inset leading marker and stronger text. Keep the outer border transparent; do not
+  outline the entire navigation item with the accent color. Text selection uses its
+  own high-contrast foreground/background pair in each theme, including within form fields. Selected
   record surfaces remain distinct from ordinary cards.
 - Shared controls respond to hover, pressing, focus and expanded states without
-  moving their borders or contents. Disabled controls retain their inactive state;
-  keyboard focus rings and reduced-motion preferences remain intact.
+  moving their borders or contents. Underlined tabs use text-color feedback on hover,
+  without a rectangular background behind the label. Disabled controls retain their
+  inactive state; keyboard focus rings and reduced-motion preferences remain intact.
 - Questions, Cross-office and Verification share one URL/copy row: an icon-only
   labelled button sits beside the field, with fixed dimensions and in-button check
   confirmation. Announce success to screen readers; keep clipboard failures visible

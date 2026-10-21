@@ -248,12 +248,26 @@ source-copy check, and a bundle failure does not hide a saved answer’s trace.
 
 ### Connect live Slack channels
 
-Open **Sources → Slack** in an authorized workspace to monitor public channels,
+Open **Sources → Live Slack** in an authorized workspace to monitor public channels,
 set their applicability and processing permissions, pause/resume model work and
 inspect recent processing. Slack app credentials are configured per office on the
 server. Edits and deletions withdraw prior evidence from current answers while
 preserving audit history. See [the setup guide](docs/slack_integration.md) for app
 installation, restart instructions, permissions and coverage limits.
+
+### Import saved Slack messages
+
+Open **Sources → Import Slack JSON** and choose a saved message event or batch.
+The dialog previews the channel, message count and dates. Enter the source name,
+version, policy category and applicability, choose its readers, and allow hosted
+processing when using a hosted model. Imports use informal authority and derive
+publication time from the saved messages. Live Slack credentials are not required.
+
+Files can contain up to **200 messages**, **100,000 text characters** and **5 MiB**
+from one channel. Thread replies must include their parent in the batch. Use
+**Download example** in the dialog for the supported JSON structure; full workspace
+ZIP exports and edit/delete notifications are not supported. Processing appears in
+**Recent activity**, and importing another source preserves the job already selected.
 
 ### Upload your own PDF
 

@@ -6,6 +6,7 @@ import { date, humanize, scopeLabel, sourceTitle } from "./presentation";
 import Select from "./Select";
 import UploadPdf from "./UploadPdf";
 import SlackConnection from "./SlackConnection";
+import ImportSlack from "./ImportSlack";
 import UploadStatus, { JobBadge } from "./UploadStatus";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 import { isProcessing, keepUploadSelection, visibleSources } from "./uploads";
@@ -32,6 +33,7 @@ export default function Sources({ office, session, view, navigate, shortcutsEnab
   const [notice, setNotice] = useState("");
   const [openUpload, setOpenUpload] = useState(false);
   const [slackOpen, setSlackOpen] = useState(false);
+  const [savedSlackOpen, setSavedSlackOpen] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const [readRevision, setReadRevision] = useState(0);
   const search = useRef<HTMLInputElement>(null);
@@ -100,8 +102,8 @@ export default function Sources({ office, session, view, navigate, shortcutsEnab
   });
   function queued(job: UploadJob) {
     if (!mounted.current) return;
-    setOpenUpload(false); setJobs((current) => [job, ...current.filter((j) => j.job_id !== job.job_id)]);
-    setNotice("PDF received. Processing is queued and auto-refresh is on.");
+    setOpenUpload(false); setSavedSlackOpen(false); setJobs((current) => [job, ...current.filter((j) => j.job_id !== job.job_id)]);
+    setNotice(`${job.kind === "slack" ? "Saved messages" : "PDF"} received. Processing is queued and auto-refresh is on.`);
     navigate({ uploadJob: keepUploadSelection(selectedJobId.current, job.job_id), autoRefresh: true });
     void load();
   }
@@ -124,7 +126,7 @@ export default function Sources({ office, session, view, navigate, shortcutsEnab
         <AutoRefreshButton enabled={view.autoRefresh} refreshing={refreshing} shortcutsEnabled={shortcutsEnabled}
           title="Checks every 3 seconds during processing and every 10 seconds otherwise. Pauses while editing or inspecting sources."
           onToggle={() => { navigate({ autoRefresh: !view.autoRefresh }); if (!view.autoRefresh) void load(); }} />
-        {canUpload && <button className="button secondary" onClick={() => setSlackOpen(true)}><MessageSquare size={16} />Slack</button>}
+        {canUpload && <><button className="button secondary" onClick={() => setSavedSlackOpen(true)}><MessageSquare size={16} />Import Slack JSON</button><button className="button secondary" onClick={() => setSlackOpen(true)}><MessageSquare size={16} />Live Slack</button></>}
         <button className="button primary" disabled={!canUpload} aria-keyshortcuts={shortcutsEnabled && canUpload ? "U" : undefined} onClick={() => setOpenUpload(true)}><ArrowUpFromLine size={16} />Upload PDF{shortcutsEnabled && <ShortcutHint>U</ShortcutHint>}</button>
       </div>
     </div>
@@ -164,18 +166,20 @@ export default function Sources({ office, session, view, navigate, shortcutsEnab
           {jobError && <div className="notice warning" role="alert"><AlertCircle size={16} /><span>{jobError}</span></div>}
           {jobs.length ? <ul className="upload-job-list">{jobs.slice(0, 12).map((job) => <li key={job.job_id}><button className={`upload-job ${view.uploadJob === job.job_id ? "selected" : ""}`} aria-pressed={view.uploadJob === job.job_id} onClick={() => navigate({ uploadJob: job.job_id })}>
             <span className="upload-job-name">{job.display_name || job.source_identity || (job.kind === "slack" ? "Slack message" : job.kind === "policy_comparison" ? "Policy comparison" : "PDF upload")}</span><JobBadge job={job} /><span className="upload-job-date">{`${job.kind === "slack" ? "Slack · " : ""}${job.version_label ? `${job.version_label} · ` : ""}`}{date(job.created_at, true)}</span>
-          </button></li>)}</ul> : <div className="activity-empty"><Clock3 size={21} /><p>No recent uploads</p><span>Processing status will appear here after you upload a PDF.</span></div>}
+          </button></li>)}</ul> : <div className="activity-empty"><Clock3 size={21} /><p>No recent activity</p><span>PDF and Slack processing will appear here.</span></div>}
         </aside>
       </div>
     </>}
-    {view.uploadJob && !openUpload && !view.document && <Modal title="Upload status" className="upload-status-dialog" onClose={() => navigate({ uploadJob: "" })}>
+    {view.uploadJob && !openUpload && !savedSlackOpen && !slackOpen && !view.document && <Modal title="Upload status" className="upload-status-dialog" onClose={() => navigate({ uploadJob: "" })}>
       {selectedJob && jobError && <div className="notice warning" role="alert"><AlertCircle size={16} /><span>{jobError}</span></div>}
       {selectedJob ? <UploadStatus job={selectedJob} retrying={retrying} canRetry={!!(selectedJob.source_id && ["needs_review", "failed"].includes(selectedJob.status) && canUpload && !active && sources.find((s) => s.source_id === selectedJob.source_id)?.subject === "general_policy")}
         onRetry={() => void retryComparison(selectedJob)} onFindings={() => onFindings(selectedJob.source_id!)}
         onInspect={() => navigate({ document: selectedJob.source_id!, page: 1, zoom: 100 })}
+        onImportSlack={canUpload ? () => setSavedSlackOpen(true) : undefined}
         onUpload={canUpload && selectedJob.kind !== "slack" ? () => setOpenUpload(true) : undefined} /> : <div className="dialog-body">{jobError ? <ErrorState error={jobError} retry={() => setReadRevision((n) => n + 1)} /> : <Loading label="Opening processing job…" />}</div>}
     </Modal>}
     {slackOpen && <SlackConnection office={office} onClose={() => setSlackOpen(false)} onJob={id => { setSlackOpen(false); navigate({ uploadJob: id }); void load(); }} />}
+    <ImportSlack key={office} open={savedSlackOpen} office={office} config={session?.uploads?.[office]} onClose={() => setSavedSlackOpen(false)} onQueued={queued} />
     <UploadPdf open={openUpload} office={office} sources={sources} config={session?.uploads?.[office]} shortcutsEnabled={shortcutsEnabled} onClose={() => setOpenUpload(false)} onQueued={queued} />
     {view.document && <DocumentDialog office={office} sourceId={view.document} view={view} navigate={navigate} onClose={() => navigate({ document: "" })} onVerify={onVerify} />}
   </>;

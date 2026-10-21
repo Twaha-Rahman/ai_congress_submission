@@ -334,3 +334,50 @@ test("Slack connection settings use the office uploader and reject reader/cross-
     method: "POST", headers: { "X-Meridian-UI": "1" }, body: '{"action":"resume"}',
   })).status, 403);
 });
+
+const slackImportBody = () => ({
+  manifest: { source_identity: "Team guidance", version_label: "v1", policy_family: "people",
+    scope: { kind: "policy", description: "Dhaka office", attributes: { country: "BD" } },
+    sensitivity: "restricted", permissions: { hosted_model: true, office_export: true },
+    authority: "policy", source_type: "pdf", subject: "loan_approval", region: "FRANKFURT", tenant_id: "other",
+    publication_time: "2000-01-01T00:00:00Z", effective_from: "2000-01-01T00:00:00Z" },
+  payload: { channel: { id: "CDEMO", name: "people" }, events: [
+    { type: "message", ts: "1792454400.000001", text: "Employees request leave in the HR system.", user: "U1" },
+    { type: "message", ts: "1792454400.000002", text: "Managers record the decision.", user: "U2" },
+  ] },
+});
+
+test("saved Slack imports use the uploader and server-owned office, authority, dates and live mode", async (t) => {
+  const { url, calls } = await bridge(t, { env: { DEMO_TOKEN_DHAKA_UPLOADER: "slack-import-uploader" } });
+  const response = await fetch(`${url}/api/dhaka/ingestions/slack`, { method: "POST",
+    headers: { "X-Meridian-UI": "1", "Content-Type": "application/json", Authorization: "Bearer browser-token" }, body: JSON.stringify(slackImportBody()) });
+  assert.equal(response.status, 200); assert.equal(calls.length, 1);
+  assert.equal(calls[0].headers.Authorization, "Bearer slack-import-uploader");
+  assert.match(calls[0].url, /8081\/v1\/ingestions\/slack$/);
+  const sent = JSON.parse(calls[0].body);
+  assert.equal(sent.mode, "live"); assert.equal(sent.manifest.region, "DHAKA"); assert.equal(sent.manifest.tenant_id, "meridian_demo");
+  assert.equal(sent.manifest.subject, "general_policy"); assert.equal(sent.manifest.authority, "informal"); assert.equal(sent.manifest.source_type, "slack");
+  assert.equal(sent.manifest.publication_time, "2026-10-20T00:00:00.000002Z");
+  assert.equal(sent.manifest.effective_from, null); assert.equal(sent.manifest.permissions.office_export, false);
+  assert.equal(sent.events[0].ts, "1792454400.000001"); assert.equal(sent.events[1].text, slackImportBody().payload.events[1].text);
+});
+
+test("saved Slack import rejects reader access, cross-origin writes, gateway paths and read requests", async (t) => {
+  const { url, calls } = await bridge(t, { env: { DEMO_TOKEN_DHAKA_UPLOADER: "uploader" } });
+  assert.equal((await fetch(`${url}/api/dhaka/ingestions/slack`)).status, 404);
+  assert.equal((await fetch(`${url}/api/gateway/ingestions/slack`, { method: "POST" })).status, 404);
+  assert.equal((await fetch(`${url}/api/dhaka/ingestions/slack`, { method: "POST", headers: { "X-Meridian-UI": "1", Origin: "https://elsewhere.invalid" }, body: JSON.stringify(slackImportBody()) })).status, 403);
+  const reader = await bridge(t, { env: { UI_ROLE: "reader", DEMO_TOKEN_DHAKA_READER: "reader", DEMO_TOKEN_DHAKA_UPLOADER: "uploader" } });
+  assert.equal((await fetch(`${reader.url}/api/dhaka/ingestions/slack`, { method: "POST", headers: { "X-Meridian-UI": "1" }, body: JSON.stringify(slackImportBody()) })).status, 403);
+  assert.equal(calls.length, 0);
+});
+
+test("malformed, unsupported and oversized saved Slack imports fail before any office call", async (t) => {
+  const { url, calls } = await bridge(t, { env: { DEMO_TOKEN_DHAKA_UPLOADER: "uploader" } });
+  const valid = slackImportBody();
+  for (const body of ["invalid json", JSON.stringify({ ...valid, mode: "replay" }), JSON.stringify({ ...valid, payload: { events: [{ text: "Missing timestamp" }] } }), JSON.stringify({ ...valid, manifest: { ...valid.manifest, permissions: { hosted_model: false } } })]) {
+    assert.equal((await fetch(`${url}/api/dhaka/ingestions/slack`, { method: "POST", headers: { "X-Meridian-UI": "1" }, body })).status, 422);
+  }
+  assert.equal((await fetch(`${url}/api/dhaka/ingestions/slack`, { method: "POST", headers: { "X-Meridian-UI": "1" }, body: " ".repeat(5 * 1024 * 1024 + 65537) })).status, 413);
+  assert.equal(calls.length, 0);
+});

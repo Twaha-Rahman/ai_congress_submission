@@ -684,3 +684,22 @@ connection gaps without claiming complete history. Recent activity in Sources
 includes PDFs and Slack; opening a job must remain an explicit selection.
 Preserved Slack originals link to Slack and mark withdrawn revisions clearly.
 Do not add onboarding filler, decorative edge rails or a new unrelated page.
+
+
+## Saved Slack import
+
+Sources exposes **Import Slack JSON** separately from **Live Slack**. Reuse the
+upload dialog, themed inputs, styled access selector, drop target, stable footer
+and Ctrl/⌘+Enter convention. Provide an actual JSON example download and a compact
+channel/count/date preview. Keep message preview text literal; truncation affects
+only display. Derive dates from message timestamps and show informal authority as
+fixed metadata, without editable authority or date fields. Default to restricted
+readers and require hosted-processing consent for hosted routes. Do not add a live
+Slack-token requirement to file import.
+
+Validate saved single/batch events on both browser and server. Reject invalid JSON,
+unsupported lifecycle notices, mixed channels, missing thread parents and oversized
+batches with specific errors; never silently drop message entries. Keep a failed
+import's file and draft. Return to the already-selected processing job after a
+successful import; do not select the incoming job over an existing selection.
+Both PDF and Slack jobs remain in Recent activity with their actual stage timings.

@@ -1,0 +1,19 @@
+.slack-import-dialog .upload-office > span:first-child { display: inline-flex; align-items: center; gap: 6px; }
+.slack-file-help { display: flex; align-items: baseline; gap: 8px 20px; justify-content: space-between; flex-wrap: wrap; }
+.slack-file-help .upload-hint { flex: 1; min-width: 180px; margin-bottom: 0; }
+.slack-file-help .text-button { flex-shrink: 0; font-size: 11px; }
+.slack-import-summary { border: 1px solid var(--line); border-radius: 8px; background: var(--scope-surface); padding: 13px 14px; margin: 0 0 20px; font-size: 12px; }
+.slack-import-summary > div { display: flex; gap: 8px 16px; flex-wrap: wrap; }
+.slack-import-summary span, .slack-import-summary > p { display: flex; gap: 6px; align-items: center; overflow-wrap: anywhere; }
+.slack-import-summary > p { color: var(--muted); font-size: 11px; margin: 10px 0; line-height: 1.6; }
+.slack-import-summary svg { flex-shrink: 0; }
+.slack-import-summary details { margin-top: 10px; }
+.slack-import-summary summary { display: inline-flex; cursor: pointer; font-size: 11px; color: var(--primary); padding: 3px 0; }
+.slack-import-summary summary::before { content: "▸"; margin-right: 6px; }
+.slack-import-summary details[open] summary::before { content: "▾"; }
+.slack-import-summary ol { padding-left: 18px; margin: 10px 0 0; }
+.slack-import-summary li { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; margin-top: 8px; }
+.slack-import-summary small { color: var(--muted); display: block; margin-top: 10px; }
+.slack-import-authority { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 11px; color: var(--muted); margin-top: 16px; }
+.slack-import-authority > span { margin-left: auto; }
+.slack-import-submit .submit-key-hint { margin-left: 8px; border: 0; padding: 0; background: transparent; font: 400 11px/1.4 var(--sans); color: inherit; opacity: .8; }

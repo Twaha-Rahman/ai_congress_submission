@@ -26,7 +26,7 @@ separate connector command is required.
 5. Restart the office processes with `make local-down && make local-up`. This
    preserves their databases, sources and keys. Restart `make frontend` if the
    frontend bridge's uploader credential has changed.
-6. In **Sources → Slack → Add channel**, enter the channel ID, policy family,
+6. In **Sources → Live Slack → Add channel**, enter the channel ID, policy family,
    applicability and reader scope. Choose hosted processing and structured claim
    export separately. Both are off by default. With hosted processing off, an
    explicitly approved office-local model is needed to extract statements.
@@ -122,3 +122,60 @@ workspace connection or paid model call was made. Backend tests used
 `LLM_RESPONSE_FORMAT=json_schema .venv/bin/python -m pytest`; the existing offline
 model doubles expect that response format, independently of the demo's configured
 live JSON-object provider mode.
+
+
+## Import saved Slack JSON in the browser
+
+Use **Sources → Import Slack JSON**, or **Import saved Slack** from a processing
+status dialog. This is an authorized saved-source upload and does not require a
+live Slack connection or Slack app tokens. Reader workspaces cannot import.
+
+The file must be a UTF-8 JSON object with either one `event` or an `events` array.
+An optional `channel` object supplies its ID/name; channel IDs inside events must
+agree. For example:
+
+```json
+{
+  "channel": { "id": "C_EXAMPLE", "name": "team-guidance" },
+  "events": [
+    { "type": "message", "ts": "2026-10-21T09:00:00Z", "user": "U_EXAMPLE",
+      "text": "Employees submit travel expenses through the company portal." }
+  ]
+}
+```
+
+The dialog's downloadable example uses the same format. Slack epoch timestamps
+(e.g. `1792454400.123456`) and timezone-aware ISO timestamps are supported, with
+microsecond precision preserved. Publication time is derived from the newest
+message; the pipeline assigns individual message times to extracted statements.
+Each timestamp may appear only once per channel batch. Thread replies require the
+parent snapshot in the same file. A batch is limited to 200 messages, 100,000 text
+characters and 5 MiB, and is never silently truncated. Complete workspace exports,
+ZIP archives, mixed-channel batches and edit/delete event notifications are rejected.
+
+Source authority is fixed to informal, cross-office export is disabled, and access
+defaults to restricted readers. Hosted processing requires an explicit choice; an
+approved local model uses a source with hosted processing off. The browser bridge
+uses the office uploader identity, revalidates the file structure, rebuilds the
+manifest, derives publication time and fixes tenant/office/type/authority/mode before
+forwarding to `/v1/ingestions/slack`. File-provided manifests cannot grant authority
+or change the destination office.
+
+Imports are independent snapshots, not live subscriptions or implicit replacements
+of previously imported messages. The existing durable pipeline detects identical
+source/version content; changed content needs a distinct version. Saved JSON is
+normalized into the API's canonical message payload, so preserved source bytes
+represent that payload, not the original file's formatting or byte-order mark.
+
+Status and stage timings appear in Recent activity. Opening the import dialog from
+a processing job preserves that job's selection; successful submission adds the new
+job without switching away from it. Failed submissions retain the file and form,
+and advise checking recent activity before an ambiguous network failure is retried.
+
+Saved-import verification passed 87 frontend checks, the production build, and
+light/dark browser checks at 320–1440px. A separate isolated HTTP/API check exercised
+shared JavaScript validation, authenticated ingestion, the real worker, source
+publication and original-content retrieval with one simulated model call. Its empty
+office correctly required review because no authoritative reference policy existed.
+No ordinary office data was reset, no live Slack call was made, and no paid model
+call was used for these checks.

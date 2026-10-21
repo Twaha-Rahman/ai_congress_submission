@@ -1,5 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { Readable } from "node:stream";
+import { parseSavedSlack, buildSavedSlackManifest, maxSlackBytes } from "../shared/slackImport.mjs";
 
 const MAX_PDF_BYTES = 20 * 1024 * 1024;
 
@@ -79,13 +80,14 @@ export function createApiHandler({
       });
     }
     const match =
-      /^\/api\/(dhaka|frankfurt|gateway)\/(findings(?:\/[\w:.-]+(?:\/(?:reviews|lineage))?)?|sources(?:\/[\w:.-]+(?:\/(?:content|comparisons|lineage))?)?|answers(?:\/[\w:.-]+(?:\/(?:lineage|bundle))?)?|queries(?:\/gw_\d{8}T\d{12})?|verifications\/(?:source|bundle)|claims(?:\/reviews)?|jobs(?:\/[\w.-]+)?|ingestions\/pdf|integrations\/slack)$/.exec(
+      /^\/api\/(dhaka|frankfurt|gateway)\/(findings(?:\/[\w:.-]+(?:\/(?:reviews|lineage))?)?|sources(?:\/[\w:.-]+(?:\/(?:content|comparisons|lineage))?)?|answers(?:\/[\w:.-]+(?:\/(?:lineage|bundle))?)?|queries(?:\/gw_\d{8}T\d{12})?|verifications\/(?:source|bundle)|claims(?:\/reviews)?|jobs(?:\/[\w.-]+)?|ingestions\/(?:pdf|slack)|integrations\/slack)$/.exec(
         url.pathname,
       );
     const path = match?.[2];
     const isGateway = match?.[1] === "gateway";
     const isReview = path && /^findings\/[\w:.-]+\/reviews$/.test(path);
     const isUpload = path === "ingestions/pdf";
+    const isSavedSlack = path === "ingestions/slack";
     const isSlack = path === "integrations/slack";
     const isQuery = path === "queries";
     const isComparison = path && /^sources\/[\w:.-]+\/comparisons$/.test(path);
@@ -94,8 +96,8 @@ export function createApiHandler({
     if (
       !match || (!isGateway && path?.startsWith("queries/")) || (isGateway && path !== "queries" && !/^queries\/gw_\d{8}T\d{12}$/.test(path)) ||
       !(
-        (req.method === "GET" && !isReview && !isUpload && !isComparison && !isVerification && !isQuery) ||
-        (req.method === "POST" && (isReview || isUpload || isComparison || isVerification || isQuery || isSlack))
+        (req.method === "GET" && !isReview && !isUpload && !isSavedSlack && !isComparison && !isVerification && !isQuery) ||
+        (req.method === "POST" && (isReview || isUpload || isComparison || isVerification || isQuery || isSlack || isSavedSlack))
       )
     ) {
       return json(res, 404, {
@@ -137,7 +139,7 @@ export function createApiHandler({
         });
     }
     const office = match[1].toUpperCase();
-    const connectionRole = isUpload || isComparison || isSlack ? "uploader" : role;
+    const connectionRole = isUpload || isComparison || isSlack || isSavedSlack ? "uploader" : role;
     const token = env[`DEMO_TOKEN_${office}_${isGateway ? "SERVICE" : connectionRole.toUpperCase()}`];
     if (!token)
       return json(res, 503, {
@@ -157,11 +159,11 @@ export function createApiHandler({
         let size = 0;
         for await (const chunk of req) {
           size += chunk.length;
-          if (size > (isUpload || isSourceVerification ? MAX_PDF_BYTES + 65536 : isVerification ? MAX_PDF_BYTES : 65536))
+          if (size > (isUpload || isSourceVerification ? MAX_PDF_BYTES + 65536 : isVerification ? MAX_PDF_BYTES : isSavedSlack ? maxSlackBytes + 65536 : 65536))
             return json(res, 413, {
               error: {
                 code: "invalid_input",
-                message: isUpload ? "Choose a PDF smaller than 20 MB." : isVerification ? "Choose evidence smaller than 20 MB." : "The request is too large.",
+                message: isSavedSlack ? "Choose a saved Slack file smaller than 5 MB." : isUpload ? "Choose a PDF smaller than 20 MB." : isVerification ? "Choose evidence smaller than 20 MB." : "The request is too large.",
               },
             });
           chunks.push(chunk);
@@ -200,6 +202,19 @@ export function createApiHandler({
               error instanceof SyntaxError ? "The upload metadata is invalid." :
               error.message && !error.message.includes("formData") ? error.message : "The upload form is invalid.",
             } });
+          }
+        } else if (isSavedSlack) {
+          try {
+            const submission = JSON.parse(body.toString("utf8"));
+            if (!submission || typeof submission !== "object" || Array.isArray(submission) ||
+                Object.keys(submission).some(key => !["manifest", "payload"].includes(key))) throw new Error("Use the saved Slack import form.");
+            const saved = parseSavedSlack(JSON.stringify(submission.payload));
+            const metadata = buildSavedSlackManifest(submission.manifest, saved.newest);
+            if (usesApprovedLocalModel(env, office) === false && !metadata.permissions.hosted_model)
+              throw new Error("Allow hosted-model processing to import these messages with the configured model.");
+            body = JSON.stringify({ ...saved.payload, manifest: { ...metadata, tenant_id: env.TENANT_ID || "meridian_demo", region: office }, mode: "live" });
+          } catch (error) {
+            return json(res, 422, { error: { code: "invalid_input", message: error instanceof SyntaxError ? "The saved Slack import is not valid JSON." : error.message || "The saved Slack import is invalid." } });
           }
         } else if (isSourceVerification) {
           try {
@@ -252,7 +267,7 @@ export function createApiHandler({
           },
           body,
           redirect: "error",
-          signal: AbortSignal.timeout(isQuery ? isGateway ? 100000 : 610000 : isUpload || isVerification ? 60000 : 15000),
+          signal: AbortSignal.timeout(isQuery ? isGateway ? 100000 : 610000 : isUpload || isSavedSlack || isVerification ? 60000 : 15000),
         },
       );
       const headers = {

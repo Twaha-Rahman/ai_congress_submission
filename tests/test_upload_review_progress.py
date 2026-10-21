@@ -75,6 +75,10 @@ def test_progress_is_version_specific_permission_filtered_and_not_capped_at_200(
             payload=model.model_copy(update={"finding_id":new_id("finding"),"finding_key":f"progress-limit-{n}"})
             office.store.insert_finding_snapshot(connection,payload=payload,signature=office.signer.sign(canonical_json_bytes(payload)),key_id=office.signer.key_id,alert=True)
     assert get("/v1/jobs/{job_id}")(job.job_id,principal=reviewer)["job"]["review_summary"]["total"]==full["total"]+205
+    # Queue reads and their counts must include open findings beyond the old 200-row window.
+    queued=get("/v1/findings")(review_state="open",principal=reviewer)
+    assert queued["count"]>200
+    assert all(item["review_state"]=="open" for item in queued["findings"])
     # Findings involving v3 cannot inflate the earlier version's count.
     assert get("/v1/jobs/{job_id}")(previous.job_id,principal=reviewer)["job"]["review_summary"]["total"]==earlier_count
     unrelated=office.store.find_source_version("dhaka_records_procedure","v1")

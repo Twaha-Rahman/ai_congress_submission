@@ -95,11 +95,19 @@ Tokens live in `frontend/src/styles.css`; use variables when extending component
   Notices, shortcut preferences, and unsaved review text stay out of shared URLs.
 - Keep the page heading to “Findings.” Avoid promotional sidebar copy, explanatory
   taglines and duplicate footer slogans in the workspace.
-- Summary counts use compact 44px bordered surfaces, 21px numbers and readable labels.
-  Pair each count with a 16px icon: alert, findings list, and reviewed check.
-  Emphasize attention in coral and reviewed in teal. On mobile, use three equal
-  columns. Severity/review badges use 12px semibold labels, semantic fills and
-  visible borders; keep queue variants compact without losing their status color.
+- Do not show a Findings summary strip or total/reviewed counters. The sidebar's
+  Findings badge counts only authorized open findings, independently of queue
+  search/type/severity filters. Keep the count current on other pages too. Show
+  zero when the loaded queue is clear; do not substitute a total count.
+- The Review queue contains open findings only. Acknowledge, resolve and dismiss
+  remove the card as soon as the review is saved. Reviewed evidence stays available
+  through saved finding links, source/answer traces and Activity review history.
+  Remove review-status filtering/sorting from the queue; legacy status links cannot
+  reintroduce reviewed cards. Keep a linked/recently reviewed finding's detail open
+  with a clear return to the queue, and distinguish an empty queue from no search
+  matches. Preserve the existing review audit and source evidence.
+- Severity/review badges use 12px semibold labels, semantic fills and visible borders;
+  keep queue variants compact without losing their status color.
 - Office and filter controls use `Select.tsx`, a shared select-only combobox with
   styled trigger and option surfaces. Keep the native keyboard conventions:
   arrows/Home/End move the active option, typing finds a label, Enter/Space selects,
@@ -109,7 +117,7 @@ Tokens live in `frontend/src/styles.css`; use variables when extending component
   Measure the rendered content at the popup's final width, including wrapped labels,
   padding and borders. Short menus must fit without a scrollbar; retain scrolling
   when the content exceeds the menu height limit or available viewport space.
-- The queue sort control supports severity, newest, oldest, review status and finding
+- The queue sort control supports severity, newest, oldest and finding
   ID. Default severity order breaks ties by newest first, then a stable identifier.
   Pin even the initially displayed finding in the URL. Sorting and auto-refresh
   preserve that selection and never mutate backend data.

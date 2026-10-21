@@ -586,7 +586,7 @@ def create_app(settings: OfficeSettings | None = None) -> FastAPI:
         _require_office_scope(principal, Permission.READ_LOCAL)
         findings = []
         for record in store.list_findings(
-            finding_type=finding_type, alert=alert, review_state=review_state
+            finding_type=finding_type, alert=alert, review_state=review_state, limit=None
         ):
             # Inaccessible findings are absent, not redacted metadata: a reader without
             # read_restricted must not learn that a restricted finding exists.

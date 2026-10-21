@@ -433,70 +433,6 @@ svg {
 .refresh-button {
   margin-top: 0;
 }
-.summary-strip {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 7px 0 17px;
-  border-bottom: 1px solid var(--line);
-  margin-bottom: 23px;
-}
-.summary-metric {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 44px;
-  padding: 8px 11px;
-  background: var(--surface);
-  border: 1px solid var(--neutral-line);
-  border-radius: 8px;
-}
-.summary-metric.metric-attention {
-  background: var(--warning-surface);
-  border-color: var(--warning-line);
-}
-.metric-attention strong {
-  color: var(--warning-ink);
-}
-.summary-metric.metric-reviewed {
-  background: var(--teal-surface);
-  border-color: var(--teal-line);
-}
-.metric-reviewed strong,
-.metric-reviewed .summary-icon {
-  color: var(--teal);
-}
-.summary-strip strong {
-  font-weight: 600;
-  font-size: 21px;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-.summary-metric > span:last-child {
-  color: var(--body);
-  font-size: 12px;
-  font-weight: 500;
-}
-.summary-icon {
-  display: flex;
-  color: var(--muted);
-}
-.summary-value {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-.attention {
-  color: var(--warning-ink);
-}
-.summary-office {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--muted);
-  font-size: 11px;
-}
 .small-dot {
   width: 5px;
   height: 5px;
@@ -599,7 +535,7 @@ textarea::placeholder {
 }
 .queue-filters {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 8px;
   margin: 12px 0 8px;
 }
@@ -1889,12 +1825,6 @@ textarea {
   .main-shell {
     margin-left: 69px;
   }
-  .summary-strip {
-    gap: 10px;
-  }
-  .summary-office {
-    display: none;
-  }
 }
 @media (max-width: 760px) {
   .shortcut-hint,
@@ -1966,24 +1896,6 @@ textarea {
     padding: 10px;
     margin-left: 0;
     gap: 0;
-  }
-  .summary-strip {
-    gap: 8px;
-    padding-top: 5px;
-    margin-bottom: 23px;
-  }
-  .summary-strip strong {
-    font-size: 21px;
-  }
-  .summary-metric {
-    min-width: 0;
-    flex: 1;
-    flex-direction: column;
-    gap: 4px;
-    padding: 8px 5px;
-  }
-  .summary-metric > span:last-child {
-    font-size: 10.5px;
   }
   .investigation-layout {
     display: block;

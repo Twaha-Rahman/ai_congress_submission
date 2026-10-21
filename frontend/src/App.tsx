@@ -38,6 +38,7 @@ import Verification from "./Verification";
 import Questions from "./Questions";
 import Comparisons from "./Comparisons";
 import Activity from "./Activity";
+import { reviewQueue, unreviewedFindings } from "./reviewQueue";
 import {
   useKeyboardShortcuts,
   useShortcutPreference,
@@ -49,7 +50,6 @@ import {
   findingTag,
   humanize,
   orderFindings,
-  matchesFinding,
   sortOptions,
   type FindingSort,
   scopeLabel,
@@ -103,6 +103,7 @@ export default function App() {
   const [view, setView] = useState<View>(readBrowserView);
   const [session, setSession] = useState<Session | null>(null);
   const [sessionError, setSessionError] = useState("");
+  const [queueCount,setQueueCount]=useState<{office:Office;value:number}|null>(null);
   const [workspace, setWorkspace] = useState<
     (WorkspaceData & { office: Office }) | null
   >(null);
@@ -206,19 +207,22 @@ export default function App() {
     return () => controller.abort();
   }, [view.office, revision, isFindings]);
 
-  const visible = useMemo(() => {
-    return orderFindings(
-      (data?.findings || []).filter(
-        (f) =>
-          (view.state === "all" || f.review_state === view.state) &&
-          (view.type === "all" || f.finding_type === view.type) &&
-          (view.severity === "all" || f.severity === view.severity) &&
-          (!view.forSource || f.evidence.some((e) => e.source_id === view.forSource)) &&
-          matchesFinding(f, view.search),
-      ),
-      view.sort,
-    );
-  }, [data, view.search, view.state, view.type, view.severity, view.sort, view.forSource]);
+  const visible = useMemo(() => reviewQueue(data?.findings||[],view), [data, view.search, view.type, view.severity, view.sort, view.forSource]);
+  const unreviewedCount=isFindings&&data ? unreviewedFindings(data.findings).length : queueCount?.office===view.office ? queueCount.value : data ? unreviewedFindings(data.findings).length : null;
+  useEffect(()=>{if(isFindings&&data)setQueueCount({office:view.office,value:unreviewedFindings(data.findings).length});},[data,isFindings,view.office]);
+  useEffect(()=>{
+    if(isFindings)return;
+    const controller=new AbortController();
+    let sequence=0;
+    const loadCount=()=>{const current=++sequence;return api<{findings:Finding[]}>(`${view.office}/findings?review_state=open`,{signal:controller.signal})
+      .then(result=>{if(!controller.signal.aborted&&sequence===current)setQueueCount({office:view.office,value:unreviewedFindings(result.findings).length});})
+      .catch(()=>{});};
+    void loadCount();
+    const refresh=()=>{if(!document.hidden&&!document.querySelector("dialog[open], input:focus, textarea:focus, [role=combobox][aria-expanded=true]"))void loadCount();};
+    window.addEventListener("focus",refresh);document.addEventListener("visibilitychange",refresh);
+    const timer=view.autoRefresh?window.setInterval(refresh,10000):undefined;
+    return()=>{controller.abort();window.removeEventListener("focus",refresh);document.removeEventListener("visibilitychange",refresh);if(timer)clearInterval(timer);};
+  },[view.office,isFindings,view.autoRefresh]);
   const selection = selectedFinding(view, data?.findings || [], visible);
   const selectedId = selection.id;
   const selectedRecord = data?.findings.find(
@@ -295,17 +299,8 @@ export default function App() {
       pendingKeyboardFocus.current = false;
     }
   }, [current, detailLoading]);
-  const needsAttention =
-    data?.findings.filter(
-      (f) =>
-        ["high", "review"].includes(f.severity) &&
-        !["resolved", "dismissed"].includes(f.review_state),
-    ).length || 0;
-  const reviewed =
-    data?.findings.filter((f) => f.review_state !== "open").length || 0;
   const filtered = !!(
     view.search || view.forSource ||
-    view.state !== "all" ||
     view.type !== "all" ||
     view.severity !== "all"
   );
@@ -488,9 +483,7 @@ export default function App() {
           >
             <LayoutList size={18} />
             <span>Findings</span>
-            {!!data?.findings.length && (
-              <span className="nav-count">{data.findings.length}</span>
-            )}
+            {unreviewedCount!==null && <span className="nav-count" title="Unreviewed findings" aria-label={`${unreviewedCount} unreviewed findings`}>{unreviewedCount}</span>}
           </a>
           <a className={`nav-item ${isQuestions ? "active" : ""}`}
             href={`/questions${viewSearch(view)}`} aria-current={isQuestions ? "page" : undefined}
@@ -635,40 +628,6 @@ export default function App() {
             <Loading />
           ) : (
             <>
-              <section className="summary-strip" aria-label="Findings overview">
-                <div className="summary-metric metric-attention">
-                  <span className="summary-value">
-                    <span className="summary-icon attention" aria-hidden="true">
-                      <AlertCircle size={16} />
-                    </span>
-                    <strong>{needsAttention}</strong>
-                  </span>
-                  <span>need attention</span>
-                </div>
-                <div className="summary-metric">
-                  <span className="summary-value">
-                    <span className="summary-icon" aria-hidden="true">
-                      <LayoutList size={16} />
-                    </span>
-                    <strong>{data.findings.length}</strong>
-                  </span>
-                  <span>total findings</span>
-                </div>
-                <div className="summary-metric metric-reviewed">
-                  <span className="summary-value">
-                    <span className="summary-icon" aria-hidden="true">
-                      <CircleCheck size={16} />
-                    </span>
-                    <strong>{reviewed}</strong>
-                  </span>
-                  <span>reviewed</span>
-                </div>
-                <span className="summary-office">
-                  <span className="small-dot dot-policy" />
-                  {humanize(view.office)} evidence
-                </span>
-              </section>
-
               <div
                 className={`investigation-layout ${view.pane === "detail" ? "show-detail" : ""}`}
               >
@@ -684,7 +643,7 @@ export default function App() {
                       triggerRef={sortRef}
                       icon={<ArrowDownWideNarrow size={15} />}
                       value={view.sort}
-                      options={sortOptions}
+                      options={sortOptions.filter(option=>option.value!=="status")}
                       onChange={(value) =>
                         navigate({ sort: value as FindingSort }, true)
                       }
@@ -743,21 +702,6 @@ export default function App() {
                     )}
                   </label>
                   <div className="queue-filters">
-                    <div>
-                      <span>Review status</span>
-                      <Select
-                        label="Review status"
-                        value={view.state}
-                        onChange={(value) => filter({ state: value })}
-                        options={[
-                          { value: "all", label: "All statuses" },
-                          { value: "open", label: "Open" },
-                          { value: "acknowledged", label: "Acknowledged" },
-                          { value: "resolved", label: "Resolved" },
-                          { value: "dismissed", label: "Dismissed" },
-                        ]}
-                      />
-                    </div>
                     <div>
                       <span>Severity</span>
                       <Select
@@ -862,14 +806,10 @@ export default function App() {
                     <div className="queue-empty">
                       <Inbox size={26} />
                       <h3>
-                        {data.findings.length
-                          ? "No matching findings"
-                          : "No findings yet"}
+                        {unreviewedCount ? "No matching findings" : data.findings.length ? "All findings reviewed" : "No findings yet"}
                       </h3>
                       <p>
-                        {data.findings.length
-                          ? "Try a different search or clear the filters."
-                          : "Findings will appear here after sources are processed."}
+                        {unreviewedCount ? "Try a different search or clear the filters." : data.findings.length ? "No unreviewed findings remain." : "Findings will appear here after sources are processed."}
                       </p>
                       {filtered && (
                         <button className="text-button" onClick={clearFilters}>
@@ -900,7 +840,7 @@ export default function App() {
                       <div className="notice">
                         <AlertCircle size={17} />
                         <span>
-                          This finding is outside the current filters.
+                          {current.finding.review_state!=="open" ? "Reviewed finding" : "This finding is outside the current filters."}
                         </span>
                         <button
                           className="text-button"
@@ -916,7 +856,7 @@ export default function App() {
                             )
                           }
                         >
-                          View results
+                          {current.finding.review_state!=="open" ? "Review queue" : "View results"}
                         </button>
                       </div>
                     )}
@@ -976,7 +916,7 @@ export default function App() {
                       title={
                         filtered
                           ? "Nothing matches these filters"
-                          : "A clear queue"
+                          : "No unreviewed findings"
                       }
                       action={
                         filtered ? (
@@ -991,7 +931,7 @@ export default function App() {
                     >
                       {filtered
                         ? "Adjust your search to find another issue."
-                        : `There are no findings to investigate in ${humanize(view.office)}. New findings will appear after ingestion and comparison.`}
+                        : null}
                     </EmptyState>
                   )}
                 </div>

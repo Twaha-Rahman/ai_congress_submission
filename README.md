@@ -246,6 +246,10 @@ supplied or rerun after reload. Browser history restores the evidence view, with
 lineage, and bundle requests fail independently: a trace failure does not prevent a
 source-copy check, and a bundle failure does not hide a saved answer’s trace.
 
+The Findings review queue contains **unreviewed findings only**. Acknowledged,
+resolved and dismissed items leave the queue; their evidence and history remain
+accessible through saved links and Activity. The sidebar badge counts open findings.
+
 ### View activity and compare source versions
 
 Open **Activity** to search office transfer records, processing snapshots, source

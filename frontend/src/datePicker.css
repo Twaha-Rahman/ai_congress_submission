@@ -1,0 +1,51 @@
+.date-input-control { position: relative; display: block; width: 100%; min-width: 0; }
+.date-input-control > input.date-input-field { width: 100%; min-width: 0; padding-right: 36px; cursor: pointer; }
+.date-input-field::-webkit-calendar-picker-indicator { display: none; }
+.date-input-icon { position: absolute; right: 11px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+.date-picker { position: fixed; inset: auto; z-index: 100; margin: 0; padding: 0; width: 304px; max-width: calc(100vw - 16px); max-height: calc(100dvh - 16px); display: flex; flex-direction: column; overflow: hidden; color: var(--ink); background: var(--raised-surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 12px 40px var(--dialog-shadow), 0 2px 6px var(--popover-shadow); font: 400 12px/1.5 var(--sans); }
+.date-picker-timed { width: 440px; }
+.date-picker-body { display: grid; grid-template-columns: minmax(0, 1fr); min-height: 0; overflow: auto; overscroll-behavior: contain; }
+.date-picker-timed .date-picker-body { grid-template-columns: minmax(0, 1fr) 128px; }
+.date-picker-calendar { padding: 14px; min-width: 0; }
+.date-picker-heading { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 12px; }
+.date-picker .date-picker-heading .icon-button { width: 28px; min-width: 28px; height: 28px; border: 1px solid var(--line); color: var(--muted); background: var(--raised-surface); }
+.date-picker-month { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--ink); border: 0; padding: 5px 2px; border-radius: 5px; }
+.date-picker button { outline-offset: -2px; }
+.date-picker-grid { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 2px; }
+.date-picker-grid th { height: 26px; padding: 0; font-size: 10px; color: var(--muted); font-weight: 500; text-align: center; }
+.date-picker-grid abbr { text-decoration: none; }
+.date-picker-grid td { height: 32px; padding: 0; text-align: center; }
+.date-picker-grid td > button { display: grid; place-items: center; position: relative; width: 100%; height: 32px; padding: 0; border: 1px solid transparent; border-radius: 7px; color: var(--body); font-size: 11px; background: transparent; }
+.date-picker-grid .outside-month { color: var(--muted); opacity: .65; }
+.date-picker-grid td > button[aria-current="date"]:not(.is-selected) { border-color: var(--control-line); color: var(--ink); }
+.date-picker-grid td > button.is-selected { background: var(--primary-fill); color: var(--on-primary); font-weight: 600; opacity: 1; }
+.date-picker-time { border-left: 1px solid var(--line); background: var(--queue-surface); padding: 14px 8px 8px; min-width: 0; display: flex; flex-direction: column; max-height: 328px; }
+.date-picker-time > label { display: flex; gap: 5px; align-items: center; color: var(--muted); font-size: 10px; padding: 0 4px; margin-bottom: 8px; }
+.date-picker .date-picker-time > input { display: block; width: 100%; min-width: 0; border: 1px solid var(--control-line); border-radius: 6px; background: var(--field-surface); color: var(--body); padding: 7px; font: 400 11px/1.5 var(--sans); margin: 0 0 8px; }
+.date-picker-time > input[aria-invalid="true"] { border-color: var(--warning-ink); }
+.date-picker-slots { display: flex; flex-direction: column; gap: 3px; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.date-picker-slots > button { min-height: 30px; padding: 5px 10px; margin: 0; border: 1px solid transparent; border-radius: 6px; text-align: left; color: var(--body); font-size: 11px; }
+.date-picker-slots > button[aria-selected="true"] { color: var(--primary); border-color: var(--line); background: var(--selected-surface); font-weight: 600; }
+.date-picker-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-top: 1px solid var(--line); background: var(--surface); flex-shrink: 0; }
+.date-picker-footer > span { min-width: 0; color: var(--muted); font-size: 11px; white-space: nowrap; }
+.date-picker .date-picker-footer .button { min-height: 32px; padding: 7px 11px; font-size: 11px; border-radius: 7px; }
+.date-picker-error { margin: 0; padding: 8px 14px; font-size: 11px; color: var(--warning-ink); background: var(--warning-surface); }
+.date-picker-months { min-height: 230px; }
+.date-picker-months > label { display: flex; align-items: center; gap: 12px; font-size: 11px; color: var(--muted); margin: 16px 4px; }
+.date-picker .date-picker-months input { flex: 1; min-width: 0; width: 80px; border: 1px solid var(--control-line); border-radius: 6px; padding: 7px 9px; background: var(--field-surface); color: var(--body); }
+.date-picker-months > div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.date-picker-months button { padding: 10px 4px; border: 1px solid var(--line); border-radius: 6px; color: var(--body); font-size: 11px; }
+.date-picker-months button[aria-pressed="true"] { color: var(--primary); background: var(--selected-surface); border-color: var(--primary); }
+@media (hover: hover) {
+  .date-picker-grid td > button:enabled:not(.is-selected):hover, .date-picker-slots > button:enabled:hover, .date-picker-month:enabled:hover, .date-picker-months button:enabled:hover { background: var(--interaction-surface); color: var(--ink); }
+  .date-picker-grid td > button.is-selected:enabled:hover { background: var(--primary-hover); }
+}
+@media (max-width: 460px) {
+  .date-picker-timed { width: 304px; }
+  .date-picker-timed .date-picker-body { grid-template-columns: minmax(0, 1fr); }
+  .date-picker-time { display: grid; grid-template-columns: 1fr 140px; align-items: center; gap: 10px; border-left: 0; border-top: 1px solid var(--line); padding: 12px 14px; }
+  .date-picker-time > label { padding: 0; margin: 0; }
+  .date-picker .date-picker-time > input { margin: 0; }
+  .date-picker-slots { grid-column: 1 / -1; flex-direction: row; overflow-x: auto; padding-bottom: 3px; }
+  .date-picker-slots > button { flex: 0 0 62px; text-align: center; }
+}

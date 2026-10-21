@@ -63,10 +63,12 @@ def _node_authorized(store: OfficeStore, row: dict, *, allowed_restricted: bool)
         answer = store.get_answer(node_id.removeprefix("answer:"))
         if answer is None:
             return False
-        for citation in answer.payload.citations:
-            if getattr(citation, "remote", False):
-                continue
-            if not source_allowed(citation.source_id):
+        try:
+            source_ids = answer.payload.local_source_ids()
+        except (ValueError, TypeError):
+            return False
+        for source_id in source_ids:
+            if not source_allowed(source_id):
                 return False
         return True
     return True

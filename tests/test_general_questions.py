@@ -13,7 +13,7 @@ from meridian.contracts.common import CheckStatus, Mode
 from meridian.contracts.qa import QueryRequest
 from meridian.integrity.bundles import verify_bundle
 from meridian.queries.evidence import build_bundle
-from meridian.queries.general import GeneralQuestionEngine, SourceAnswerProvider, quote_span
+from meridian.queries.general import GeneralQuestionEngine, SourceAnswerProvider, quote_span, PROMPT_VERSION
 from meridian.queries.lineage import lineage_for_node
 from test_general_policy import NOW, POLICY, ingest, manifest, model_service
 
@@ -89,7 +89,7 @@ def test_arbitrary_source_question_uses_original_passages_without_extracted_clai
     assert any(edge.to_node_id == f"clause:{citation.clause_id}" for edge in graph.edges)
     assert dhaka.store.get_answer(answer.payload.answer_id).payload == answer.payload
     with dhaka.store.db.reader() as connection:
-        assert connection.execute("select count(*) from model_calls where prompt_version='source-questions-v1'").fetchone()[0] == 1
+        assert connection.execute("select count(*) from model_calls where prompt_version=?", (PROMPT_VERSION,)).fetchone()[0] == 1
     assert dhaka.store.egress_events()[0].payload_type == "source_question"
 
 
@@ -160,6 +160,22 @@ def test_dates_exclude_unavailable_sources_without_a_model_call(dhaka):
         qa.answer(question(mode=Mode.REPLAY))
 
 
+def test_general_retrieval_preserves_effective_and_knowledge_time_supersession(dhaka_full):
+    from conftest import T_KNOWN, T_VALID, T_POLICY_V2
+    qa, calls = engine(dhaka_full)
+    old = dhaka_full.store.find_source_version("dhaka_lending_policy", "v2")
+    old_rule = dhaka_full.store.claims_for_source(old.source_id)[0].payload.source_clause_id
+    current = QueryRequest(question="Which approvals are needed?", source_ids=[old.source_id], valid_at=T_VALID, known_at=T_KNOWN)
+    passages, _, _ = qa.retrieve(current, moment=T_KNOWN, allowed_restricted=False)
+    assert old_rule not in {passage.clause.clause_id for passage in passages}
+    # Before learning the replacement, that same future applicability date used
+    # the old knowledge snapshot; do not backdate the later replacement.
+    prior = current.model_copy(update={"known_at": T_POLICY_V2 + timedelta(days=1)})
+    passages, _, _ = qa.retrieve(prior, moment=prior.known_at, allowed_restricted=False)
+    assert old_rule in {passage.clause.clause_id for passage in passages}
+    assert not calls
+
+
 def test_model_abstention_and_timeout_do_not_become_fake_answers(dhaka):
     seed(dhaka)
     qa, _ = engine(dhaka, lambda body, quote: {"status": "abstained", "statements": [], "limitations": ["The source does not name the approver."]})
@@ -175,10 +191,19 @@ def test_model_abstention_and_timeout_do_not_become_fake_answers(dhaka):
     assert error.value.code.value == "provider_timeout"
 
 
+def test_a_source_note_does_not_demote_an_otherwise_complete_answer(dhaka):
+    seed(dhaka)
+    qa, _ = engine(dhaka, lambda body, quote: {"status": "answered", "statements": [{"text": "Submit expenses within 30 days.",
+        "citations": [{"passage_id": "P1", "quote": quote}]}], "limitations": ["This is stated in the travel procedure."]})
+    result = qa.answer(question()).payload
+    assert result.status.value == "answered" and result.warnings and not result.partial_reasons
+
+
 def test_local_query_api_routes_natural_language_and_reauthorizes_saved_answers(dhaka, monkeypatch):
     from meridian.ingestion.worker import OfficeWorker
     from meridian.office_api.main import OfficeRuntime, create_app
     from meridian.security.auth import Principal, PrincipalRegistry, Permission, Role
+    public = seed(dhaka, source_manifest=manifest("travel_expenses"))
     secret = seed(dhaka, source_manifest=manifest(sensitivity="restricted"))
     qa, _ = engine(dhaka)
     monkeypatch.setattr("meridian.queries.general.SourceAnswerProvider", lambda **kwargs: qa.provider)
@@ -192,10 +217,18 @@ def test_local_query_api_routes_natural_language_and_reauthorizes_saved_answers(
     reviewer = replace(reader, permissions=reader.permissions | {Permission.READ_RESTRICTED})
     class Request:
         async def json(self):
-            return question(source_ids=[secret]).model_dump(mode="json")
+            return question(source_ids=[public, secret]).model_dump(mode="json")
     response = asyncio.run(route("/v1/queries")(Request(), principal=reviewer))
     assert response["answer"]["target"]["subject"] == "general_policy"
+    assert {citation["source_id"] for citation in response["answer"]["citations"]} == {public}
     assert response["lineage"]["nodes"]
     with pytest.raises(ApiError):
         route("/v1/answers/{answer_id}")(response["answer"]["answer_id"], principal=reader)
     assert route("/v1/answers")(limit=50, principal=reader)["answers"] == []
+    graph = lineage_for_node(dhaka.store, f"answer:{response['answer']['answer_id']}", allowed_restricted=False)
+    assert not graph.nodes
+    class PublicRequest:
+        async def json(self):
+            return question(source_ids=[public]).model_dump(mode="json")
+    reader_answer = asyncio.run(route("/v1/queries")(PublicRequest(), principal=reader))
+    assert route("/v1/answers/{answer_id}")(reader_answer["answer"]["answer_id"], principal=reader)["answer"]["answer_id"]

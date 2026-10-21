@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+import json
 
 from pydantic import Field, field_validator, model_validator
 
@@ -177,6 +178,17 @@ class AnswerPayload(StrictModel):
     cited_manifest_roots: list[str]
     partial_reasons: list[str] = Field(default_factory=list)
     created_at: datetime
+
+    def local_source_ids(self) -> set[str]:
+        """Authorize model context as well as quoted passages on every later read."""
+        result = {citation.source_id for citation in self.citations if not citation.remote}
+        if self.target.subject is Subject.GENERAL_POLICY:
+            for key in ("source_ids", "visibility_source_ids"):
+                values = json.loads(self.model_metadata.get(key, "[]"))
+                if not isinstance(values, list) or any(not isinstance(value, str) or not value for value in values):
+                    raise ValueError("invalid answer source visibility metadata")
+                result.update(values)
+        return result
 
     @field_validator("valid_at", "known_at", "created_at")
     @classmethod

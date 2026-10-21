@@ -85,6 +85,14 @@
 .question-copy.copy-copied { color: var(--teal); border-color: var(--teal-line); }
 .question-copy.copy-copied > svg { animation: copy-confirm 280ms ease-out; }
 .question-copy.copy-failed { color: var(--warning-ink); border-color: var(--warning-line); }
+.question-date-options { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
+.question-date-options summary { display: flex; align-items: center; gap: 7px; color: var(--body); font-size: 12px; cursor: pointer; }
+.question-date-options summary::before { content: "▸"; color: var(--muted); }
+.question-date-options[open] summary::before { content: "▾"; }
+.question-date-options summary > span { margin-left: auto; color: var(--muted); font-size: 11px; }
+.question-model-note { margin: -8px 0 14px; }
+.question-citation-ref { display: inline; border: 0; padding: 2px 4px; color: var(--primary); background: var(--selected-surface); border-radius: 4px; font: 500 11px var(--sans); vertical-align: baseline; }
+.question-citation { outline-offset: -3px; }
 .questions-page .question-mobile-back { display: none; }
 @media (max-width: 1100px) {
   .questions-layout { grid-template-columns: minmax(260px, 300px) minmax(0, 1fr); gap: 24px; }

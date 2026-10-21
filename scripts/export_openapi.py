@@ -156,7 +156,8 @@ def _enrich(document: dict) -> None:
             _ref("ReviewRequest"),
             REVIEW_EXAMPLE,
         ),
-        "/v1/queries": (_ref(query), QUERY_EXAMPLE),
+        "/v1/queries": (_ref(query), {"question": "Who reviews open orders, and how often?", "source_ids": []}
+            if "/v1/ingestions/pdf" in paths else QUERY_EXAMPLE),
         "/v1/verifications/bundle": (_ref(bundle), None),
         "/v1/comparisons": (_ref(query), QUERY_EXAMPLE),
         "/v1/federation/claims": (_ref(subquery), FEDERATION_EXAMPLE),

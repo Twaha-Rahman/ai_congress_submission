@@ -217,10 +217,10 @@ export function createApiHandler({
             // Local questions cannot supply gateway snapshot controls or select
             // another tenant, principal, execution mode, or office connection.
             if (!query || typeof query !== "object" || Array.isArray(query) ||
-                Object.keys(query).some(key => !["question", "target", "valid_at", "known_at"].includes(key)) ||
-                !["loan_approval", "record_retention"].includes(query.target?.subject)) throw new Error();
+                Object.keys(query).some(key => !["question", "target", "valid_at", "known_at", "source_ids"].includes(key)) ||
+                (query.target && !["general_policy", "loan_approval", "record_retention"].includes(query.target.subject))) throw new Error();
           } catch {
-            return json(res, 422, { error: { code: "invalid_input", message: "Supply a local loan-approval or record-retention question with its facts and dates." } });
+            return json(res, 422, { error: { code: "invalid_input", message: "Supply a local question with optional source and date filters." } });
           }
         } else if (isVerification) {
           try {
@@ -241,7 +241,7 @@ export function createApiHandler({
           },
           body,
           redirect: "error",
-          signal: AbortSignal.timeout(isUpload || isVerification ? 60000 : 15000),
+          signal: AbortSignal.timeout(isQuery ? 610000 : isUpload || isVerification ? 60000 : 15000),
         },
       );
       const headers = {

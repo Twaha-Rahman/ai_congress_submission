@@ -237,10 +237,12 @@ def create_app(settings: OfficeSettings | None = None) -> FastAPI:
         never modified.
         """
 
-        for citation in record.payload.citations:
-            if getattr(citation, "remote", False):
-                continue
-            source = store.get_source(citation.source_id)
+        try:
+            source_ids = record.payload.local_source_ids()
+        except (ValueError, TypeError):
+            return False
+        for source_id in source_ids:
+            source = store.get_source(source_id)
             if not _source_readable(principal, source):
                 return False
         return True

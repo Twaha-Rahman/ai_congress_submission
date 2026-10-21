@@ -154,7 +154,18 @@ export function bundleLineage(bundle: Record<string, unknown>): LineageGraph {
   // Only recorded citations connect to the answer. Additional supplied claims
   // are not silently promoted to citations.
   for (const value of array(answer.citations)) {
-    const citation = jsonObject(value); const id = text(citation.claim_revision_id); if (!id) continue;
+    const citation = jsonObject(value); const id = text(citation.claim_revision_id);
+    if (!id && text(citation.clause_id)) {
+      const clause = `clause:${text(citation.clause_id)}`;
+      const source = `source:${text(citation.source_id)}`;
+      add(clause, "clause", "Cited passage", { quote: text(citation.quote), source_id: text(citation.source_id),
+        source_identity: text(citation.source_identity), version_label: text(citation.source_version_label),
+        page: String(citation.page ?? ""), section: text(citation.section), authority: text(citation.authority) });
+      link(root, clause, "CITES");
+      if (nodes.has(source)) link(clause, source, "IN_VERSION");
+      continue;
+    }
+    if (!id) continue;
     const revision = `revision:${id}`;
     if (!nodes.has(revision) && citation.remote === true)
       add(revision, "remote_reference", "Undisclosed remote statement", { reference: id, disclosure: "Source passage not supplied" });

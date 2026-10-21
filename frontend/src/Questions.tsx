@@ -14,8 +14,6 @@ import type { Answer, Office, RecentAnswer, Scope, Session, Source, StoredAnswer
 import type { View } from "./viewState";
 import "./questions.css";
 
-const offices = [{ value: "DHAKA", label: "Dhaka" }, { value: "FRANKFURT", label: "Frankfurt" }];
-
 function factScope(value: string) {
   try { return scopeLabel(JSON.parse(value) as Scope); } catch { return value; }
 }
@@ -37,7 +35,7 @@ export default function Questions({ office, view, session, sessionError, navigat
   const [copied, setCopied] = useState<"idle" | "copied" | "failed">("idle");
   const form = useRef<HTMLFormElement>(null);
   const search = useRef<HTMLInputElement>(null);
-  const amount = useRef<HTMLInputElement>(null);
+  const questionInput = useRef<HTMLTextAreaElement>(null);
   const share = useRef<HTMLButtonElement>(null);
   const request = useRef<AbortController | null>(null);
   const pendingFocus = useRef(false);
@@ -46,6 +44,7 @@ export default function Questions({ office, view, session, sessionError, navigat
   const sources = useVerificationData(`${office}/sources`, signal => api<{ sources: Source[] }>(`${office}/sources`, { signal }));
   const stored = useVerificationData(view.questionId ? `${office}/answers/${view.questionId}` : "", signal => api<StoredAnswer>(`${office}/answers/${encodeURIComponent(view.questionId)}`, { signal }));
   const answer = view.questionId ? submitted?.answer.answer_id === view.questionId ? submitted.answer : stored.data?.answer : undefined;
+  const additionalReasons = answer?.partial_reasons.filter(reason => !answer.warnings.some(warning => warning.message === reason)) || [];
   const visible = (history.data?.answers || []).filter(item => matchesAnswer(item, view.questionSearch));
   const [shown, setShown] = useState(10);
   const canAsk = !!session?.queries?.[office];
@@ -71,9 +70,9 @@ export default function Questions({ office, view, session, sessionError, navigat
   }, [answer, view.questionPane]);
 
   function patch(values: Partial<QuestionDraft>) { setDraft(previous => ({ ...previous, ...values })); setError(""); }
-  function focusComposer(subject = draft.subject) {
+  function focusComposer() {
     navigate({ questionPane: "compose", questionPanel: "ask", document: "", questionCitation: "" });
-    requestAnimationFrame(() => (subject === "loan_approval" ? amount.current : document.getElementById("question-label"))?.focus());
+    requestAnimationFrame(() => questionInput.current?.focus());
   }
   function selectAnswer(id: string, keyboard = false) {
     if (view.questionPane === "compose") browseScroll.current = window.scrollY;
@@ -151,25 +150,21 @@ export default function Questions({ office, view, session, sessionError, navigat
           if ((event.ctrlKey || event.metaKey) && event.key === "Enter" && !event.nativeEvent.isComposing) { event.preventDefault(); form.current?.requestSubmit(); }
         }} aria-busy={asking}>
           <fieldset disabled={asking || !canAsk}>
-            <div className="question-field"><span id="question-topic-label">Topic</span><Select label="Question topic" value={draft.subject} options={[{ value: "loan_approval", label: "Loan approvals" }, { value: "record_retention", label: "Record retention" }]} onChange={subject => patch({ subject: subject as QuestionDraft["subject"], ...(subject === "loan_approval" && !draft.origin ? { origin: office === "dhaka" ? "DHAKA" : "FRANKFURT" } : {}) })} /></div>
-            <p className="question-help">Other policy topics are available in Findings. Answers here use the facts you select below.</p>
-            {draft.subject === "loan_approval" ? <>
-              <label className="question-field">Loan amount <span className="question-input-unit"><span>USD</span><input ref={amount} aria-label="Loan amount in USD" inputMode="decimal" value={draft.amount} onChange={event => patch({ amount: event.target.value })} placeholder="30000.00" required maxLength={20} /></span></label>
-              <div className="question-field"><span>Originating office</span><Select label="Originating office" value={draft.origin} options={offices} onChange={origin => patch({ origin: origin as QuestionDraft["origin"] })} /></div>
-              <p className="question-help question-fixed-facts"><FileText size={14} />Business loan · USD</p>
-            </> : <>
-              <p className="question-fixed-facts"><FileText size={15} />Loan records · Years after loan closure</p>
-              <p className="question-help">Product: MTF cross-office</p>
-              <div className="question-field"><span>Originating office</span><Select label="Originating office" value={draft.origin} options={[{ value: "", label: "Not specified" }, ...offices]} onChange={origin => patch({ origin: origin as QuestionDraft["origin"] })} /></div>
-              <div className="question-field"><span>Processing office</span><Select label="Processing office" value={draft.processing} options={[{ value: "", label: "Not specified" }, ...offices]} onChange={processing => patch({ processing: processing as QuestionDraft["processing"] })} /></div>
-            </>}
-            <label className="question-field">Policy applies at <input type="datetime-local" step="0.001" value={draft.validAt} onChange={event => patch({ validAt: event.target.value })} required aria-describedby="question-valid-help" /></label>
-            <p className="question-help" id="question-valid-help">UTC. Which policy was in force at this time?</p>
-            <label className="question-checkbox"><input type="checkbox" checked={draft.historical} onChange={event => patch({ historical: event.target.checked })} />Use a historical knowledge cutoff</label>
-            {draft.historical ? <><label className="question-field">Information known by <input type="datetime-local" step="0.001" value={draft.knownAt} onChange={event => patch({ knownAt: event.target.value })} required aria-describedby="question-known-help" /></label><p className="question-help" id="question-known-help">UTC. Exclude information learned after this time.</p></> : <p className="question-help">Use everything this office knows when answering.</p>}
-            <label className="question-field" htmlFor="question-label">Question label <span className="question-optional">Optional</span></label>
-            <textarea id="question-label" value={draft.question} onChange={event => patch({ question: event.target.value })} maxLength={500} rows={2} placeholder={draft.subject === "loan_approval" ? "How many approvals does this loan need?" : "How long should these records be kept?"} aria-describedby="question-label-help" />
-            <p className="question-help" id="question-label-help">A label for your saved answer. The facts above determine the answer.</p>
+            <label className="question-field" htmlFor="question-text">Your question</label>
+            <textarea ref={questionInput} id="question-text" value={draft.question} onChange={event => patch({ question: event.target.value })}
+              maxLength={500} required rows={5} placeholder="Ask anything about your policies, procedures or team messages…" aria-describedby="question-help" />
+            <p className="question-help" id="question-help">Answers use the selected sources and include citations. Missing or conflicting evidence is called out.</p>
+            <div className="question-field"><span>Sources</span><Select label="Question sources" value={draft.sourceId}
+              options={[{ value: "", label: "All accessible sources" }, ...(sources.data?.sources || []).map(source => ({ value: source.source_id, label: `${sourceTitle(source)} · ${source.version_label}` })),
+                ...(draft.sourceId && !sources.data?.sources.some(source => source.source_id === draft.sourceId) ? [{ value: draft.sourceId, label: "Selected source unavailable" }] : [])]}
+              onChange={sourceId => patch({ sourceId })} /></div>
+            <p className="question-help">Original PDF passages and saved Slack messages in this office. Source processing permissions still apply.</p>
+            <details className="question-date-options"><summary><CalendarDays size={14} />Date filters <span>{draft.dated || draft.historical ? "Custom" : "Current"}</span></summary>
+              <label className="question-checkbox"><input type="checkbox" checked={draft.dated} onChange={event => patch({ dated: event.target.checked })} />Use a historical policy date</label>
+              {draft.dated && <><label className="question-field">Policy applies at <input type="datetime-local" step="0.001" value={draft.validAt} onChange={event => patch({ validAt: event.target.value })} required aria-describedby="question-valid-help" /></label><p className="question-help" id="question-valid-help">UTC. Which source versions applied at this time?</p></>}
+              <label className="question-checkbox"><input type="checkbox" checked={draft.historical} onChange={event => patch({ historical: event.target.checked })} />Use a historical knowledge cutoff</label>
+              {draft.historical ? <><label className="question-field">Information known by <input type="datetime-local" step="0.001" value={draft.knownAt} onChange={event => patch({ knownAt: event.target.value })} required aria-describedby="question-known-help" /></label><p className="question-help" id="question-known-help">UTC. Exclude information learned after this time.</p></> : <p className="question-help">Use everything this office knows when answering.</p>}
+            </details>
           </fieldset>
           {!session && (sessionError ? <div className="notice warning" role="alert"><AlertCircle size={17} /><span>Question access could not be loaded. {sessionError} <button type="button" className="text-button" onClick={() => window.location.reload()}>Reload workspace</button></span></div> : <p className="question-help" role="status">Connecting question access…</p>)}
           {session && !canAsk && <div className="notice warning" role="status"><LockKeyhole size={17} /><span>This office’s question connection is not configured. Run make setup and restart the frontend.</span></div>}
@@ -200,22 +195,25 @@ export default function Questions({ office, view, session, sessionError, navigat
             document.querySelector<HTMLButtonElement>(`[data-answer-id="${CSS.escape(view.questionId)}"]`)?.focus({ preventScroll: true });
           });
         }}><ArrowLeft size={15} />Questions</button>
-        {asking ? <Loading label="Checking the office’s policy evidence…" /> : !view.questionId ? <EmptyState icon={<MessageSquare size={27} />} title="Ask a question">Choose the facts and policy date, or open a saved answer.</EmptyState> : <>
+        {asking ? <Loading label="Reading the relevant source passages…" /> : !view.questionId ? <EmptyState icon={<MessageSquare size={27} />} title="Ask a question">Ask about your sources, or open a saved answer.</EmptyState> : <>
           {stored.error && !answer && <ErrorState title="Answer unavailable" error={stored.error} retry={stored.retry} />}
           {!answer && stored.loading && <Loading label="Opening saved answer…" />}
           {answer && <>
             <div className="question-answer-heading"><AnswerBadge status={answer.status} /><span className="question-saved-at"><Clock3 size={14} />Saved {date(answer.created_at, true)}</span></div>
             <h2 id="question-answer-title" tabIndex={-1}>{answer.question}</h2>
             <div className="question-dates"><div><CalendarDays size={17} /><span>Policy applies at<strong>{date(answer.valid_at, true)}</strong></span></div><div><Clock3 size={17} /><span>Information known by<strong>{date(answer.known_at, true)}</strong></span></div></div>
-            <div className={`question-answer-text answer-${answer.status}`}><MessageSquare size={20} /><p>{answer.answer_text || "The office could not establish an answer from the available evidence. Review the warnings below."}</p></div>
-            <div className="question-result-actions"><button className="button secondary" onClick={() => { const next = draftFromAnswer(answer); patch(next); focusComposer(next.subject); }}><Plus size={15} />Use these facts</button><button className="button secondary" onClick={() => onVerify(answer.answer_id)} aria-keyshortcuts={shortcutsEnabled ? "V" : undefined}><Shield size={15} />Verify answer{shortcutsEnabled && <ShortcutHint>V</ShortcutHint>}</button></div>
-            {!!answer.partial_reasons.length && <div className="notice warning"><AlertCircle size={17} /><div><strong>Coverage is incomplete</strong><ul>{answer.partial_reasons.map((reason, index) => <li key={index}>{humanize(reason)}</li>)}</ul></div></div>}
+            {answer.target.subject === "general_policy" && <p className="question-help question-model-note">Model-assisted answer · Check the cited passages when making a decision.</p>}
+            <div className={`question-answer-text answer-${answer.status}`}><MessageSquare size={20} /><p>{answer.answer_text ? answer.target.subject === "general_policy" ? answer.answer_text.split(/(\[S\d+\])/).map((part, index) => /^\[S\d+\]$/.test(part) && answer.citations.some(c => `[${c.statement_id}]` === part) ? <button className="question-citation-ref" key={index} title={`Show supporting evidence for ${part}`} onClick={() => {
+              const citation = document.querySelector<HTMLElement>(`[data-answer-statement="${part.slice(1, -1)}"]`); citation?.scrollIntoView({ block: "center", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" }); citation?.focus({ preventScroll: true });
+            }}>{part}</button> : part) : answer.answer_text : "The office could not establish an answer from the available evidence. Review the warnings below."}</p></div>
+            <div className="question-result-actions"><button className="button secondary" onClick={() => { const next = draftFromAnswer(answer); patch(next); focusComposer(); }}><Plus size={15} />Use this question</button><button className="button secondary" onClick={() => onVerify(answer.answer_id)} aria-keyshortcuts={shortcutsEnabled ? "V" : undefined}><Shield size={15} />Verify answer{shortcutsEnabled && <ShortcutHint>V</ShortcutHint>}</button></div>
+            {!!additionalReasons.length && <div className="notice warning"><AlertCircle size={17} /><div><strong>Coverage is incomplete</strong><ul>{additionalReasons.map((reason, index) => <li key={index}>{humanize(reason)}</li>)}</ul></div></div>}
             {!!answer.warnings.length && <section className="question-warnings"><h3><AlertCircle size={17} />What needs attention</h3>{answer.warnings.map((warning, index) => <div className="question-warning" key={index}><p>{warning.message.replace(/^([a-z]+(?:_[a-z]+)+):\s*/, (_, code: string) => `${humanize(code)}: `)}</p>{warning.finding_ids.map(id => <button key={id} className="text-button" onClick={() => onFinding(id)}>View finding <span className="question-warning-tag">#{id.slice(-8).toUpperCase()}</span><ArrowRight size={14} /></button>)}</div>)}</section>}
             <section className="question-evidence"><div className="question-section-heading"><h3><BookOpen size={17} />Supporting evidence</h3><span>{answer.citations.length} {answer.citations.length === 1 ? "citation" : "citations"}</span></div>
               {!answer.citations.length && <p className="question-help">This answer has no supporting citations. It cannot establish a policy requirement.</p>}
               {answer.citations.map((item, index) => {
                 const source = sources.data?.sources.find(source => source.source_id === item.source_id);
-                return <article key={`${item.claim_revision_id}/${item.statement_id}/${index}`} className={`question-citation authority-${item.authority}`}>
+                return <article key={`${item.claim_revision_id}/${item.statement_id}/${index}`} data-answer-statement={item.statement_id} tabIndex={-1} className={`question-citation authority-${item.authority}`}>
                   <div className="question-citation-top"><span><FileText size={15} />{humanize(item.authority)}</span>{(item.restricted || item.remote) && <span><LockKeyhole size={13} />{item.remote ? "Remote evidence" : "Restricted"}</span>}</div>
                   <div className="question-citation-title"><h4>{sourceTitle({ source_identity: item.source_identity })}</h4><span className="source-version">{item.source_version_label}</span></div>
                   <p className="question-citation-location">Page {item.page}{item.section ? ` · § ${item.section}` : ""} · Statement {item.statement_id}</p>
@@ -225,8 +223,8 @@ export default function Questions({ office, view, session, sessionError, navigat
               })}
               {sources.error && <div className="notice warning"><AlertCircle size={17} /><span>Source access could not be loaded. <button className="text-button" onClick={sources.retry}>Retry source access</button></span></div>}
             </section>
-            <details className="question-details"><summary>Facts and processing details</summary><dl>
-              <dt>Topic</dt><dd>{answer.target.subject === "loan_approval" ? "Loan approvals" : "Record retention"}</dd>
+            <details className="question-details"><summary>Scope and processing details</summary><dl>
+              <dt>Topic</dt><dd>{answer.target.subject === "general_policy" ? "Source question" : answer.target.subject === "loan_approval" ? "Loan approvals" : "Record retention"}</dd>
               {Object.entries(answer.target).filter(([key, value]) => key !== "subject" && value !== null && value !== undefined).map(([key, value]) => <div key={key}><dt>{key === "amount_minor" ? "Loan amount" : humanize(key)}</dt><dd>{key === "amount_minor" ? `USD ${(Number(value) / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : humanize(String(value))}</dd></div>)}
               {Object.entries(answer.modes).map(([stage, mode]) => <div key={stage}><dt>{humanize(stage)} mode</dt><dd>{humanize(mode)}</dd></div>)}
               <dt>Answer ID</dt><dd>{answer.answer_id}</dd><dt>Integrity</dt><dd>Not checked here. Use Verify answer to check the signed evidence bundle.</dd>
@@ -235,7 +233,7 @@ export default function Questions({ office, view, session, sessionError, navigat
         </>}
       </section>
     </div>
-    {view.document && <DocumentDialog key={view.document} office={office} sourceId={view.document} view={view} navigate={navigate} evidence={inspected ? { ...inspected, quote: inspected.quote || "" } : undefined} onClose={() => navigate({ document: "", questionCitation: "" })} />}
-    {sharing && <Modal title="Share Questions view" onClose={() => setSharing(false)}><div className="dialog-body"><p className="dialog-description">The link includes this office, selected saved answer, search and source location. Unsent question facts stay on this device. Recipients need access to the same office and evidence.</p><label className="question-field">View link<input readOnly value={window.location.href} onFocus={event => event.currentTarget.select()} /></label><button className={`button secondary question-copy copy-${copied}`} onClick={copyLink} title={copied === "copied" ? "Copied" : copied === "failed" ? "Copy failed; select the link and copy it manually" : "Copy link"}>{copied === "copied" ? <Check size={16} /> : copied === "failed" ? <AlertCircle size={16} /> : <Copy size={16} />}Copy link</button><span className="sr-only" role="status">{copied === "copied" ? "Link copied" : copied === "failed" ? "Could not copy. Select the link and copy it manually." : ""}</span></div></Modal>}
+    {view.document && <DocumentDialog key={view.document} office={office} sourceId={view.document} view={view} navigate={navigate} evidence={inspected ? { source_id: inspected.source_id, page: inspected.page, section: inspected.section, quote: inspected.quote || "" } : undefined} onClose={() => navigate({ document: "", questionCitation: "" })} />}
+    {sharing && <Modal title="Share Questions view" onClose={() => setSharing(false)}><div className="dialog-body"><p className="dialog-description">The link includes this office, selected saved answer, search and source location. Unsent questions and source filters stay out of the link. Recipients need access to the same office and evidence.</p><label className="question-field">View link<input readOnly value={window.location.href} onFocus={event => event.currentTarget.select()} /></label><button className={`button secondary question-copy copy-${copied}`} onClick={copyLink} title={copied === "copied" ? "Copied" : copied === "failed" ? "Copy failed; select the link and copy it manually" : "Copy link"}>{copied === "copied" ? <Check size={16} /> : copied === "failed" ? <AlertCircle size={16} /> : <Copy size={16} />}Copy link</button><span className="sr-only" role="status">{copied === "copied" ? "Link copied" : copied === "failed" ? "Could not copy. Select the link and copy it manually." : ""}</span></div></Modal>}
   </div>;
 }

@@ -219,7 +219,7 @@ export interface StoredAnswer {
 }
 
 export interface QuestionTarget {
-  subject: "loan_approval" | "record_retention";
+  subject: "general_policy" | "loan_approval" | "record_retention";
   amount_minor?: number;
   currency?: "USD";
   loan_type?: "business";
@@ -234,10 +234,12 @@ export interface QuestionRequest {
   target: QuestionTarget;
   valid_at: string;
   known_at?: string;
+  source_ids?: string[];
 }
-export interface AnswerCitation extends Omit<Evidence, "quote"> {
+export interface AnswerCitation extends Omit<Evidence, "quote" | "claim_revision_id"> {
   statement_id: string;
-  claim_id: string;
+  claim_id: string | null;
+  claim_revision_id: string | null;
   source_identity: string;
   source_version_label: string;
   authority: string;
@@ -258,6 +260,7 @@ export interface Answer {
   citations: AnswerCitation[];
   warnings: { code: string; message: string; finding_ids: string[]; claim_revision_ids: string[] }[];
   partial_reasons: string[];
+  model_metadata?: Record<string, string>;
   governing_facts: {
     claim_revision_id: string; authority: string; policy_family: string;
     rule_summary: string; scope_summary: string;

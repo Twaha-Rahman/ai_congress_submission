@@ -378,16 +378,37 @@
             "type": "string"
           },
           "claim_id": {
-            "title": "Claim Id",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Claim Id"
           },
           "claim_payload_hash": {
-            "title": "Claim Payload Hash",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Claim Payload Hash"
           },
           "claim_revision_id": {
-            "title": "Claim Revision Id",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Claim Revision Id"
           },
           "clause_id": {
             "title": "Clause Id",
@@ -1667,6 +1688,14 @@
             "default": null,
             "title": "Remote Source Known At"
           },
+          "source_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Source Ids",
+            "type": "array"
+          },
           "target": {
             "$ref": "#/components/schemas/TargetFacts"
           },
@@ -1677,9 +1706,7 @@
           }
         },
         "required": [
-          "question",
-          "target",
-          "valid_at"
+          "question"
         ],
         "title": "QueryRequest",
         "type": "object"
@@ -2463,6 +2490,55 @@
           }
         },
         "summary": "Ready"
+      }
+    },
+    "/v1/answers": {
+      "get": {
+        "operationId": "recent_answers_v1_answers_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Recent Answers V1 Answers Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Recent Answers"
       }
     },
     "/v1/answers/{answer_id}": {
@@ -3297,17 +3373,8 @@
           "content": {
             "application/json": {
               "example": {
-                "known_at": "2026-03-10T12:00:00Z",
-                "mode": "replay",
-                "question": "How many approvals are required for a USD 30,000 business loan originated in Dhaka?",
-                "target": {
-                  "amount_minor": 3000000,
-                  "currency": "USD",
-                  "loan_type": "business",
-                  "origin_office": "DHAKA",
-                  "subject": "loan_approval"
-                },
-                "valid_at": "2026-03-03T12:00:00Z"
+                "question": "Who reviews open orders, and how often?",
+                "source_ids": []
               },
               "schema": {
                 "$ref": "#/components/schemas/QueryRequest"

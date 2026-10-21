@@ -12,6 +12,17 @@ test("verification URLs retain target, selected node, filters and original-sourc
   assert.equal(invalid.verifyKind, "source"); assert.equal(invalid.verifyChecks, "all");
 });
 
+test("general answer bundles link directly to supplied passages without inventing claims", () => {
+  const graph = bundleLineage({ answer: { answer_id: "ans_general", question: "Who reviews orders?", citations: [{
+    claim_revision_id: null, source_id: "src_orders", clause_id: "orders:4", source_identity: "procurement", source_version_label: "v1",
+    quote: "The procurement team reviews orders.", page: 2, section: "4", authority: "procedure",
+  }] }, manifests: [{ source_id: "src_orders", source_identity: "procurement", version_label: "v1" }], claims: [] });
+  assert.ok(graph.edges.some(edge => edge.from_node_id === "answer:ans_general" && edge.to_node_id === "clause:orders:4"));
+  assert.ok(graph.edges.some(edge => edge.from_node_id === "clause:orders:4" && edge.to_node_id === "source:src_orders"));
+  assert.equal(graph.nodes.filter(node => node.node_type === "claim_revision").length, 0);
+  assert.match(graph.nodes.find(node => node.node_id === "clause:orders:4")!.attributes.quote, /procurement/);
+});
+
 test("a not-checked result remains separate from passed checks", () => {
   assert.deepEqual(checkCounts({ target_type: "bundle", target_id: "b", checks: [
     { check: "signature", status: "passed", detail: {} }, { check: "text", status: "not_checked", detail: {} },

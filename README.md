@@ -11,14 +11,14 @@ labels, command-line demos and an offline test suite. The frontend includes a
 Claude-inspired findings workspace with persisted reviews and a Sources workspace
 for PDF uploads, processing status and original-document inspection, plus a Verification
 workspace for source-copy checks, signed answer bundles and evidence lineage. Questions
-supports local, dated loan-approval and record-retention answers with citations.
+supports natural-language questions across accessible PDF and saved Slack sources, with citations and optional source/date filters.
 
 For your own policy subjects, use `subject: "general_policy"`. This path retrieves
 relevant statements, checks source quotations, and publishes model-assisted conflict
 candidates for human review. See the [general policy demo guide](docs/general_policy_demo.md)
 for manifests, PDF/Slack API examples, comparison retries, limits and model evaluation.
-The existing numeric checks remain available; general-policy Q&A and cross-office
-text comparison are not implemented. A live Slack listener remains separate
+The existing numeric checks remain available. General source Q&A is office-local;
+cross-office text comparison is not implemented. A live Slack listener remains separate
 integration work; saved Slack messages can already be ingested through the API.
 
 ## Browser workspace
@@ -102,36 +102,53 @@ make test                     # backend suite, including durable review history
 
 ### Ask questions
 
-Open **http://127.0.0.1:5173/questions**. **New question** supports business-loan
-approvals in USD and loan-record retention after closure for the MTF cross-office
-product. Supply the relevant office facts and **Policy applies at** date in UTC.
-The optional question label names the saved answer; the structured facts determine
-what is checked. General-policy question answering is not supported; uploaded
-general policies are available through Sources and Findings.
+Open **http://127.0.0.1:5173/questions** and ask a plain-language question about
+any topic covered by the office's sources: for example, “Who reviews open orders,
+and how often?” or “How do employees request leave?” **Sources** searches all
+accessible originals by default, or a single selected version. There are no loan or
+retention fields to fill in. Source passages are retrieved before the configured
+OpenRouter/OpenAI-compatible model writes a cited answer. The same path can use an
+operator-approved local model in production.
 
-By default, questions use everything the selected office knows at submission time.
-Enable **Use a historical knowledge cutoff** to exclude information learned after
-another UTC timestamp. This is separate from the date the policy applies.
-**Use these facts** copies a saved answer's facts and dates into the form without
-submitting; its exact original timestamp precision is retained until edited.
+**Date filters** optionally restrict policy applicability and the knowledge cutoff;
+these are separate UTC timestamps. Otherwise the question uses the current time
+and latest office knowledge. Reuse a saved question with **Use this question**;
+its exact original timestamp precision is retained until the displayed time changes.
+
+Answers contain clickable statement references, exact source quotations and page/
+section locators. **Inspect source** opens the original at its passage. Unsupported
+questions abstain, conflicting evidence can require review, and retrieval/processing
+limits remain explicit. Retrieval is bounded to 64 passages and 48,000 source
+characters per question; larger contexts disclose incomplete coverage. This is
+model-assisted interpretation, not a correctness
+certificate. Citation matching tolerates only PDF whitespace wrapping; saved quotes
+and offsets always refer to the exact preserved original. The server discards a
+proposed answer if its quotations or passage IDs cannot be grounded.
 
 **Recent answers** searches the latest 50 authorized answers by question, date,
 status or ID, with list-only highlighting. Opening an answer does not rerun it.
-Results show citations, warnings, incomplete coverage and abstention explicitly.
-**Inspect source** opens the cited original at its passage; **Verify answer** opens
-the existing signed-bundle checks. Saving an answer does not verify its integrity.
-Question creation is deterministic and does not itself call a hosted model; displayed
-processing modes come from the returned answer's evidence.
+**Verify answer** opens signed-bundle checks: general answers bind directly to
+signed source commitments and passage proofs, without inventing extracted claims.
+Verification proves integrity and bindings, not whether a model's interpretation
+is correct. Old typed numeric answers remain readable and verifiable.
 
 Share view preserves the saved answer, office, list search, active panel, mobile
-pane and source location. Draft question facts stay out of shared URLs. Export
-downloads the saved answer response; signed evidence bundles are available in
-Verification. On mobile, Back restores the answer list and keyboard focus.
-`N` focuses the new-question form, `/` searches recent answers, `J`/`K` move through
-matching answers, `V` opens verification, and `Ctrl+Enter`/`⌘+Enter` submits the form.
-`Shift+E` opens exports and `Shift+S` opens sharing; single-key preferences and typing
-guards apply. Readers query with their existing reader credential; no uploader or
-service credential is used. Restart the frontend after upgrading its API bridge.
+pane and source location. Draft questions and source filters stay out of shared
+URLs. Export downloads the saved response; signed bundles are in Verification.
+On mobile, Back restores list scroll and focus. `N` focuses the composer, `/` searches
+recent answers, `J`/`K` move through matches, `V` opens verification, and
+`Ctrl+Enter`/`⌘+Enter` submits. `Shift+E`/`Shift+S` export/share; shortcut preferences
+and typing guards apply.
+
+General questions require `LLM_MODEL`/`LLM_API_KEY` on the office backend and can incur
+model charges. Sources that forbid hosted processing are excluded before retrieval
+unless the endpoint is explicitly approved and local; normal reader authorization
+also applies before ranking or sending text. Saved answers remain limited to readers
+who can access their full source context, including context that was not cited.
+Calls, failures and usage are audited.
+No model secrets enter browser code. General Q&A has no cached/replay fallback;
+explicit cached/replay requests are rejected. Typed numeric API questions retain
+their deterministic behavior. Restart office services and the frontend after upgrading.
 
 ### Verify evidence and inspect lineage
 
@@ -546,7 +563,8 @@ verification unless the old public keys remain pinned.
 - Numeric answers and gateway comparisons support loan approval and record retention
   with their scoped semantics; unsupported numeric currencies/conditions are rejected
   or reviewed. Office-local general-policy findings use model-assisted comparison
-  and require human interpretation; they do not provide arbitrary-topic Q&A or
-  cross-office text comparison.
+  and require human interpretation. General source Q&A is model-assisted, bounded to
+  retrieved authorized passages, and can abstain or be incomplete. Cross-office text
+  comparison remains unimplemented.
 - Buyer interviews, NRB participation, venue logistics and backup-laptop rehearsals are
   team tasks and are not claimed here.

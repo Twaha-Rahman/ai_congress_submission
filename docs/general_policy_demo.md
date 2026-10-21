@@ -80,7 +80,10 @@ shareable Slack message cannot grant permission to send a restricted PDF. Full
 source context is included, so permission applies to that context too. An explicitly
 approved local endpoint can process sources that prohibit hosted egress. General
 policy text stays local to its office: it cannot enter the existing numeric-only
-cross-office federation or numeric Q&A APIs.
+cross-office federation or numeric Q&A APIs. The Questions workspace separately
+supports office-local natural-language Q&A over authorized original PDF and saved
+Slack passages, including general-policy documents, with cited quotes and source
+proofs. It uses the configured model and honors hosted-processing permissions.
 
 ## Upload a policy
 

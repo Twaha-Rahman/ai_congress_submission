@@ -272,8 +272,17 @@ test("local queries use the reader principal, enforce origin, and reject gateway
   assert.equal((await post(query, {})).status, 403);
   assert.equal((await post(query, { "X-Meridian-UI": "1", Origin: "https://elsewhere.example" })).status, 403);
   for (const body of [[], { ...query, tenant_id: "other" }, { ...query, remote_snapshot_ids: ["snapshot"] },
-    { ...query, mode: "live" }, { ...query, target: { subject: "general_policy" } }])
+    { ...query, mode: "live" }, { ...query, target: { subject: "unsupported" } }])
     assert.equal((await post(body)).status, 422);
   assert.equal((await fetch(`${url}/api/dhaka/queries`, { method: "POST", headers: { "X-Meridian-UI": "1" }, body: "{" })).status, 422);
   assert.equal(calls.length, 0);
+});
+
+ test("general questions forward source filters and use a model-sized request budget", async (t) => {
+  const { url, calls } = await bridge(t);
+  const body = { question: "What must I do before buying software?", source_ids: ["src_policy"], valid_at: "2026-10-21T00:00:00Z" };
+  const response = await fetch(`${url}/api/dhaka/queries`, { method: "POST", headers: { "X-Meridian-UI": "1" }, body: JSON.stringify(body) });
+  assert.equal(response.status, 200);
+  assert.deepEqual(JSON.parse(calls[0].body), body);
+  assert.equal(calls[0].signal.aborted, false);
 });

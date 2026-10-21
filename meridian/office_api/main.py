@@ -667,15 +667,16 @@ def create_app(settings: OfficeSettings | None = None) -> FastAPI:
             query_request = QueryRequest.model_validate(body)
         except Exception as exc:  # noqa: BLE001
             raise ApiError(ErrorCode.INVALID_INPUT, f"query is not valid: {exc}")
-        engine = QueryEngine(
-            store=store,
-            signer=runtime.signer,
-            extra_modes={"phrasing": Mode.REPLAY.value},
-        )
-        record = engine.answer(
-            query_request,
-            allowed_restricted=principal.has(Permission.READ_RESTRICTED),
-        )
+        if query_request.target.subject is Subject.GENERAL_POLICY:
+            from starlette.concurrency import run_in_threadpool
+            from ..queries.general import GeneralQuestionEngine
+
+            engine = GeneralQuestionEngine(store=store, signer=runtime.signer, settings=runtime.settings)
+            record = await run_in_threadpool(engine.answer, query_request,
+                allowed_restricted=principal.has(Permission.READ_RESTRICTED))
+        else:
+            engine = QueryEngine(store=store, signer=runtime.signer, extra_modes={"phrasing": Mode.REPLAY.value})
+            record = engine.answer(query_request, allowed_restricted=principal.has(Permission.READ_RESTRICTED))
         graph = lineage_for_node(
             store,
             f"answer:{record.payload.answer_id}",

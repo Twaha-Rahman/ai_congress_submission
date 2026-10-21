@@ -22,6 +22,7 @@ from .common import (
     Subject,
     TimeInterval,
     ensure_utc,
+    utc_now,
 )
 
 
@@ -41,7 +42,9 @@ class TargetFacts(StrictModel):
     @model_validator(mode="after")
     def _required_fields(self) -> "TargetFacts":
         if self.subject is Subject.GENERAL_POLICY:
-            raise ValueError("general policies support ingestion/findings; typed numeric Q&A requires loan_approval or record_retention")
+            if any(value is not None for key, value in self.model_dump().items() if key != "subject"):
+                raise ValueError("general questions use source passages, not typed numeric target facts")
+            return self
         if self.subject is Subject.LOAN_APPROVAL:
             if self.amount_minor is None:
                 raise ValueError("loan_approval queries require amount_minor")
@@ -63,8 +66,8 @@ class QueryRequest(StrictModel):
     """Public query body.  Tenant and office always come from server context."""
 
     question: str
-    target: TargetFacts
-    valid_at: datetime
+    target: TargetFacts = Field(default_factory=lambda: TargetFacts(subject=Subject.GENERAL_POLICY))
+    valid_at: datetime = Field(default_factory=utc_now)
     known_at: datetime | None = None
     mode: Mode | None = None
     #: Exact recipient-side export snapshots supplied by the gateway.  The office
@@ -77,6 +80,17 @@ class QueryRequest(StrictModel):
     #: Gateway comparisons set this when omission of the expected remote snapshot
     #: would make a local-only result misleading.
     remote_snapshot_required: bool = False
+    source_ids: list[str] = Field(default_factory=list, max_length=100)
+
+    @model_validator(mode="after")
+    def _general_controls(self) -> "QueryRequest":
+        if self.source_ids and self.target.subject is not Subject.GENERAL_POLICY:
+            raise ValueError("source filters apply to general source questions only")
+        if self.target.subject is Subject.GENERAL_POLICY and (
+            self.remote_snapshot_ids or self.remote_source_known_at or self.remote_snapshot_required
+        ):
+            raise ValueError("general questions are local; gateway snapshot controls are unsupported")
+        return self
 
     @field_validator("valid_at", "known_at")
     @classmethod
@@ -102,14 +116,14 @@ class Citation(StrictModel):
     """A factual-statement citation bound to a claim revision and its evidence."""
 
     statement_id: str
-    claim_revision_id: str
-    claim_id: str
+    claim_revision_id: str | None
+    claim_id: str | None
     source_id: str
     source_identity: str
     source_version_label: str
     clause_id: str
     manifest_root: str
-    claim_payload_hash: str
+    claim_payload_hash: str | None
     authority: str
     page: int
     section: str | None

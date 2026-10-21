@@ -130,6 +130,9 @@ def create_app(settings: GatewaySettings | None = None) -> FastAPI:
         # then ask the requester's local comparator to produce the final answer.
         from ..contracts.common import Subject
 
+        if query_request.target.subject is Subject.GENERAL_POLICY:
+            raise ApiError(ErrorCode.UNSUPPORTED_SEMANTICS, "General source questions are office-local. Submit this question to an office API.")
+
         if (
             query_request.target.subject is Subject.RECORD_RETENTION
             and query_request.target.origin_office is not None

@@ -141,9 +141,10 @@ def test_general_manifest_rejects_incompatible_contracts(changes):
         manifest(**changes)
 
 
-def test_general_policy_cannot_accidentally_enter_numeric_qa():
-    with pytest.raises(ValidationError, match="ingestion/findings"):
-        TargetFacts(subject="general_policy")
+def test_general_questions_have_no_numeric_target_facts():
+    assert TargetFacts(subject="general_policy").subject is Subject.GENERAL_POLICY
+    with pytest.raises(ValidationError, match="not typed numeric"):
+        TargetFacts(subject="general_policy", amount_minor=100)
 
 
 def test_travel_pdf_and_slack_produce_signed_review_candidate(dhaka):

@@ -609,7 +609,36 @@ def verify_bundle(
     remote_reference_ids = set(bundle.remote_references)
     remote_matched = 0
     local_matched = 0
+    passage_withheld = 0
     for citation in bundle.answer.citations:
+        if citation.claim_revision_id is None:
+            signed = authenticated.get(citation.source_id)
+            wrapper = next((entry for entry in bundle.manifests if entry.source_id == citation.source_id), None)
+            clause = disclosed_by_source.get(citation.source_id, {}).get(citation.clause_id)
+            proof = next((p for p in wrapper.clause_proofs if p.clause_id == citation.clause_id), None) if wrapper else None
+            if (signed is None or proof is None or citation.remote or citation.claim_id is not None or citation.claim_payload_hash is not None
+                    or citation.source_identity != signed.source_identity or citation.source_version_label != signed.version_label
+                    or citation.manifest_root != signed.merkle_root or citation.authority != signed.trusted_metadata.authority.value
+                    or citation.restricted != (signed.sensitivity is Sensitivity.RESTRICTED)
+                    or proof.merkle_root != signed.merkle_root or proof.tree_size != signed.tree_size
+                    or not verify_clause_proof(proof, leaf_hash_hex=proof.leaf_hash)[0]):
+                mismatch_reasons.append(f"{citation.statement_id}: passage is not bound to an authenticated source/proof")
+                continue
+            if clause is None:
+                passage_withheld += 1
+                continue
+            leaf = _leaf_hash(clause_leaf_payload(tenant_id=signed.tenant_id, region=signed.region.value,
+                source_id=signed.source_id, source_identity=signed.source_identity, version_label=signed.version_label,
+                clause_id=clause.clause_id, page=clause.page, section=clause.section,
+                start_char=clause.start_char, end_char=clause.end_char, text=clause.text,
+                source_sha256=signed.source_sha256, parser_version=signed.parser_version)).hex()
+            if (leaf != proof.leaf_hash or citation.page != clause.page or citation.section != clause.section
+                    or not (0 <= citation.start_char < citation.end_char <= len(clause.text))
+                    or clause.text[citation.start_char:citation.end_char] != citation.quote):
+                mismatch_reasons.append(f"{citation.statement_id}: passage quote or locator does not match committed text")
+                continue
+            local_matched += 1
+            continue
         entry = cited_claims.get(citation.claim_revision_id)
         if entry is None:
             if citation.remote and citation.claim_revision_id in remote_reference_ids:
@@ -667,7 +696,7 @@ def verify_bundle(
             continue
         local_matched += 1
 
-    expected_hashes = sorted({citation.claim_payload_hash for citation in bundle.answer.citations})
+    expected_hashes = sorted({citation.claim_payload_hash for citation in bundle.answer.citations if citation.claim_payload_hash})
     if expected_hashes != sorted(set(bundle.answer.cited_claim_payload_hashes)):
         mismatch_reasons.append("answer cited_claim_payload_hashes do not match its citations")
     expected_roots = sorted({citation.manifest_root for citation in bundle.answer.citations})
@@ -688,6 +717,9 @@ def verify_bundle(
         )
     elif not bundle.answer.citations:
         checks.append(_check("answer_binding", CheckStatus.PASSED, None, matched="0"))
+    elif passage_withheld:
+        checks.append(_check("answer_binding", CheckStatus.NOT_CHECKED,
+            "one or more directly cited passage texts were withheld", matched=str(local_matched), not_supplied=str(passage_withheld + remote_matched)))
     elif local_matched == 0 and remote_matched:
         checks.append(
             _check(

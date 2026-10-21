@@ -90,6 +90,42 @@ def build_bundle(
 
     for citation in answer.payload.citations:
         revision_id = citation.claim_revision_id
+        if revision_id is None:
+            # General Q&A cites committed passages directly, not fabricated claims.
+            source = store.get_source(citation.source_id)
+            clause = store.get_clause(citation.clause_id)
+            if source is None or clause is None or clause.source_id != source.source_id:
+                raise ValueError("direct passage citation has no stored source/passage")
+            if (citation.manifest_root != source.merkle_root or citation.page != clause.page
+                    or citation.section != clause.section or citation.source_identity != source.source_identity
+                    or citation.source_version_label != source.version_label or citation.authority != source.authority
+                    or citation.claim_id is not None or citation.claim_payload_hash is not None
+                    or citation.remote or not (0 <= citation.start_char < citation.end_char <= len(clause.text))
+                    or clause.text[citation.start_char:citation.end_char] != citation.quote):
+                raise ValueError("direct passage citation does not match stored evidence")
+            if source.source_id not in manifest_entries:
+                leaf_hashes, root_hex = _leaf_hashes_for_source(store, source.source_id, tenant_id=store.tenant_id)
+                if root_hex != source.merkle_root:
+                    raise ValueError("direct passage source commitment does not match storage")
+                leaf_hashes_by_source[source.source_id] = leaf_hashes
+                manifest_entries[source.source_id] = ManifestBundleEntry(
+                    source_id=source.source_id, region=source.manifest.region, source_identity=source.source_identity,
+                    version_label=source.version_label, source_sha256=source.source_sha256,
+                    merkle_root=source.merkle_root, tree_size=source.tree_size, manifest_payload=source.manifest_payload,
+                    manifest_hash=source.manifest_hash, signature=source.manifest_signature, key_id=source.manifest_key_id,
+                    clauses_disclosed=not source.restricted, sensitivity=source.sensitivity, office_export=source.office_export)
+            entry = manifest_entries[source.source_id]
+            if any(proof.clause_id == clause.clause_id for proof in entry.clause_proofs):
+                continue
+            leaf_hashes = leaf_hashes_by_source[source.source_id]
+            entry.clause_proofs.append(build_clause_proof(clause_id=clause.clause_id,
+                leaf_hash_hex=leaf_hashes[clause.clause_index], index=clause.clause_index, tree_size=len(leaf_hashes),
+                siblings_hex=[item.hex() for item in inclusion_path([bytes.fromhex(h) for h in leaf_hashes], clause.clause_index)],
+                merkle_root=source.merkle_root))
+            if entry.clauses_disclosed:
+                entry.clauses.append(BundleClause(clause_id=clause.clause_id, page=clause.page, section=clause.section,
+                    start_char=clause.start_char, end_char=clause.end_char, text=clause.text))
+            continue
         if revision_id in seen_revisions:
             continue
         seen_revisions.add(revision_id)

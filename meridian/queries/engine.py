@@ -150,6 +150,8 @@ class QueryEngine:
         region: str | None = None,
         allowed_restricted: bool = True,
     ) -> AnswerRecord:
+        if request.target.subject is Subject.GENERAL_POLICY:
+            raise ValueError("general source questions require GeneralQuestionEngine")
         moment = known_at or request.known_at or utc_now()
         views = self.store.claim_views(subject=request.target.subject.value)
         remote_snapshot_available = False
@@ -289,6 +291,10 @@ class QueryEngine:
             if draft.status is not AnswerStatus.NEEDS_REVIEW:
                 draft.status = AnswerStatus.NEEDS_REVIEW
 
+        return self.save_answer(request, draft, moment=moment, region=region)
+
+    def save_answer(self, request: QueryRequest, draft: AnswerDraft, *, moment: datetime, region: str | None = None) -> AnswerRecord:
+        """Sign and persist answers from numeric computation or grounded source Q&A."""
         answer_id = new_id("ans")
         text = draft.text()
         region_value = region or self.store.region
@@ -311,7 +317,7 @@ class QueryEngine:
             template_version=ANSWER_TEMPLATE_VERSION,
             signer_key_id=self.signer.key_id,
             model_metadata=draft.model_metadata,
-            cited_claim_payload_hashes=sorted({c.claim_payload_hash for c in draft.citations}),
+            cited_claim_payload_hashes=sorted({c.claim_payload_hash for c in draft.citations if c.claim_payload_hash}),
             cited_manifest_roots=sorted({c.manifest_root for c in draft.citations}),
             partial_reasons=draft.partial_reasons,
             created_at=utc_now(),
@@ -342,7 +348,7 @@ class QueryEngine:
                     connection,
                     edge_type="CITES",
                     from_node_id=f"answer:{answer_id}",
-                    to_node_id=f"revision:{citation.claim_revision_id}",
+                    to_node_id=(f"revision:{citation.claim_revision_id}" if citation.claim_revision_id else f"clause:{citation.clause_id}"),
                     attributes={"statement_id": citation.statement_id},
                 )
         return record

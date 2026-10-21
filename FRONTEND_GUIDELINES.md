@@ -103,6 +103,9 @@ Tokens live in `frontend/src/styles.css`; use variables when extending component
   Escape cancels, and Tab closes without trapping focus. Checkmarks mark the selected
   option; active focus and selection remain distinct. Popups stay inside the visible
   content width and flip above the trigger when space below is limited.
+  Measure the rendered content at the popup's final width, including wrapped labels,
+  padding and borders. Short menus must fit without a scrollbar; retain scrolling
+  when the content exceeds the menu height limit or available viewport space.
 - The queue sort control supports severity, newest, oldest, review status and finding
   ID. Default severity order breaks ties by newest first, then a stable identifier.
   Pin even the initially displayed finding in the URL. Sorting and auto-refresh

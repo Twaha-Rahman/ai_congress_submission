@@ -71,7 +71,18 @@ export default function Select({
       const rect = trigger.current!.getBoundingClientRect();
       const viewportWidth = document.documentElement.clientWidth;
       const width = Math.min(Math.max(rect.width, 190), viewportWidth - 16);
-      const desired = Math.min(options.length * 40 + 10, 290);
+      const menu = popup.current!;
+      // Measure at the final width, including wrapped labels, padding and borders.
+      // Estimating row heights can leave even a single option one pixel clipped.
+      const previousWidth = menu.style.width;
+      const previousMaxHeight = menu.style.maxHeight;
+      const previousScrollTop = menu.scrollTop;
+      menu.style.width = `${width}px`;
+      menu.style.maxHeight = "none";
+      const desired = Math.min(Math.ceil(menu.getBoundingClientRect().height), 290);
+      menu.style.width = previousWidth;
+      menu.style.maxHeight = previousMaxHeight;
+      menu.scrollTop = previousScrollTop;
       const below = window.innerHeight - rect.bottom - 12;
       const above = rect.top - 12;
       const flip = below < desired && above > below;
@@ -97,16 +108,19 @@ export default function Select({
       )
         setOpen(false);
     }
+    function scroll(event: Event) {
+      if (!popup.current?.contains(event.target as Node)) place();
+    }
     place();
     document.addEventListener("pointerdown", outside);
     document.addEventListener("focusin", leave);
     window.addEventListener("resize", place);
-    window.addEventListener("scroll", place, true);
+    window.addEventListener("scroll", scroll, true);
     return () => {
       document.removeEventListener("pointerdown", outside);
       document.removeEventListener("focusin", leave);
       window.removeEventListener("resize", place);
-      window.removeEventListener("scroll", place, true);
+      window.removeEventListener("scroll", scroll, true);
     };
   }, [open, options.length, trigger]);
   useEffect(() => {

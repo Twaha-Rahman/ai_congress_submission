@@ -26,7 +26,6 @@
 .comparison-result-heading .question-dates { margin-top: 20px; margin-bottom: 0; padding-bottom: 0; border: 0; }
 .comparison-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
 .comparison-answer, .comparison-delivery { min-width: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--queue-surface); padding: 22px; }
-.comparison-answer { border-top: 3px solid var(--control-line); }
 .comparison-office-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .comparison-office-heading h3 { display: flex; gap: 8px; align-items: center; font: 500 15px/1.5 var(--sans); color: var(--ink); margin: 0; }
 .comparison-office-heading h3 svg { color: var(--primary); }

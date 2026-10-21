@@ -53,7 +53,7 @@ Tokens live in `frontend/src/styles.css`; use variables when extending component
   Policy evidence gets a teal header/icon/top edge; informal evidence gets coral.
   Keep authority labels explicit and retain neutral styling for procedures or
   unavailable metadata. These accents do not indicate integrity verification.
-- Both themes share the full inset selection marker, quieter navigation counter,
+- Both themes share the finding-card selection marker, quieter navigation counter,
   authority-colored evidence headers/icons/top edges, 10px authority/version labels and
   27px rule summaries (increasing on wide screens). Keep these component rules
   outside theme selectors; vary palette tokens between themes.
@@ -577,9 +577,9 @@ themes at 320, 390, 760, 1024 and 1440px. The offline evaluation suite used
 - Questions adds B for Recent answers and Shift+N for Use this question. Both have
   desktop keycaps and honor typing/modal guards and the shortcut preference. Reuse
   fills the composer with the question and source/date context without submitting.
-- Make the current navigation item visibly distinct with a warm fill,
-  inset leading marker and stronger text. Keep the outer border transparent; do not
-  outline the entire navigation item with the accent color. Text selection uses its
+- Make the current navigation item distinct with a neutral tonal fill, stronger
+  text and an accent-colored icon. Do not add a leading stripe, inset marker or
+  colored outer border to navigation items. Text selection uses its
   own high-contrast foreground/background pair in each theme, including within form fields. Selected
   record surfaces remain distinct from ordinary cards.
 - Shared controls respond to hover, pressing, focus and expanded states without
@@ -613,3 +613,7 @@ on desktop and full-width on smaller screens. Only show an access message in the
 footer when access is unavailable; do not add an explanatory privacy note. This refinement passed the production build, 72 frontend checks
 and read-only browser checks for disclosure behavior and 320–1440px layouts in
 both themes.
+
+Office answer cards use a uniform one-pixel border and a quiet surface. Do not add
+a thick top edge or accent rail. Use the existing heading, status badge and spacing
+to establish hierarchy.

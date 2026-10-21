@@ -29,8 +29,8 @@
   --header-surface: transparent;
   --queue-surface: #f7f4ee;
   --selected-surface: #f1dccd;
-  --nav-active-surface: #f0d9c9;
-  --nav-active-ink: #713d2a;
+  --nav-active-surface: #e4dacd;
+  --nav-active-ink: #30271f;
   --selection-surface: #a9583e;
   --selection-ink: #fffdf8;
   --interaction-surface: #ede4d9;
@@ -84,8 +84,8 @@
   --header-surface: #1b1b1d;
   --queue-surface: #242426;
   --selected-surface: #493229;
-  --nav-active-surface: #50382e;
-  --nav-active-ink: #ffd2bb;
+  --nav-active-surface: #373438;
+  --nav-active-ink: #f5f1eb;
   --selection-surface: #efab90;
   --selection-ink: #241813;
   --interaction-surface: #3a3432;
@@ -357,8 +357,10 @@ svg {
 .nav-item.active {
   background: var(--nav-active-surface);
   color: var(--nav-active-ink);
-  box-shadow: inset 3px 0 var(--primary);
   font-weight: 600;
+}
+.nav-item.active > svg {
+  color: var(--primary);
 }
 .nav-count {
   margin-left: auto;

@@ -67,6 +67,7 @@ export function createApiHandler({
         role,
         canReview: role === "reviewer",
         demo: true,
+        comparisons: { rules: role === "reviewer" && !!env.DEMO_TOKEN_GATEWAY_SERVICE },
         queries: Object.fromEntries(["dhaka", "frankfurt"].map(office => [office,
           !!env[`DEMO_TOKEN_${office.toUpperCase()}_${role.toUpperCase()}`],
         ])),
@@ -78,10 +79,11 @@ export function createApiHandler({
       });
     }
     const match =
-      /^\/api\/(dhaka|frankfurt)\/(findings(?:\/[\w:.-]+(?:\/(?:reviews|lineage))?)?|sources(?:\/[\w:.-]+(?:\/(?:content|comparisons|lineage))?)?|answers(?:\/[\w:.-]+(?:\/(?:lineage|bundle))?)?|queries|verifications\/(?:source|bundle)|claims(?:\/reviews)?|jobs(?:\/[\w.-]+)?|ingestions\/pdf)$/.exec(
+      /^\/api\/(dhaka|frankfurt|gateway)\/(findings(?:\/[\w:.-]+(?:\/(?:reviews|lineage))?)?|sources(?:\/[\w:.-]+(?:\/(?:content|comparisons|lineage))?)?|answers(?:\/[\w:.-]+(?:\/(?:lineage|bundle))?)?|queries(?:\/gw_\d{8}T\d{12})?|verifications\/(?:source|bundle)|claims(?:\/reviews)?|jobs(?:\/[\w.-]+)?|ingestions\/pdf)$/.exec(
         url.pathname,
       );
     const path = match?.[2];
+    const isGateway = match?.[1] === "gateway";
     const isReview = path && /^findings\/[\w:.-]+\/reviews$/.test(path);
     const isUpload = path === "ingestions/pdf";
     const isQuery = path === "queries";
@@ -89,7 +91,7 @@ export function createApiHandler({
     const isVerification = path?.startsWith("verifications/");
     const isSourceVerification = path === "verifications/source";
     if (
-      !match ||
+      !match || (isGateway && path !== "queries" && !/^queries\/gw_\d{8}T\d{12}$/.test(path)) ||
       !(
         (req.method === "GET" && !isReview && !isUpload && !isComparison && !isVerification && !isQuery) ||
         (req.method === "POST" && (isReview || isUpload || isComparison || isVerification || isQuery))
@@ -102,6 +104,10 @@ export function createApiHandler({
         },
       });
     }
+    // Federation can import signed claims at another office. Only the configured
+    // reviewer workspace exposes this explicit service-backed operation.
+    if (isGateway && role !== "reviewer")
+      return json(res, 403, { error: { code: "forbidden", message: "Signed-rule comparisons require reviewer access." } });
     if (req.method === "POST") {
       // Browser writes require this same-origin workspace, regardless of action.
       const origin = req.headers.origin;
@@ -129,7 +135,7 @@ export function createApiHandler({
     }
     const office = match[1].toUpperCase();
     const connectionRole = isUpload || isComparison ? "uploader" : role;
-    const token = env[`DEMO_TOKEN_${office}_${connectionRole.toUpperCase()}`];
+    const token = env[`DEMO_TOKEN_${office}_${isGateway ? "SERVICE" : connectionRole.toUpperCase()}`];
     if (!token)
       return json(res, 503, {
         error: {
@@ -139,7 +145,7 @@ export function createApiHandler({
       });
     const base =
       env[`${office}_BASE_URL`] ||
-      `http://127.0.0.1:${office === "DHAKA" ? 8081 : 8082}`;
+      `http://127.0.0.1:${isGateway ? 8080 : office === "DHAKA" ? 8081 : 8082}`;
     try {
       let body;
       let contentType;
@@ -219,6 +225,8 @@ export function createApiHandler({
             if (!query || typeof query !== "object" || Array.isArray(query) ||
                 Object.keys(query).some(key => !["question", "target", "valid_at", "known_at", "source_ids"].includes(key)) ||
                 (query.target && !["general_policy", "loan_approval", "record_retention"].includes(query.target.subject))) throw new Error();
+            if (isGateway && (!query.target || !["loan_approval", "record_retention"].includes(query.target.subject) ||
+                "source_ids" in query || Object.keys(query.target).some(key => !["subject", "amount_minor", "currency", "loan_type", "origin_office", "processing_office", "record_class", "starting_event", "product"].includes(key)))) throw new Error();
           } catch {
             return json(res, 422, { error: { code: "invalid_input", message: "Supply a local question with optional source and date filters." } });
           }
@@ -241,7 +249,7 @@ export function createApiHandler({
           },
           body,
           redirect: "error",
-          signal: AbortSignal.timeout(isQuery ? 610000 : isUpload || isVerification ? 60000 : 15000),
+          signal: AbortSignal.timeout(isQuery ? isGateway ? 100000 : 610000 : isUpload || isVerification ? 60000 : 15000),
         },
       );
       const headers = {

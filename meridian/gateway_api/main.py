@@ -8,6 +8,8 @@ keys, merges them in memory, and exposes redacted egress audit views.
 from __future__ import annotations
 
 import os
+import json
+import re
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
@@ -81,6 +83,30 @@ def create_app(settings: GatewaySettings | None = None) -> FastAPI:
     app.state.settings = resolved
 
     authenticate = bearer_dependency(registry)
+
+    # Durable metadata-only receipts make shared comparisons readable without
+    # repeating an import or relying on browser storage. No source volumes are used.
+    receipts = relay.path.parent / "comparison_receipts" / resolved.tenant_id
+
+    def save_receipt(result: dict, query: QueryRequest) -> dict:
+        result["query"] = query.model_dump(mode="json", exclude_none=True)
+        receipts.mkdir(parents=True, exist_ok=True)
+        target = receipts / f"{result['request_id']}.json"
+        temporary = target.with_suffix(".tmp")
+        temporary.write_text(json.dumps(result), encoding="utf-8")
+        temporary.replace(target)
+        return result
+
+    @app.get("/v1/queries/{request_id}")
+    def saved_comparison(request_id: str, principal=Depends(authenticate)) -> dict:
+        registry.require_permission(principal, Permission.FEDERATION_ORCHESTRATE)
+        registry.require_tenant(principal, resolved.tenant_id)
+        if not re.fullmatch(r"gw_\d{8}T\d{12}", request_id):
+            raise ApiError(ErrorCode.NOT_FOUND, "comparison receipt not found")
+        target = receipts / f"{request_id}.json"
+        if not target.is_file():
+            raise ApiError(ErrorCode.NOT_FOUND, "comparison receipt not found")
+        return json.loads(target.read_text(encoding="utf-8"))
 
     @app.get("/health")
     def health() -> dict[str, Any]:
@@ -180,7 +206,7 @@ def create_app(settings: GatewaySettings | None = None) -> FastAPI:
                     f"requesting office {requester} could not complete the comparison: {exc.detail}",
                     detail={"unavailable": [exc.region]},
                 ) from exc
-            return {
+            return save_receipt({
                 "question": query_request.question,
                 "request_id": request_id,
                 "federated_answer": {
@@ -218,7 +244,7 @@ def create_app(settings: GatewaySettings | None = None) -> FastAPI:
                     "office compared it with its own policy; passage text was stripped "
                     "from the comparator transport view"
                 ),
-            }
+            }, query_request)
 
         results = []
         unavailable: list[str] = []
@@ -248,7 +274,7 @@ def create_app(settings: GatewaySettings | None = None) -> FastAPI:
                 "no office exported claims for the supplied target facts",
                 detail={"offices": answer["offices"]},
             )
-        return {
+        return save_receipt({
             "question": query_request.question,
             "request_id": request_id,
             "federated_answer": answer,
@@ -256,7 +282,7 @@ def create_app(settings: GatewaySettings | None = None) -> FastAPI:
                 "the gateway merged signed structured claims only; no raw source text "
                 "crossed the office boundary and clause inclusion stays not_checked"
             ),
-        }
+        }, query_request)
 
     @app.get("/v1/audit/egress")
     def gateway_egress(request: Request, principal=Depends(authenticate)) -> dict[str, Any]:

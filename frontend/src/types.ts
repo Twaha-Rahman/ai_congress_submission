@@ -109,6 +109,7 @@ export interface Session {
   canReview: boolean;
   demo: boolean;
   queries?: Record<Office, boolean>;
+  comparisons?: { rules: boolean };
   uploads?: Record<Office, { enabled: boolean; processing: "local" | "hosted"; maxBytes: number }>;
 }
 

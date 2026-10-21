@@ -40,6 +40,12 @@ export interface View {
   verifyPassage: string;
   verifySearch: string;
   verifyChecks: "all" | "passed" | "failed" | "not_checked";
+  compareMode: "general" | "rules";
+  compareDhaka: string;
+  compareFrankfurt: string;
+  compareRequest: string;
+  compareSourceOffice: Office;
+  compareCitation: string;
   questionId: string;
   questionSearch: string;
   questionPane: "compose" | "answer";
@@ -99,6 +105,12 @@ export function readView(search: string): View {
     verifyPassage: p.get("passage") || "",
     verifySearch: p.get("vq") || "",
     verifyChecks: allowed("checks", ["passed", "failed", "not_checked"]) as View["verifyChecks"],
+    compareMode: p.get("compareMode") === "rules" ? "rules" : "general",
+    compareDhaka: p.get("dhaAnswer") || "",
+    compareFrankfurt: p.get("fraAnswer") || "",
+    compareRequest: p.get("comparison") || "",
+    compareSourceOffice: p.get("evidenceOffice") === "frankfurt" ? "frankfurt" : "dhaka",
+    compareCitation: p.get("evidenceCitation") || "",
     questionId: p.get("answer") || "",
     questionSearch: p.get("qq") || "",
     questionPane: allowed("questionPane", ["compose", "answer"], p.get("answer") ? "answer" : "compose") as View["questionPane"],
@@ -142,6 +154,12 @@ export function viewSearch(view: View) {
   if (view.verifyPassage) p.set("passage", view.verifyPassage);
   if (view.verifySearch) p.set("vq", view.verifySearch);
   if (view.verifyChecks !== "all") p.set("checks", view.verifyChecks);
+  p.set("compareMode", view.compareMode);
+  if (view.compareDhaka) p.set("dhaAnswer", view.compareDhaka);
+  if (view.compareFrankfurt) p.set("fraAnswer", view.compareFrankfurt);
+  if (view.compareRequest) p.set("comparison", view.compareRequest);
+  if (view.compareCitation !== "") p.set("evidenceCitation", view.compareCitation);
+  if (view.document) p.set("evidenceOffice", view.compareSourceOffice);
   if (view.questionId) p.set("answer", view.questionId);
   if (view.questionSearch) p.set("qq", view.questionSearch);
   p.set("questionPane", view.questionPane);

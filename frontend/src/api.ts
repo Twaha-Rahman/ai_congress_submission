@@ -11,6 +11,7 @@ export class ApiError extends Error {
     public status: number,
     public code: string,
     message: string,
+    public detail: Record<string, unknown> = {},
   ) {
     super(message);
   }
@@ -34,6 +35,7 @@ export async function api<T>(
       response.status,
       body.error?.code || "request_failed",
       body.error?.message || "The request could not be completed.",
+      body.error?.detail || {},
     );
   return body as T;
 }

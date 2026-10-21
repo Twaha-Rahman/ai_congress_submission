@@ -33,7 +33,7 @@ async function bridge(t, options = {}) {
 test("session contains capabilities, never credentials; browser authorization cannot select a principal", async (t) => {
   const { url, calls } = await bridge(t);
   const session = await (await fetch(`${url}/api/session`)).json();
-  assert.deepEqual(session, { role: "reviewer", canReview: true, demo: true, queries: { dhaka: true, frankfurt: true }, uploads: {
+  assert.deepEqual(session, { role: "reviewer", canReview: true, demo: true, comparisons: { rules: false }, queries: { dhaka: true, frankfurt: true }, uploads: {
     dhaka: { enabled: false, maxBytes: 20 * 1024 * 1024, processing: "hosted" },
     frankfurt: { enabled: false, maxBytes: 20 * 1024 * 1024, processing: "hosted" },
   } });
@@ -285,4 +285,33 @@ test("local queries use the reader principal, enforce origin, and reject gateway
   assert.equal(response.status, 200);
   assert.deepEqual(JSON.parse(calls[0].body), body);
   assert.equal(calls[0].signal.aborted, false);
+});
+
+test("signed-rule comparisons use a fixed gateway service credential and permit only query routes", async t => {
+  const { url, calls } = await bridge(t, { env: { DEMO_TOKEN_GATEWAY_SERVICE: "gateway-only" } });
+  const query = { question: "Compare retention", target: { subject: "record_retention", origin_office: "DHAKA", processing_office: "FRANKFURT", record_class: "loan_records", product: "MTF_CROSS_OFFICE", starting_event: "loan_closure" } };
+  const post = (body, headers = { "X-Meridian-UI": "1" }) => fetch(`${url}/api/gateway/queries`, { method: "POST", headers, body: JSON.stringify(body) });
+  assert.equal((await post(query)).status, 200);
+  assert.equal(calls[0].url, "http://127.0.0.1:8080/v1/queries");
+  assert.equal(calls[0].headers.Authorization, "Bearer gateway-only");
+  assert.equal((await fetch(`${url}/api/gateway/queries/gw_20261021T000000000000`)).status, 200);
+  assert.equal(calls[1].headers.Authorization, "Bearer gateway-only");
+  assert.equal((await (await fetch(`${url}/api/session`)).json()).comparisons.rules, true);
+  calls.length = 0;
+  for (const path of ["sources", "answers", "findings", "audit/egress", "federation/claims", "queries/not-an-id"])
+    assert.equal((await fetch(`${url}/api/gateway/${path}`)).status, 404);
+  for (const body of [{ question: "arbitrary text", target: { subject: "general_policy" } }, { ...query, source_ids: [] }, { ...query, remote_snapshot_ids: ["fake"] }, { ...query, target: { ...query.target, remote_snapshot_required: false } }])
+    assert.equal((await post(body)).status, 422);
+  assert.equal((await post(query, { "X-Meridian-UI": "1", Origin: "https://evil.example" })).status, 403);
+  assert.equal(calls.length, 0);
+});
+
+test("reader workspaces cannot borrow the gateway service identity, and missing gateway credentials stay explicit", async t => {
+  const reader = await bridge(t, { env: { UI_ROLE: "reader", DEMO_TOKEN_GATEWAY_SERVICE: "gateway-only" } });
+  assert.equal((await (await fetch(`${reader.url}/api/session`)).json()).comparisons.rules, false);
+  for (const [path, method] of [["queries", "POST"], ["queries/gw_20261021T000000000000", "GET"]])
+    assert.equal((await fetch(`${reader.url}/api/gateway/${path}`, { method, headers: { "X-Meridian-UI": "1" }, ...(method === "POST" ? { body: "{}" } : {}) })).status, 403);
+  assert.equal(reader.calls.length, 0);
+  const missing = await bridge(t);
+  assert.equal((await fetch(`${missing.url}/api/gateway/queries`, { method: "POST", headers: { "X-Meridian-UI": "1" }, body: "{}" })).status, 503);
 });

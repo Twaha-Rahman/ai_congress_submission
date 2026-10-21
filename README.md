@@ -68,6 +68,12 @@ search, `J` / `K` move through findings, and `A` / `R` / `D` open review forms.
 explicit on/off switch indicator on desktop and mobile. Key hints and the shortcuts
 button are hidden in the mobile layout.
 
+On Questions, `B` opens **Recent answers** and `Shift+N` reuses the selected question
+in the composer without submitting. Refresh failures keep the loaded answer list in
+place. Date fields open their native picker from the whole field; keyboard editing
+and `Alt+Down` remain available. Share dialogs place an icon-only copy action beside
+the link, with stable confirmation inside the button.
+
 Use the sidebar's **Theme** control for **Light**, **Dark**, or **System** appearance.
 Office, theme and role sit below navigation; on mobile they share a compact header.
 System is the default and follows device changes; your choice is saved locally.

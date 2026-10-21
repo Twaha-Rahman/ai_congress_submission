@@ -558,3 +558,39 @@ repeat POSTs, stable copy/outside dismissal, real signed bundle checks, the 5-ve
 year federation gap, missing loan rules, reader capability restrictions, and both
 themes at 320, 390, 760, 1024 and 1440px. The offline evaluation suite used
 `LLM_RESPONSE_FORMAT=json_schema`, matching its controlled schema fixture.
+
+
+## Shared interaction refinements
+
+- Keep an already loaded Recent answers list visible when refreshing fails. Reserve
+  the count/status row so pending and failed refresh states never displace cards.
+  Use the compact “Refresh failed” status with the actual reason available to
+  assistive technology and hover; initial-load failures still offer a full retry.
+  Disable duplicate refreshes and spin the icon while pending. Reduced motion keeps
+  the readable refreshing state without rotation.
+- Questions adds B for Recent answers and Shift+N for Use this question. Both have
+  desktop keycaps and honor typing/modal guards and the shortcut preference. Reuse
+  fills the composer with the question and source/date context without submitting.
+- Make the current navigation item visibly distinct with a warm fill, accent border,
+  inset leading marker and stronger text. Text selection uses its own high-contrast
+  foreground/background pair in each theme, including within form fields. Selected
+  record surfaces remain distinct from ordinary cards.
+- Shared controls respond to hover, pressing, focus and expanded states without
+  moving their borders or contents. Disabled controls retain their inactive state;
+  keyboard focus rings and reduced-motion preferences remain intact.
+- Questions, Cross-office and Verification share one URL/copy row: an icon-only
+  labelled button sits beside the field, with fixed dimensions and in-button check
+  confirmation. Announce success to screen readers; keep clipboard failures visible
+  with manual-copy instructions. Escape/outside dismissal remains unchanged.
+- Native date/datetime fields open their picker when clicked anywhere in the field,
+  including within upload dialogs. Preserve native keyboard editing and Alt+Down
+  activation, and retain normal input behavior when showPicker is unavailable or
+  cannot open. Do not open calendars merely on keyboard focus.
+
+Validation passed 72 frontend tests and the production build. Read-only browser
+checks covered zero list movement across refresh/pending/failure/recovery, real icon
+rotation, initial-load recovery, shortcuts and disabled preferences, hover/press/focus
+feedback, contrast in both themes, stable inline copy and clipboard failure, native
+whole-field date picker opening in Questions/Sources/Cross-office, reduced motion,
+and 320–1440px layouts. No question submissions, source changes or paid calls were
+used in these checks.

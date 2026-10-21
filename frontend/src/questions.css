@@ -82,9 +82,6 @@
 .question-details dt { color: var(--muted); }
 .question-details dd { margin: 0; overflow-wrap: anywhere; }
 .question-details h4 { font-weight: 500; }
-.question-copy.copy-copied { color: var(--teal); border-color: var(--teal-line); }
-.question-copy.copy-copied > svg { animation: copy-confirm 280ms ease-out; }
-.question-copy.copy-failed { color: var(--warning-ink); border-color: var(--warning-line); }
 .question-date-options { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
 .question-date-options summary { display: flex; align-items: center; gap: 7px; color: var(--body); font-size: 12px; cursor: pointer; }
 .question-date-options summary::before { content: "▸"; color: var(--muted); }

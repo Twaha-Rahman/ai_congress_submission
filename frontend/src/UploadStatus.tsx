@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertCircle, ArrowRight, ArrowUpFromLine, Check, Clock3, FileSearch, GitCompareArrows, LoaderCircle, Save, ShieldCheck, Sparkles, Timer, RefreshCw, MessageSquare } from "lucide-react";
+import { AlertCircle, ArrowRight, ArrowUpFromLine, Check, Clock3, FileSearch, GitCompareArrows, LoaderCircle, Save, ShieldCheck, Sparkles, Timer, RefreshCw } from "lucide-react";
 import { date } from "./presentation";
 import { durationLabel, elapsedMilliseconds, isProcessing, jobDescription, jobLabels, jobDisplayLabel, jobDisplayState, processingWarnings, stageLabels } from "./uploads";
 import type { UploadJob } from "./types";
@@ -10,9 +10,9 @@ export function JobBadge({ job }: { job: UploadJob }) {
   return <span className={`job-badge job-${state}`}><Icon size={13} className={job.status === "running" ? "spin" : ""} />{jobDisplayLabel(job)}</span>;
 }
 
-export default function UploadStatus({ job, canRetry, retrying, onRetry, onInspect, onFindings, onUpload, onImportSlack }: {
+export default function UploadStatus({ job, canRetry, retrying, onRetry, onInspect, onFindings, onUpload }: {
   job: UploadJob; canRetry: boolean; retrying: boolean; onRetry: () => void;
-  onInspect: () => void; onFindings: () => void; onUpload?: () => void; onImportSlack?: () => void;
+  onInspect: () => void; onFindings: () => void; onUpload?: () => void;
 }) {
   const [now, setNow] = useState(Date.now);
   useEffect(() => {
@@ -58,8 +58,7 @@ export default function UploadStatus({ job, canRetry, retrying, onRetry, onInspe
         {job.error_code && <><dt>Error</dt><dd>{job.error_code}</dd></>}
       </dl>{!!progress?.previous_attempts?.length && <p>Stage timings above are for the latest attempt. Total elapsed includes earlier attempts.</p>}</details>
     </div>
-    {(canRetry || onUpload || onImportSlack) && <footer className="dialog-footer upload-status-footer">
-      {onImportSlack && <button className="button secondary" onClick={onImportSlack}><MessageSquare size={15} />Import saved Slack</button>}
+    {(canRetry || onUpload) && <footer className="dialog-footer upload-status-footer">
       {onUpload && <button className="button secondary" onClick={onUpload}><ArrowUpFromLine size={15} />Upload another PDF</button>}
       {canRetry && <button className="button primary" disabled={retrying} onClick={onRetry}><RefreshCw size={15} className={retrying ? "spin" : ""} />{retrying ? "Retrying comparison…" : "Retry comparison"}</button>}
     </footer>}

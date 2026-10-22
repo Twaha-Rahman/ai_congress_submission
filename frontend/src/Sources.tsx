@@ -203,7 +203,6 @@ export default function Sources({ office, session, view, navigate, shortcutsEnab
       {selectedJob ? <UploadStatus job={selectedJob} retrying={retrying} canRetry={!!(selectedJob.source_id && ["needs_review", "failed"].includes(selectedJob.status) && canUpload && !active && sources.some(s=>s.source_id===selectedJob.source_id&&s.subject==="general_policy"&&s.status!=="withdrawn"))}
         onRetry={() => void retryComparison(selectedJob)} onFindings={() => onFindings(selectedJob.source_id!)}
         onInspect={() => navigate({ document: selectedJob.source_id!, page: 1, zoom: 100 })}
-        onImportSlack={canUpload ? () => setSavedSlackOpen(true) : undefined}
         onUpload={canUpload && selectedJob.kind !== "slack" ? () => setOpenUpload(true) : undefined} /> : <div className="dialog-body">{jobError ? <ErrorState error={jobError} retry={() => setReadRevision((n) => n + 1)} /> : <Loading label="Opening processing job…" />}</div>}
     </Modal>}
     {withdrawing&&<WithdrawSource office={office} source={withdrawing} onClose={()=>setWithdrawing(null)} onWithdrawn={withdrawn}/>}

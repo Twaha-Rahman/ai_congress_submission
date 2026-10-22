@@ -93,8 +93,9 @@ width while background scrolling is locked.
 
 The first frontend start creates `admin` / `admin` **only when the account database
 is empty**. Password changes survive restarts; demo-data resets do not reset users.
-Click your username/account icon in the sidebar for **Change password** or **Sign
-out**. Every user can change their own password by supplying the current password.
+Click your username/account icon in the sidebar to open the account menu. Choose
+**Change password** for the password form or **Sign out** to end the session.
+Every user can change their own password by supplying the current password.
 New and changed passwords must contain 8–128 characters.
 
 Admins manage **Users** (`/users`): create an account with initial credentials,

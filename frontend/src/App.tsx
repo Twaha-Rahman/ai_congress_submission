@@ -19,7 +19,6 @@ import {
   MessageSquare,
   Activity as ActivityIcon,
   Users as UsersIcon,
-  UserRound,
 } from "lucide-react";
 import { api, ApiError, getFinding, reviewFinding } from "./api";
 import {
@@ -41,6 +40,7 @@ import Questions from "./Questions";
 import Comparisons from "./Comparisons";
 import Activity from "./Activity";
 import Users from "./Users";
+import AccountMenu from "./AccountMenu";
 import Account from "./Account";
 import { reviewQueue, unreviewedFindings } from "./reviewQueue";
 import {
@@ -542,7 +542,7 @@ export default function App({session,onSessionChange,onLogout}:{session:Session;
             />
           </div>
           <ThemeSelect shortcutsEnabled={shortcutsEnabled} />
-          <button className="sidebar-account account-trigger" onClick={()=>setShowAccount(true)} aria-label={`Your account: ${session.user.username}`} title={`${session.user.username} · ${humanize(session.role)}`}><UserRound size={17}/><span className="account-trigger-name">{session.user.username}<small>{humanize(session.role)}</small></span></button>
+          <AccountMenu session={session} onPassword={()=>setShowAccount(true)} onLogout={onLogout}/>
         </div>
       </aside>
 
@@ -937,7 +937,7 @@ export default function App({session,onSessionChange,onLogout}:{session:Session;
           </>}
         </main>
       </div>
-      {showAccount&&<Account session={session} onClose={()=>setShowAccount(false)} onSessionChange={onSessionChange} onLogout={onLogout}/>}
+      {showAccount&&<Account session={session} onClose={()=>setShowAccount(false)} onSessionChange={onSessionChange}/>}
       {showShortcuts && (
         <Modal
           title="Keyboard shortcuts"

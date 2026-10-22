@@ -762,9 +762,14 @@ selected job and loaded cards during refresh.
 - Login precedes workspace API access. Use the shared theme controls and restrained
   form styling; do not add onboarding or architecture copy to the sign-in form.
 - The sidebar account button shows the real username and privilege. At compact
-  widths it becomes an accessible icon button. Change password and Sign out live
-  in this account dialog. Passwords support reveal/hide, password managers and
-  native validation; failed submissions preserve their drafts.
+  widths it becomes an accessible icon button. Open a compact anchored account menu
+  with Change password and Sign out; do not open a password form immediately or dim
+  the workspace. Support arrow keys, Home/End, Tab, Escape and outside dismissal,
+  keep the menu inside the usable viewport, and return focus to its trigger.
+- Change password opens its own dialog with a scrollable form and fixed Cancel/Save
+  footer. Focus the current password on entry; keep reveal/hide, password-manager
+  autocomplete, native validation and failed drafts. Show a clear success state,
+  then return focus after Done. Keep sign-out pending/error feedback in the menu.
 - Admin-only Users supports create, edit access, enable/disable and password reset.
   Use the shared Select and Modal, actual privilege labels and office/restricted
   access controls. Keep usernames immutable and keep the current account out of

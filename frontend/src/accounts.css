@@ -153,19 +153,57 @@
   flex-direction: column;
   min-height: 0;
 }
-.account-identity {
+/* Account actions stay beside their trigger; password editing is a separate task. */
+.account-menu {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  width: min(248px, calc(100vw - 16px));
+  max-height: calc(100dvh - 16px);
+  overflow: auto;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--raised-surface);
+  color: var(--ink);
+  box-shadow: 0 8px 28px var(--popover-shadow);
+}
+.account-menu-identity {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 8px;
-  border-bottom: 1px solid var(--line);
-  padding-bottom: 18px;
-  margin-bottom: 22px;
+  flex-direction: column;
+  gap: 3px;
+  padding: 9px 10px 12px;
   overflow-wrap: anywhere;
 }
-.account-identity > span {
-  color: var(--muted);
+.account-menu-identity strong { font-size: 13px; font-weight: 500; }
+.account-menu-identity > span { font-size: 11px; color: var(--muted); }
+.account-menu-action {
+  width: 100%;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--ink);
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
 }
+.account-menu-action > svg { flex-shrink: 0; color: var(--muted); }
+.account-menu-action:hover:not(:disabled), .account-menu-action:focus-visible { background: var(--interaction-surface); }
+.account-menu-action:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+.account-menu-action:active:not(:disabled) { background: var(--selected-surface); }
+.account-menu-divider { height: 1px; background: var(--line); margin: 5px 4px; }
+.account-menu-error { margin: 8px 10px; color: var(--warning-ink); font-size: 12px; overflow-wrap: anywhere; }
+.password-dialog .dialog-header h2 { font-size: 28px; }
+.password-dialog .account-form { gap: 14px; }
+.password-dialog .dialog-footer { flex-wrap: wrap; }
+.password-change-success { display: flex; align-items: center; gap: 12px; padding: 14px 0; }
+.password-change-success > svg { color: var(--teal); flex-shrink: 0; }
+.password-change-success h3 { font-size: 16px; }
 .account-trigger.sidebar-account {
   flex-direction: row;
   justify-content: flex-start;
@@ -177,12 +215,14 @@
   width: 100%;
   text-align: left;
 }
+.account-trigger[aria-expanded="true"],
 .account-trigger:hover {
   background: var(--interaction-surface);
 }
 .account-trigger > svg {
   flex-shrink: 0;
 }
+.account-trigger-chevron { margin-left: auto; color: var(--muted); }
 .account-trigger-name {
   display: flex;
   flex-direction: column;
@@ -372,11 +412,12 @@
     justify-content: center;
     padding: 10px;
   }
-  .account-trigger-name {
+  .account-trigger-name, .account-trigger-chevron {
     display: none;
   }
 }
 @media (max-width: 760px) {
+  .account-menu-action { min-height: 44px; }
   .account-trigger.sidebar-account {
     width: 36px;
     height: 36px;

@@ -474,8 +474,10 @@ model values. `.env` is git-ignored and written with permissions `0600`.
 
 ## Runtime configuration
 
-All credentials and model routing live in `.env` / environment variables; nothing is
-hardcoded. Important variables:
+Credentials and model routing are read from `.env` / environment variables. Fresh
+configs from `make setup` and `.env.example` select `deepseek/deepseek-v4.1-flash-1017`,
+the DeepSeek/Cloudflare provider allowlist, and `json_object`. Add your own API key.
+Existing configured values are preserved when setup runs again. Important variables:
 
 | Variable | Purpose |
 |---|---|
@@ -484,12 +486,13 @@ hardcoded. Important variables:
 | `LLM_TEMPERATURE`, `LLM_TIMEOUT_SECONDS`, `LLM_MAX_ATTEMPTS` | live-call behavior; request timeout defaults to 600 seconds |
 | `LLM_JOB_MODEL_BUDGET_SECONDS` | total model budget per extraction/comparison stage attempt, including request retries; defaults to 600 seconds |
 | `LLM_REASONING_EFFORT` | optional reasoning override for extraction and comparison; empty (the default) uses model defaults |
-| `LLM_RESPONSE_FORMAT` | `json_schema` (default) for provider-enforced structured output, or `json_object` with the schema supplied in the prompt and enforced by the backend; office overrides supported |
-| `DHAKA_LLM_PROVIDER_PREFS`, `FRANKFURT_LLM_PROVIDER_PREFS` | provider allowlist, preference order and supported-parameter requirements |
+| `LLM_RESPONSE_FORMAT` | generated default `json_object`, with the schema supplied in the prompt and enforced by the backend; `json_schema` enables provider-enforced structured output; office overrides supported |
+| `LLM_PROVIDER_PREFS`, `DHAKA_LLM_PROVIDER_PREFS`, `FRANKFURT_LLM_PROVIDER_PREFS` | provider allowlist, preference order and supported-parameter requirements |
 | `DHAKA_DB_PATH`, `FRANKFURT_DB_PATH` | office SQLite paths |
 | `TRUSTED_KEYS_PATH` | pinned public-key registry |
 | `DEMO_TOKEN_*` | bearer tokens for the static principal map |
-| `DEMO_EXTRACTION_MODE` | default `replay`, `cached` or `live` |
+| `DEFAULT_MODE` | API mode when a request omits it; generated default `replay`, matching the current demo config; office overrides supported |
+| `DEMO_EXTRACTION_MODE` | seed/demo script mode; generated default `replay`; explicit `--mode` takes precedence |
 
 Provider preferences support comma-separated options and comma- or pipe-separated
 lists. For example, `only=deepseek,cloudflare,order=deepseek,cloudflare,require_parameters=true`
@@ -504,6 +507,9 @@ The live demo uses `LLM_RESPONSE_FORMAT=json_object` so DeepSeek can serve reque
 its endpoint does not currently advertise strict structured-output support.
 The full response schema and evidence checks are still enforced by the backend.
 Output modes have separate cache identities; failures never silently switch modes.
+Docker forwards the same model route, provider preferences, response format and API
+mode, including office overrides. Browser PDF/Slack uploads explicitly use `live`;
+the configured API default does not override an explicit request mode.
 Restart the offices after changing model settings.
 
 See `.env.example` for the full template. Do not commit `.env`, `runtime/` or

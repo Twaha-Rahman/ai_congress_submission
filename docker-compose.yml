@@ -18,6 +18,8 @@ x-office-common: &office-common
     LLM_MODEL: ${LLM_MODEL:-}
     LLM_PROVIDER_PREFS: ${LLM_PROVIDER_PREFS:-only=deepseek|cloudflare,order=deepseek|cloudflare,require_parameters=true}
     LLM_REASONING_EFFORT: ${LLM_REASONING_EFFORT:-}
+    LLM_RESPONSE_FORMAT: ${LLM_RESPONSE_FORMAT:-json_object}
+    DEFAULT_MODE: ${DEFAULT_MODE:-replay}
     LLM_TIMEOUT_SECONDS: ${LLM_TIMEOUT_SECONDS:-600}
     LLM_MAX_ATTEMPTS: ${LLM_MAX_ATTEMPTS:-2}
     LLM_JOB_MODEL_BUDGET_SECONDS: ${LLM_JOB_MODEL_BUDGET_SECONDS:-600}
@@ -41,11 +43,13 @@ services:
       SOURCE_DIR: /app/runtime/dhaka/sources
       KEY_DIR: /app/runtime/keys/dhaka
       TRUSTED_KEYS_PATH: /app/runtime/trusted_keys.json
-      LLM_BASE_URL: ${LLM_BASE_URL:-https://openrouter.ai/api/v1}
-      LLM_MODEL: ${LLM_MODEL:-}
-      LLM_API_KEY: ${LLM_API_KEY:-${DHAKA_LLM_API_KEY:-}}
+      LLM_BASE_URL: ${DHAKA_LLM_BASE_URL:-${LLM_BASE_URL:-https://openrouter.ai/api/v1}}
+      LLM_MODEL: ${DHAKA_LLM_MODEL:-${LLM_MODEL:-}}
+      LLM_API_KEY: ${DHAKA_LLM_API_KEY:-${LLM_API_KEY:-}}
       LLM_PROVIDER_PREFS: ${DHAKA_LLM_PROVIDER_PREFS:-${LLM_PROVIDER_PREFS:-only=deepseek|cloudflare,order=deepseek|cloudflare,require_parameters=true}}
       LLM_REASONING_EFFORT: ${DHAKA_LLM_REASONING_EFFORT:-${LLM_REASONING_EFFORT:-}}
+      LLM_RESPONSE_FORMAT: ${DHAKA_LLM_RESPONSE_FORMAT:-${LLM_RESPONSE_FORMAT:-json_object}}
+      DEFAULT_MODE: ${DHAKA_DEFAULT_MODE:-${DEFAULT_MODE:-replay}}
       LLM_TIMEOUT_SECONDS: ${LLM_TIMEOUT_SECONDS:-600}
       LLM_MAX_ATTEMPTS: ${LLM_MAX_ATTEMPTS:-2}
       LLM_JOB_MODEL_BUDGET_SECONDS: ${LLM_JOB_MODEL_BUDGET_SECONDS:-600}
@@ -79,11 +83,13 @@ services:
       SOURCE_DIR: /app/runtime/frankfurt/sources
       KEY_DIR: /app/runtime/keys/frankfurt
       TRUSTED_KEYS_PATH: /app/runtime/trusted_keys.json
-      LLM_BASE_URL: ${LLM_BASE_URL:-https://openrouter.ai/api/v1}
-      LLM_MODEL: ${LLM_MODEL:-}
-      LLM_API_KEY: ${LLM_API_KEY:-${FRANKFURT_LLM_API_KEY:-}}
+      LLM_BASE_URL: ${FRANKFURT_LLM_BASE_URL:-${LLM_BASE_URL:-https://openrouter.ai/api/v1}}
+      LLM_MODEL: ${FRANKFURT_LLM_MODEL:-${LLM_MODEL:-}}
+      LLM_API_KEY: ${FRANKFURT_LLM_API_KEY:-${LLM_API_KEY:-}}
       LLM_PROVIDER_PREFS: ${FRANKFURT_LLM_PROVIDER_PREFS:-${LLM_PROVIDER_PREFS:-only=deepseek|cloudflare,order=deepseek|cloudflare,require_parameters=true}}
       LLM_REASONING_EFFORT: ${FRANKFURT_LLM_REASONING_EFFORT:-${LLM_REASONING_EFFORT:-}}
+      LLM_RESPONSE_FORMAT: ${FRANKFURT_LLM_RESPONSE_FORMAT:-${LLM_RESPONSE_FORMAT:-json_object}}
+      DEFAULT_MODE: ${FRANKFURT_DEFAULT_MODE:-${DEFAULT_MODE:-replay}}
       LLM_TIMEOUT_SECONDS: ${LLM_TIMEOUT_SECONDS:-600}
       LLM_MAX_ATTEMPTS: ${LLM_MAX_ATTEMPTS:-2}
       LLM_JOB_MODEL_BUDGET_SECONDS: ${LLM_JOB_MODEL_BUDGET_SECONDS:-600}

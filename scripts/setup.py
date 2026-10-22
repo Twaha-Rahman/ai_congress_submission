@@ -25,8 +25,8 @@ from meridian.integrity.signing import PinnedKeyRegistry, Signer  # noqa: E402
 TENANT_ID = "meridian_demo"
 REGIONS = ("DHAKA", "FRANKFURT")
 
-# Values written when a key is absent from .env.  Model values stay empty on purpose:
-# a live run requires an explicit operator choice.
+# Non-secret defaults for a new checkout. API keys stay empty; existing operator
+# values, including explicit empty values and mode overrides, are preserved.
 ENV_TEMPLATE: dict[str, str] = {
     "DHAKA_SLACK_APP_TOKEN": "",
     "DHAKA_SLACK_BOT_TOKEN": "",
@@ -47,9 +47,12 @@ ENV_TEMPLATE: dict[str, str] = {
     "FRANKFURT_LLM_MODEL": "",
     "FRANKFURT_LLM_API_KEY": "",
     "FRANKFURT_LLM_PROVIDER_PREFS": "only=deepseek,cloudflare,order=deepseek,cloudflare,require_parameters=true",
-    "LLM_MODEL": "",
+    "LLM_MODEL": "deepseek/deepseek-v4.1-flash-1017",
     "LLM_BASE_URL": "https://openrouter.ai/api/v1",
     "LLM_API_KEY": "",
+    "LLM_PROVIDER_PREFS": "only=deepseek,cloudflare,order=deepseek,cloudflare,require_parameters=true",
+    "LLM_RESPONSE_FORMAT": "json_object",
+    "DEFAULT_MODE": "replay",
     "LLM_TIMEOUT_SECONDS": "600",
     "LLM_MAX_ATTEMPTS": "2",
     "LLM_JOB_MODEL_BUDGET_SECONDS": "600",

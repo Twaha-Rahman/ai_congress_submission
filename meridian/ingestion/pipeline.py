@@ -376,6 +376,7 @@ def ingest_prepared(
     request_id: str | None = None,
     clause_extension_max: int = 200,
     source_dir: Path | None = None,
+    job_id: str | None = None,
 ) -> IngestionOutcome:
     """Run the full pipeline for one prepared source version."""
 
@@ -390,6 +391,11 @@ def ingest_prepared(
 
     existing = store.find_source_version(manifest.source_identity, manifest.version_label)
     if existing is not None:
+        if existing.status == "withdrawn":
+            outcome.source_id = existing.source_id
+            outcome.error_code = "source_withdrawn"
+            outcome.error_detail = "This source version was withdrawn. Upload a new version to introduce new evidence."
+            return outcome
         # Immutable-version identity covers the exact original bytes and the complete
         # canonical trusted manifest (including effective dates and permissions), not
         # merely the normalized text.  A changed file or changed trusted metadata
@@ -574,6 +580,12 @@ def ingest_prepared(
     # ------------------------------------------------------ transactional commit
     service.report_progress("publication")
     with store.db.transaction() as connection:
+        if job_id:
+            job = connection.execute("SELECT error_code FROM jobs WHERE job_id=? AND tenant_id=? AND region=?", (job_id, store.tenant_id, store.region)).fetchone()
+            if job and job["error_code"] == "source_withdrawn":
+                outcome.error_code = "source_withdrawn"
+                outcome.error_detail = "The source was withdrawn before publication."
+                return outcome
         store.insert_source(connection, source=source)
         store.insert_clauses(connection, clauses)
         store.upsert_node(

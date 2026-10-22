@@ -321,6 +321,35 @@ test("HTTP login gates every data route; role headers cannot elevate; credential
   );
   assert.equal(delegation.username, "admin");
   assert.equal(delegation.office, "DHAKA");
+  const withdrawal = "dhaka/sources/source_1/withdrawal";
+  assert.equal((await send(withdrawal, "GET", undefined, token)).status, 200);
+  assert.equal(
+    (
+      await send(
+        withdrawal,
+        "POST",
+        {
+          scope: "version",
+          reason: "Retired",
+          expected_snapshot: "a".repeat(64),
+        },
+        token,
+      )
+    ).status,
+    200,
+  );
+  assert.equal(
+    (
+      await send(withdrawal, "POST", {}, token, {
+        Origin: "https://other.example",
+      })
+    ).status,
+    403,
+  );
+  assert.equal(
+    (await send(withdrawal, "DELETE", undefined, token)).status,
+    404,
+  );
   for (const role of ["reader", "uploader", "reviewer"]) {
     const created = await send(
       "auth/users",
@@ -330,6 +359,11 @@ test("HTTP login gates every data route; role headers cannot elevate; credential
     );
     assert.equal(created.status, 201);
     const auth = await store.login(role, "initial-password");
+    assert.equal(
+      (await send(withdrawal, "GET", undefined, auth.token)).status,
+      403,
+    );
+    assert.equal((await send(withdrawal, "POST", {}, auth.token)).status, 403);
     assert.equal(
       (await send("auth/users", "GET", undefined, auth.token)).status,
       403,

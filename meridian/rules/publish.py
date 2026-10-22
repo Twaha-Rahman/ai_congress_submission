@@ -11,7 +11,7 @@ import sqlite3
 from datetime import datetime
 from typing import Sequence
 
-from ..contracts.common import ExplanationCode, FindingType, Subject, utc_now
+from ..contracts.common import ExplanationCode, FindingType, Severity, Subject, utc_now
 from ..contracts.claims import ClaimRevision
 from ..contracts.findings import FindingEvidenceRef, FindingPayload, ComparisonResult
 from ..integrity.bundles import claim_hash
@@ -137,13 +137,22 @@ def publish_comparison(
     views = store.claim_views(connection=connection, limit=None)
     views_by_id = {view.revision_id: view for view in views}
     payload = build_finding_payload(store, result, views_by_id, now=now)
+    # Another source can be withdrawn while a model comparison is in flight.
+    # Keep any resulting snapshot historical instead of reopening the queue.
+    withdrawn = [e.source_id for e in payload.evidence
+                 if (source := store.get_source(e.source_id, connection=connection)) and source.status == "withdrawn"]
+    if withdrawn:
+        payload = payload.model_copy(update={"severity": Severity.INFO,
+            "explanation_code": ExplanationCode.REVISION_NOT_CURRENT,
+            "detail": {**payload.detail, "assessment": "historical", "withdrawn_source_ids": ",".join(sorted(set(withdrawn))),
+                       "explanation": "A cited source was withdrawn. This finding is historical."}})
     payload_bytes = canonical_json_bytes(payload)
     snapshot_id = store.insert_finding_snapshot(
         connection,
         payload=payload,
         signature=signer.sign(payload_bytes),
         key_id=signer.key_id,
-        alert=result.alert,
+        alert=result.alert and not withdrawn,
     )
     if force_snapshot:
         connection.execute(
@@ -159,7 +168,7 @@ def publish_comparison(
         label=f"{payload.finding_type.value} ({payload.severity.value})",
         attributes={
             "explanation_code": payload.explanation_code.value,
-            "alert": str(result.alert),
+            "alert": str(result.alert and not withdrawn),
             "snapshot_id": snapshot_id,
         },
         restricted=False,

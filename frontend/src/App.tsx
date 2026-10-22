@@ -120,6 +120,7 @@ export default function App({session,onSessionChange,onLogout}:{session:Session;
   const [detailLoading, setDetailLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [revision, setRevision] = useState(0);
+  useEffect(()=>{const refresh=()=>setRevision(n=>n+1);window.addEventListener("meridian:sources-changed",refresh);return()=>window.removeEventListener("meridian:sources-changed",refresh);},[]);
   const [reviewAction, setReviewAction] = useState<ReviewAction | null>(null);
   const [notice, setNotice] = useState("");
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -224,7 +225,7 @@ export default function App({session,onSessionChange,onLogout}:{session:Session;
     window.addEventListener("focus",refresh);document.addEventListener("visibilitychange",refresh);
     const timer=view.autoRefresh?window.setInterval(refresh,10000):undefined;
     return()=>{controller.abort();window.removeEventListener("focus",refresh);document.removeEventListener("visibilitychange",refresh);if(timer)clearInterval(timer);};
-  },[view.office,isFindings,view.autoRefresh]);
+  },[view.office,isFindings,view.autoRefresh,revision]);
   const selection = selectedFinding(view, data?.findings || [], visible);
   const selectedId = selection.id;
   const selectedRecord = data?.findings.find(
@@ -392,6 +393,7 @@ export default function App({session,onSessionChange,onLogout}:{session:Session;
       !detailError &&
       !error &&
       session?.canReview &&
+      current.finding.detail?.assessment!=="historical" && current.finding.explanation_code!=="revision_not_current" &&
       !current.finding.superseded_by_snapshot_id
     ) {
       navigate({ pane: "detail" }, true);

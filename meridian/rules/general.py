@@ -348,13 +348,15 @@ def retire_policy_assessment(connection, store, record: FindingRecord, *, signer
                        existing_keys=store.finding_keys(connection=connection), force_snapshot=True)
 
 
-def recompare_policy_source(store, source_id, *, service, signer, mode, request_id):
+def recompare_policy_source(store, source_id, *, service, signer, mode, request_id, job_id=None):
     """Explicit recovery after provider failure, without re-uploading immutable data."""
     from ..ingestion.pipeline import IngestionOutcome
     from ..contracts.common import ErrorCode, utc_now
     from ..storage.store import new_id
 
     source = store.get_source(source_id)
+    if source and source.status == "withdrawn":
+        return IngestionOutcome(source_id=source_id, error_code="source_withdrawn", error_detail="This source was withdrawn.")
     if source is None or source.subject != Subject.GENERAL_POLICY.value:
         return IngestionOutcome(error_code=ErrorCode.INVALID_INPUT.value,
                                 error_detail="comparison retry requires an existing general-policy source")
@@ -368,6 +370,10 @@ def recompare_policy_source(store, source_id, *, service, signer, mode, request_
     service.report_progress("publication")
     now = utc_now()
     with store.db.transaction() as connection:
+        source = store.get_source(source_id, connection=connection)
+        job = connection.execute("SELECT error_code FROM jobs WHERE job_id=? AND tenant_id=? AND region=?", (job_id, store.tenant_id, store.region)).fetchone() if job_id else None
+        if source.status == "withdrawn" or (job and job["error_code"] == "source_withdrawn"):
+            return IngestionOutcome(source_id=source_id, error_code="source_withdrawn", error_detail="The source was withdrawn before comparison finished.")
         findings = publish_policy_batch(connection, store, batch, signer=signer, now=now, recheck=True)
         for code, detail in batch.reviews:
             store.insert_claim_review(connection=connection, source_id=source_id,

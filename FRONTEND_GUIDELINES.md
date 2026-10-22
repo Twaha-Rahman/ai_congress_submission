@@ -777,3 +777,20 @@ selected job and loaded cards during refresh.
   remounts it to discard the previous account's loaded evidence and drafts. URL
   selections are fetched again under the new account's permissions. Office options
   come from account access.
+
+
+## Source withdrawal
+
+- Only admins see Withdraw source on active source rows; both proxy and office API
+  enforce admin access. Use the shared Modal and Select, a scope selector, real
+  impact counts/version list and a required reason. Preserve the reason on errors
+  and recheck stale impact without automatically confirming it.
+- Keep the footer reachable on small screens, disable the form while submitting,
+  and use existing light/dark tokens and uniform borders. No decorative edge rails.
+- Default the source library to Active sources; retain Active/Withdrawn/All status
+  filters in shared URLs. A successful action updates rows, job badges and the
+  review queue/sidebar count. Keep historical originals inspectable with the date,
+  reason and actor, and retain version comparison and saved citation links.
+- Withdrawn evidence is excluded from current question/comparison source choices;
+  an explicit earlier knowledge cutoff can include it. Historical findings retain
+  their original review decisions, display Historical and offer no review actions.

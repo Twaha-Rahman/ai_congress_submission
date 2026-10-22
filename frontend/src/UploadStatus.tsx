@@ -47,7 +47,7 @@ export default function UploadStatus({ job, canRetry, retrying, onRetry, onInspe
         </li>;
       })}</ol> : <p className="job-progress-unavailable">{job.status === "queued" ? "Stage timings will appear when processing starts." : "Stage timings were not recorded for this earlier upload."}</p>}
       <p className="selected-upload-description" role="status">{jobDescription(job)}</p>
-      {!!job.review_summary?.total && !!job.review_reason && !isProcessing(job) && job.status!=="failed" && <div className="job-processing-warnings"><strong>Processing warnings</strong><p>{processingWarnings(job)}</p></div>}
+      {jobDisplayState(job)!=="withdrawn" && !!job.review_summary?.total && !!job.review_reason && !isProcessing(job) && job.status!=="failed" && <div className="job-processing-warnings"><strong>Processing warnings</strong><p>{processingWarnings(job)}</p></div>}
       <div className="upload-result-actions">
         {job.source_id && <><button className="text-button" onClick={onFindings}>View findings<ArrowRight size={14} /></button><button className="text-button" onClick={onInspect}>Inspect source</button></>}
       </div>

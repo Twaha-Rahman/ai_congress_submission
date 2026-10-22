@@ -1,7 +1,7 @@
 import { matchesFinding, orderFindings, type FindingSort } from "./presentation";
 import type { Finding } from "./types";
 
-export const unreviewedFindings = (findings: Finding[]) => findings.filter(finding => finding.review_state === "open");
+export const unreviewedFindings = (findings: Finding[]) => findings.filter(finding => finding.review_state === "open" && finding.detail?.assessment!=="historical" && finding.explanation_code!=="revision_not_current");
 
 export function reviewQueue(findings: Finding[], filters: { search:string; type:string; severity:string; forSource:string; sort:FindingSort }) {
   return orderFindings(unreviewedFindings(findings).filter(finding =>

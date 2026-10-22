@@ -104,7 +104,7 @@ def activity_record(store, category, identifier, *, source_readable, job_readabl
         payload = json.loads(row["payload_json"])
         base.update(title=(source.manifest.rationale if source.source_identity.startswith("slack:") else None) or source.source_identity,
                     outcome="withdrawn", description=payload.get("reason", "Source withdrawn"),
-                    details={"version": source.version_label, "reason": payload.get("reason"), "payload_hash": row["payload_hash"], "key_id": row["key_id"]})
+                    details={"version": source.version_label, "reason": payload.get("reason"), "actor": payload.get("actor"), "scope": payload.get("scope"), "payload_hash": row["payload_hash"], "key_id": row["key_id"]})
     elif category == "processing":
         job = store.get_job(identifier)
         if not job_readable(job):

@@ -313,6 +313,27 @@ Compare preserved text and metadata, swap the base/compared versions, search cha
 and inspect either original. Both versions must be accessible and belong to the
 same source. See [the workflow and API guide](docs/activity_versions.md).
 
+### Withdraw a source
+
+An admin can use **Withdraw source** on a Sources row, choose that version or all
+uploaded versions of the same source, review the affected findings/jobs, and enter
+a reason. The server checks admin access and rejects confirmation if the impact
+changed since the preview. Sources defaults to active versions; use **Withdrawn
+sources** or **All statuses** to inspect the retained originals and withdrawal reason.
+
+Withdrawal excludes those versions from current answers and source selectors,
+makes their findings historical, removes them from the review queue/count, and
+updates upload badges to Withdrawn. Signed evidence, saved answers/citations,
+review decisions, version comparisons and audit history remain available.
+Historical questions with an earlier knowledge cutoff retain their earlier context.
+Older replaced versions do not become current again.
+
+Queued/running jobs for the selected versions are stopped. All-version withdrawal
+also stops in-flight uploads of that source identity. A provider request already
+in progress may finish, but its withdrawn evidence cannot be published as active.
+A later, genuinely new version can still be uploaded. Withdrawal does not erase
+files and does not provide a restore action.
+
 ### Connect live Slack channels
 
 Open **Sources → Live Slack** in an authorized workspace to monitor public channels,

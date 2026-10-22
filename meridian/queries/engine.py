@@ -9,7 +9,7 @@ flagged.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime
 
 from ..contracts.common import (
@@ -192,6 +192,12 @@ class QueryEngine:
             # Restricted evidence is excluded before comparison, so neither its values
             # nor its existence affects the answer or citation list.
             views = [view for view in views if not self._is_restricted(view)]
+        # A closure learned after this query's knowledge cutoff must not change
+        # historical comparisons (including their guidance warnings).
+        views = [replace(view, system_to=None, closure_kind=None,
+                         superseding_source_id=None, supersession_effective_from=None)
+                 if view.system_to is not None and moment < view.system_to else view
+                 for view in views]
         snapshot = select_snapshot(
             views, valid_at=request.valid_at, known_at=moment, subject=request.target.subject
         )

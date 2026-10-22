@@ -3,6 +3,7 @@ import { AlertCircle, ArrowLeft, ArrowRight, BookOpen, CalendarDays, CircleHelp,
 import { api, ApiError } from "./api";
 import { EmptyState, ErrorState, Loading, Modal, ShortcutHint, SubmitShortcutHint } from "./components";
 import Select from "./Select";
+import { availableSource } from "./sourceWithdrawal";
 import DateFilters from "./DateFilters";
 import ShareLink from "./ShareLink";
 import Highlight from "./Highlight";
@@ -157,8 +158,8 @@ export default function Questions({ office, view, session, sessionError, navigat
               maxLength={500} required rows={5} placeholder="Ask anything about your policies, procedures or team messages…" aria-describedby="question-help" />
             <p className="question-help" id="question-help">Answers use the selected sources and include citations. Missing or conflicting evidence is called out.</p>
             <div className="question-field"><span>Sources</span><Select label="Question sources" value={draft.sourceId}
-              options={[{ value: "", label: "All accessible sources" }, ...(sources.data?.sources || []).map(source => ({ value: source.source_id, label: `${sourceTitle(source)} · ${source.version_label}` })),
-                ...(draft.sourceId && !sources.data?.sources.some(source => source.source_id === draft.sourceId) ? [{ value: draft.sourceId, label: "Selected source unavailable" }] : [])]}
+              options={[{ value: "", label: "All accessible sources" }, ...(sources.data?.sources || []).filter(source=>availableSource(source,draft.historical?draft.knownAt:undefined)).map(source => ({ value: source.source_id, label: `${sourceTitle(source)} · ${source.version_label}` })),
+                ...(draft.sourceId && !sources.data?.sources.some(source => source.source_id === draft.sourceId&&availableSource(source,draft.historical?draft.knownAt:undefined)) ? [{ value: draft.sourceId, label: "Selected source unavailable" }] : [])]}
               onChange={sourceId => patch({ sourceId })} /></div>
             <p className="question-help">Original PDF passages and saved Slack messages in this office. Source processing permissions still apply.</p>
             <DateFilters draft={draft} onChange={patch} />

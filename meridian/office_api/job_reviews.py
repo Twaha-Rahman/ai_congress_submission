@@ -15,10 +15,16 @@ def source_review_summaries(store, source_ids, *, finding_readable):
             summaries[source_id][record.review_state.value] += 1
     for summary in summaries.values():
         summary["state"] = ("needs_review" if summary["open"] else "acknowledged" if summary["acknowledged"] else "reviewed" if summary["total"] else "none")
+    for source_id, summary in summaries.items():
+        source = store.get_source(source_id)
+        if source and source.status == "withdrawn":
+            summary["state"] = "withdrawn"
     return summaries
 
 
 def job_review_state(job, summary):
+    if job.error_code == "source_withdrawn" or (summary and summary["state"] == "withdrawn"):
+        return "withdrawn"
     if job.status in {"succeeded", "needs_review"} and summary and summary["total"]:
         return summary["state"]
     return job.status

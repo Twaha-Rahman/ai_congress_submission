@@ -1,10 +1,11 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertCircle, ArrowDownToLine, ArrowRight, ArrowUpFromLine, ArrowDownWideNarrow, Check, Clock3, FileText, Files, Keyboard, LockKeyhole, MessageSquare, GitCompareArrows, Search, X } from "lucide-react";
+import { AlertCircle, ArchiveX, ArrowDownToLine, ArrowRight, ArrowUpFromLine, ArrowDownWideNarrow, Check, Clock3, FileText, Files, Keyboard, LockKeyhole, MessageSquare, GitCompareArrows, Search, X } from "lucide-react";
 import { api } from "./api";
 import { EmptyState, ErrorState, Loading, Modal, ShortcutHint, AutoRefreshButton } from "./components";
 import { date, humanize, scopeLabel, sourceTitle } from "./presentation";
 import Select from "./Select";
 import UploadPdf from "./UploadPdf";
+import WithdrawSource from "./WithdrawSource";
 import SlackConnection from "./SlackConnection";
 import ImportSlack from "./ImportSlack";
 import UploadStatus, { JobBadge } from "./UploadStatus";
@@ -24,6 +25,7 @@ export default function Sources({ office, session, view, navigate, shortcutsEnab
   uploadRequest: number; onUploadOpened: () => void;
   onVerify: (sourceId: string) => void;
 }) {
+  const [withdrawing,setWithdrawing]=useState<Source|null>(null);
   const [sources, setSources] = useState<Source[]>([]);
   const [jobs, setJobs] = useState<UploadJob[]>([]);
   const [selectedJob, setSelectedJob] = useState<UploadJob | null>(null);
@@ -65,7 +67,7 @@ export default function Sources({ office, session, view, navigate, shortcutsEnab
       if (mounted.current && !signal?.aborted && sequence === requestSequence.current) {
         setError(e instanceof Error ? e.message : "Sources could not be loaded."); setLoading(false);
       }
-    } finally { busy.current = false; if (mounted.current && sequence === requestSequence.current) setRefreshing(false); }
+    } finally { if (sequence === requestSequence.current) { busy.current = false; if (mounted.current) setRefreshing(false); } }
   }, [office]);
   useEffect(() => {
     mounted.current = true;
@@ -101,7 +103,7 @@ export default function Sources({ office, session, view, navigate, shortcutsEnab
     return()=>{window.removeEventListener("focus",refreshOnReturn);document.removeEventListener("visibilitychange",refreshOnReturn);};
   },[load]);
 
-  const visible = useMemo(() => visibleSources(sources, view.sourceSearch, view.sourceType, view.sourceSort), [sources, view.sourceSearch, view.sourceType, view.sourceSort]);
+  const visible = useMemo(() => visibleSources(sources, view.sourceSearch, view.sourceType, view.sourceSort, view.sourceStatus), [sources, view.sourceSearch, view.sourceType, view.sourceSort, view.sourceStatus]);
   useKeyboardShortcuts(shortcutsEnabled, {
     search: () => { search.current?.focus(); search.current?.select(); },
     sort: () => { sort.current?.focus(); sort.current?.click(); },
@@ -109,6 +111,21 @@ export default function Sources({ office, session, view, navigate, shortcutsEnab
   });
   function compareVersions(sourceId: string) {
     navigate({versionSource: sourceId, versionBase: "", versionNext: "", versionFilter: "changes", versionSearch: "", document: ""}, false);
+  }
+  function withdrawn(ids: string[]) {
+    // Discard a refresh started before confirmation so it cannot restore stale rows.
+    requestSequence.current += 1;
+    busy.current = false;
+    setWithdrawing(null);
+    setSources(current => current.map(source => ids.includes(source.source_id) ? {...source, status: "withdrawn"} : source));
+    const updateJob = (job: UploadJob): UploadJob => job.source_id && ids.includes(job.source_id)
+      ? {...job, review_summary: {...(job.review_summary || {total: 0, open: 0, acknowledged: 0, resolved: 0, dismissed: 0}), state: "withdrawn"}}
+      : job;
+    setJobs(current => current.map(updateJob));
+    setSelectedJob(current => current ? updateJob(current) : null);
+    setNotice(`${ids.length} ${ids.length === 1 ? "source version withdrawn" : "source versions withdrawn"}.`);
+    window.dispatchEvent(new Event("meridian:sources-changed"));
+    void load();
   }
   function queued(job: UploadJob) {
     if (!mounted.current) return;
@@ -146,12 +163,13 @@ export default function Sources({ office, session, view, navigate, shortcutsEnab
       {error && <div className="notice warning" role="alert"><AlertCircle size={17} /><span>{error} Previously loaded data is shown.</span><button className="text-button" onClick={() => void load()}>Try again</button></div>}
       <div className="sources-layout">
         <section className="source-library" aria-labelledby="source-library-title">
-          <div className="source-section-heading"><h2 id="source-library-title" tabIndex={-1}>Office library <span>{sources.length}</span></h2><span>{humanize(office)} office</span></div>
+          <div className="source-section-heading"><h2 id="source-library-title" tabIndex={-1}>Office library <span>{visible.length}</span></h2><span>{humanize(office)} office</span></div>
           <div className="source-tools"><label className="search-input"><Search size={16} /><span className="sr-only">Search sources</span>
             <input ref={search} placeholder="Search policies, categories or versions…" aria-label="Search sources" value={view.sourceSearch} aria-keyshortcuts={shortcutsEnabled ? "/ Escape" : "Escape"}
               onChange={(e) => navigate({ sourceSearch: e.target.value })} onKeyDown={(e) => { if (e.key === "Escape" && !e.nativeEvent.isComposing && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) { e.preventDefault(); e.stopPropagation(); document.getElementById("source-library-title")?.focus(); } }} />
             {shortcutsEnabled && <span className="search-shortcuts" aria-hidden="true"><ShortcutHint className="search-idle">/</ShortcutHint><ShortcutHint className="search-editing">Esc</ShortcutHint></span>}
             <button className="icon-button" aria-label="Clear source search" tabIndex={view.sourceSearch ? 0 : -1} style={{ visibility: view.sourceSearch ? "visible" : "hidden" }} onClick={() => { navigate({ sourceSearch: "" }); search.current?.focus(); }}><X size={14} /></button></label>
+            <Select label="Source status" value={view.sourceStatus} options={[{value:"active",label:"Active sources"},{value:"withdrawn",label:"Withdrawn sources"},{value:"all",label:"All statuses"}]} onChange={value=>navigate({sourceStatus:value as View["sourceStatus"]})}/>
             <Select label="Source type" value={view.sourceType} options={[{ value: "all", label: "All sources" }, { value: "pdf", label: "PDF documents" }, { value: "slack", label: "Slack messages" }]} onChange={(value) => navigate({ sourceType: value as View["sourceType"] })} />
             <Select label="Sort sources" compact icon={<ArrowDownWideNarrow size={15} />} value={view.sourceSort} triggerRef={sort} shortcut={shortcutsEnabled ? "S" : undefined}
               options={[{ value: "newest", label: "Newest first" }, { value: "name", label: "Policy name" }]} onChange={(value) => navigate({ sourceSort: value as View["sourceSort"] })} />
@@ -163,10 +181,10 @@ export default function Sources({ office, session, view, navigate, shortcutsEnab
                 <div className="source-row-meta">{source.status === "withdrawn" && <span>Withdrawn</span>}<span>{humanize(source.authority)}</span>{source.policy_family && <span>{humanize(source.policy_family)}</span>}{source.sensitivity === "restricted" && <span className="restricted-source"><LockKeyhole size={12} />Restricted</span>}</div>
                 <p className="source-row-date">Effective {date(source.effective_from)} <span>· Added {date(source.ingested_at)}</span></p>
               </div>
-              <div className="source-row-actions"><button className="icon-button" aria-label={`Compare versions of ${source.source_identity}`} title="Compare source versions" onClick={()=>compareVersions(source.source_id)}><GitCompareArrows size={17}/></button><button className="button secondary" aria-label={`Inspect ${source.source_identity} ${source.version_label}`} onClick={() => navigate({ document: source.source_id, page: 1, zoom: 100 }, false)}>Inspect</button><button className="icon-button" aria-label={`Findings for ${source.source_identity} ${source.version_label}`} title="View findings for this source" onClick={() => onFindings(source.source_id)}><ArrowRight size={17} /></button></div>
+              <div className="source-row-actions">{session?.role==="admin"&&source.status!=="withdrawn"&&<button className="icon-button" aria-label={`Withdraw ${source.source_identity} ${source.version_label}`} title="Withdraw source" onClick={()=>setWithdrawing(source)}><ArchiveX size={17}/></button>}<button className="icon-button" aria-label={`Compare versions of ${source.source_identity}`} title="Compare source versions" onClick={()=>compareVersions(source.source_id)}><GitCompareArrows size={17}/></button><button className="button secondary" aria-label={`Inspect ${source.source_identity} ${source.version_label}`} onClick={() => navigate({ document: source.source_id, page: 1, zoom: 100 }, false)}>Inspect</button><button className="icon-button" aria-label={`Findings for ${source.source_identity} ${source.version_label}`} title="View findings for this source" onClick={() => onFindings(source.source_id)}><ArrowRight size={17} /></button></div>
             </li>)}
           </ul> : <EmptyState icon={<Files size={27} />} title={sources.length ? "No sources match" : "No sources yet"}
-            action={sources.length ? <button className="button secondary" onClick={() => navigate({ sourceSearch: "", sourceType: "all" })}>Clear filters</button> : canUpload ? <button className="button secondary" onClick={() => setOpenUpload(true)}><ArrowUpFromLine size={16} />Upload a PDF</button> : undefined}>
+            action={sources.length ? <button className="button secondary" onClick={() => navigate({ sourceSearch: "", sourceType: "all", sourceStatus:"all" })}>Clear filters</button> : canUpload ? <button className="button secondary" onClick={() => setOpenUpload(true)}><ArrowUpFromLine size={16} />Upload a PDF</button> : undefined}>
             {sources.length ? "Try another name, category or version." : "Add a policy PDF to begin checking guidance against its evidence."}</EmptyState>}
           <p className="source-library-note"><LockKeyhole size={13} />Only sources your role can access are shown.</p>
         </section>
@@ -182,12 +200,13 @@ export default function Sources({ office, session, view, navigate, shortcutsEnab
     </>}
     {view.uploadJob && !openUpload && !savedSlackOpen && !slackOpen && !view.versionSource && !view.document && <Modal title="Upload status" className="upload-status-dialog" onClose={() => navigate({ uploadJob: "" })}>
       {selectedJob && jobError && <div className="notice warning" role="alert"><AlertCircle size={16} /><span>{jobError}</span></div>}
-      {selectedJob ? <UploadStatus job={selectedJob} retrying={retrying} canRetry={!!(selectedJob.source_id && ["needs_review", "failed"].includes(selectedJob.status) && canUpload && !active && sources.find((s) => s.source_id === selectedJob.source_id)?.subject === "general_policy")}
+      {selectedJob ? <UploadStatus job={selectedJob} retrying={retrying} canRetry={!!(selectedJob.source_id && ["needs_review", "failed"].includes(selectedJob.status) && canUpload && !active && sources.some(s=>s.source_id===selectedJob.source_id&&s.subject==="general_policy"&&s.status!=="withdrawn"))}
         onRetry={() => void retryComparison(selectedJob)} onFindings={() => onFindings(selectedJob.source_id!)}
         onInspect={() => navigate({ document: selectedJob.source_id!, page: 1, zoom: 100 })}
         onImportSlack={canUpload ? () => setSavedSlackOpen(true) : undefined}
         onUpload={canUpload && selectedJob.kind !== "slack" ? () => setOpenUpload(true) : undefined} /> : <div className="dialog-body">{jobError ? <ErrorState error={jobError} retry={() => setReadRevision((n) => n + 1)} /> : <Loading label="Opening processing job…" />}</div>}
     </Modal>}
+    {withdrawing&&<WithdrawSource office={office} source={withdrawing} onClose={()=>setWithdrawing(null)} onWithdrawn={withdrawn}/>}
     {slackOpen && <SlackConnection office={office} onClose={() => setSlackOpen(false)} onJob={id => { setSlackOpen(false); navigate({ uploadJob: id }); void load(); }} />}
     <ImportSlack key={office} open={savedSlackOpen} office={office} config={session?.uploads?.[office]} onClose={() => setSavedSlackOpen(false)} onQueued={queued} />
     <UploadPdf open={openUpload} office={office} sources={sources} config={session?.uploads?.[office]} shortcutsEnabled={shortcutsEnabled} onClose={() => setOpenUpload(false)} onQueued={queued} />
@@ -215,6 +234,7 @@ export function DocumentDialog({ office, sourceId, view, navigate, onClose, onVe
     <div className="dialog-body">
       {error ? <div className="notice warning" role="alert"><AlertCircle size={17} /><span>{error}</span></div> : !detail ? <Loading label="Opening source…" /> : <>
         <div className="library-source-title"><h3>{sourceTitle(detail.source)}</h3><span className="source-version">{detail.source.version_label}</span></div>
+        {detail.source.status==="withdrawn"&&<div className="source-withdrawal-note" role="status"><strong>Withdrawn{detail.source.withdrawal?` · ${date(detail.source.withdrawal.withdrawn_at,true)}`:""}</strong>{detail.source.withdrawal&&<p>{detail.source.withdrawal.reason}</p>}{detail.source.withdrawal?.actor&&<span>By {detail.source.withdrawal.actor.replace(/^user:/,"")}</span>}</div>}
         <p className="library-source-context">{humanize(detail.source.authority)} · Published {date(detail.source.publication_time)} · Effective {date(detail.source.effective_from)}</p>
         <Suspense fallback={<Loading label="Loading document viewer…" />}><SourcePreview office={office} source={detail.source} evidence={evidence} pageNumber={view.page} zoom={view.zoom} onPageChange={(page) => navigate({ page })} onZoomChange={(zoom) => navigate({ zoom })} /></Suspense>
         <details className="library-source-metadata"><summary>Source details</summary><dl><dt>Policy category</dt><dd>{detail.source.policy_family ? humanize(detail.source.policy_family) : "Not specified"}</dd><dt>Applies to</dt><dd>{scopeLabel(detail.source.manifest.scope)}</dd><dt>Access</dt><dd>{detail.source.sensitivity === "restricted" ? "Restricted readers" : "Office readers"}</dd><dt>Hosted processing</dt><dd>{detail.source.hosted_model ? "Permitted" : "Not permitted"}</dd><dt>Office export</dt><dd>{detail.source.office_export ? "Permitted" : "Not permitted"}</dd><dt>Added</dt><dd>{date(detail.source.ingested_at, true)}</dd></dl></details>

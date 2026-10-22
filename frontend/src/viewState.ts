@@ -37,6 +37,7 @@ export interface View {
   sourceSearch: string;
   sourceType: "all" | "pdf" | "slack";
   sourceSort: "newest" | "name";
+  sourceStatus: "active" | "withdrawn" | "all";
   document: string;
   uploadJob: string;
   forSource: string;
@@ -114,6 +115,7 @@ export function readView(search: string): View {
     sourceSearch: p.get("sq") || "",
     sourceType: allowed("sourceType", ["pdf", "slack"]) as View["sourceType"],
     sourceSort: allowed("sourceSort", ["newest", "name"], "newest") as View["sourceSort"],
+    sourceStatus: allowed("sourceStatus", ["active", "withdrawn", "all"], "active") as View["sourceStatus"],
     document: p.get("document") || "",
     uploadJob: p.get("job") || "",
     forSource: p.get("forSource") || "",
@@ -173,6 +175,7 @@ export function viewSearch(view: View) {
   if (view.sourceSearch) p.set("sq", view.sourceSearch);
   if (view.sourceType !== "all") p.set("sourceType", view.sourceType);
   if (view.sourceSort !== "newest") p.set("sourceSort", view.sourceSort);
+  if (view.sourceStatus !== "active") p.set("sourceStatus", view.sourceStatus);
   if (view.document) {
     p.set("document", view.document);
     p.set("page", String(view.page));

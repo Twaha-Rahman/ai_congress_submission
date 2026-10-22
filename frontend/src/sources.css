@@ -25,6 +25,36 @@
 .source-row-date { margin-top: 9px; color: var(--muted); font-size: 11px; }
 .source-row-date > span { white-space: nowrap; }
 .source-row-actions { display: flex; gap: 4px; align-items: center; margin-top: 1px; }
+.source-row-actions { flex-wrap: wrap; justify-content: flex-end; }
+.job-badge.job-withdrawn { color: var(--muted); background: var(--surface); border-color: var(--line); }
+.source-withdrawal-note { border: 1px solid var(--line); background: var(--surface); padding: 12px 14px; border-radius: 8px; margin: 16px 0; font-size: 12px; overflow-wrap: anywhere; }
+.source-withdrawal-note strong { font-size: 12px; font-weight: 500; }
+.source-withdrawal-note p { margin: 6px 0; white-space: pre-wrap; }
+.source-withdrawal-note > span { color: var(--muted); font-size: 11px; }
+.withdraw-source-dialog { width: min(560px,calc(100vw - 32px)); }
+.withdraw-source-dialog[open], .withdraw-source-dialog form { display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+.withdraw-source-dialog .dialog-header, .withdraw-source-dialog .dialog-footer { flex-shrink: 0; }
+.withdraw-source-dialog .dialog-footer { flex-wrap: wrap; }
+.withdraw-source-body { overflow: auto; min-height: 0; }
+.withdraw-source-title { display: flex; gap: 10px; align-items: baseline; margin-bottom: 22px; }
+.withdraw-source-title h3 { font: 500 15px/1.5 var(--sans); overflow-wrap: anywhere; }
+.withdraw-fields { border: 0; padding: 0; margin: 0; min-width: 0; }
+.withdraw-field { display: flex; flex-direction: column; gap: 8px; }
+.withdraw-field > label { font-size: 12px; font-weight: 500; }
+.withdraw-field textarea { width: 100%; min-height: 88px; background: var(--field-surface); color: var(--ink); padding: 10px 12px; border: 1px solid var(--control-line); border-radius: 8px; font: inherit; font-size: 12px; resize: vertical; }
+.withdraw-impact { min-height: 170px; margin: 18px 0; }
+.withdraw-impact .loading-state { min-height: 170px; padding: 24px; }
+.withdraw-impact dl { margin: 0; display: flex; flex-direction: column; gap: 8px; font-size: 12px; }
+.withdraw-impact dl > div { display: flex; justify-content: space-between; gap: 16px; }
+.withdraw-impact dt { color: var(--muted); }
+.withdraw-impact dd { margin: 0; font-weight: 500; }
+.withdraw-impact ul { list-style: none; max-height: 120px; overflow: auto; padding: 10px 12px; margin: 14px 0 0; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.withdraw-impact li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 5px 12px; padding: 4px 0; font-size: 11px; }
+.withdraw-impact li strong { font-weight: 500; overflow-wrap: anywhere; }
+.withdraw-impact li span, .withdraw-impact > p, .withdraw-consequence { color: var(--muted); font-size: 11px; }
+.withdraw-consequence { margin: 14px 0; }
+.withdraw-error { display: flex; gap: 8px; font-size: 12px; color: var(--warning-ink); min-height: 20px; }
+.withdraw-error svg { flex-shrink: 0; margin-top: 2px; }
 .source-row-actions .button { min-height: 34px; padding: 7px 10px; font-size: 12px; }
 .source-library-note { color: var(--muted); font-size: 11px; display: flex; align-items: center; gap: 6px; margin: 18px 0; }
 .upload-activity { padding-left: 24px; border-left: 1px solid var(--line); }

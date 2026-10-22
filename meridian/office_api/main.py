@@ -66,7 +66,8 @@ from ..queries.engine import QueryEngine
 from ..queries.evidence import build_bundle, verify_source_copy
 from ..queries.lineage import lineage_for_node
 from ..rules.intervals import scope_matches_target
-from ..security.auth import Permission, PrincipalRegistry
+from ..security.auth import Permission, PrincipalRegistry, Role, AuthorizationError
+from ..ingestion.withdrawal import preview_withdrawal, withdraw_source, withdrawal_history, is_historical_finding
 from ..storage.db import SCHEMA_VERSION, Database
 from ..storage.store import JobRow, OfficeStore, SourceRow, new_id
 from ..temporal.snapshots import select_snapshot
@@ -440,15 +441,46 @@ def create_app(settings: OfficeSettings | None = None) -> FastAPI:
         return {"job": {**_job_dict(job), "review_summary": summary.get(job.source_id)}}
 
     # ----------------------------------------------------------------- sources
+    def workspace_source(source, *, include_manifest=True, history=None):
+        history = withdrawal_history(store) if history is None else history
+        return {**_source_dict(source, include_manifest=include_manifest),
+                "withdrawal": history.get(source.source_id)}
+
     @app.get("/v1/sources")
     def list_sources(principal=Depends(authenticate)) -> dict[str, Any]:
         _require_office_scope(principal, Permission.READ_LOCAL)
+        history = withdrawal_history(store)
         visible = [
-            _source_dict(source, include_manifest=False)
+            workspace_source(source, include_manifest=False, history=history)
             for source in store.list_sources()
             if _source_readable(principal, source)
         ]
         return {"sources": visible, "count": len(visible)}
+
+    def require_source_admin(principal):
+        _require_office_scope(principal, Permission.READ_LOCAL)
+        if principal.role != Role.ADMIN:
+            raise AuthorizationError("Only an administrator can withdraw sources.")
+
+    @app.get("/v1/sources/{source_id}/withdrawal")
+    def withdrawal_preview(source_id: str, scope: str = "version", principal=Depends(authenticate)):
+        require_source_admin(principal)
+        return preview_withdrawal(store, source_id, scope)
+
+    @app.post("/v1/sources/{source_id}/withdrawal")
+    async def confirm_withdrawal(source_id: str, request: Request, principal=Depends(authenticate)):
+        require_source_admin(principal)
+        raw = await request.body()
+        try:
+            if len(raw) > 16384:
+                raise ValueError()
+            body = json.loads(raw)
+            if not isinstance(body, dict) or set(body) != {"scope", "reason", "expected_snapshot"}:
+                raise ValueError()
+        except (ValueError, TypeError):
+            raise ApiError(ErrorCode.INVALID_INPUT, "Supply the withdrawal scope, reason and reviewed impact.")
+        return withdraw_source(store, source_id, scope=body["scope"], reason=body["reason"],
+            expected_snapshot=body["expected_snapshot"], actor=principal.principal_id, signer=runtime.signer)
 
     @app.get("/v1/sources/{source_id}")
     def get_source(source_id: str, principal=Depends(authenticate)) -> dict[str, Any]:
@@ -457,7 +489,7 @@ def create_app(settings: OfficeSettings | None = None) -> FastAPI:
         if not _source_readable(principal, source):
             raise ApiError(ErrorCode.NOT_FOUND, "no such source")
         return {
-            "source": {**_source_dict(source), "slack": source_slack_link(store, source_id)},
+            "source": {**workspace_source(source), "slack": source_slack_link(store, source_id)},
             "clauses": [{"clause_id": clause.clause_id, "page": clause.page,
                          "section": clause.section}
                         for clause in store.clauses_for_source(source_id)],
@@ -478,7 +510,8 @@ def create_app(settings: OfficeSettings | None = None) -> FastAPI:
         source = store.get_source(source_id)
         if not _source_readable(principal, source):
             raise ApiError(ErrorCode.NOT_FOUND, "no such source")
-        return {"sources": [_source_dict(item, include_manifest=False) for item in store.source_versions(source.source_identity) if _source_readable(principal, item)]}
+        history = withdrawal_history(store)
+        return {"sources": [workspace_source(item, include_manifest=False, history=history) for item in store.source_versions(source.source_identity) if _source_readable(principal, item)]}
 
     @app.get("/v1/sources/{source_id}/diff")
     def source_diff(source_id: str, other: str = Query(min_length=1), principal=Depends(authenticate)):
@@ -497,6 +530,8 @@ def create_app(settings: OfficeSettings | None = None) -> FastAPI:
         source = store.get_source(source_id)
         if not _source_readable(principal, source):
             raise ApiError(ErrorCode.NOT_FOUND, "no such source")
+        if source.status == "withdrawn":
+            raise ApiError(ErrorCode.CONFLICT, "This source was withdrawn and cannot be compared again.")
         if source.subject != Subject.GENERAL_POLICY.value:
             raise ApiError(ErrorCode.INVALID_INPUT, "comparison retry requires a general-policy source")
         job = store.create_job(kind="policy_comparison", mode=_resolve_mode(runtime.settings, mode),
@@ -593,6 +628,8 @@ def create_app(settings: OfficeSettings | None = None) -> FastAPI:
             if not _finding_readable(principal, record):
                 continue
             payload = record.payload
+            if review_state == "open" and is_historical_finding(payload):
+                continue
             findings.append(
                 {
                     "finding_id": payload.finding_id,
@@ -662,6 +699,8 @@ def create_app(settings: OfficeSettings | None = None) -> FastAPI:
         if record is None or not _finding_readable(principal, record):
             raise ApiError(ErrorCode.NOT_FOUND, "no such finding")
         body = await request.json()
+        if is_historical_finding(record.payload):
+            raise ApiError(ErrorCode.CONFLICT, "This finding is historical and no longer needs review.")
         if not isinstance(body, dict):
             raise ApiError(ErrorCode.INVALID_INPUT, "body must be a JSON object")
         expected_snapshot = body.get("expected_snapshot_id")

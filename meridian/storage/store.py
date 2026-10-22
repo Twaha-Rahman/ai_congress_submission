@@ -505,7 +505,7 @@ class OfficeStore:
         params.append(job_id)
         with self.db.transaction() as connection:
             connection.execute(
-                f"UPDATE jobs SET {', '.join(sets)} WHERE job_id = ? AND tenant_id = ? AND region = ?",
+                f"UPDATE jobs SET {', '.join(sets)} WHERE job_id = ? AND tenant_id = ? AND region = ? AND COALESCE(error_code,'') != 'source_withdrawn'",
                 (*params, self.tenant_id, self.region),
             )
 
@@ -832,9 +832,11 @@ class OfficeStore:
         sql = (
             "SELECT * FROM claim_reviews WHERE tenant_id = ? AND region = ? "
             "AND reason_code = 'pending_replacement' AND created_at <= ? "
-            "AND (resolved = 0 OR (resolved_at IS NOT NULL AND resolved_at > ?))"
+            "AND (resolved = 0 OR (resolved_at IS NOT NULL AND resolved_at > ?)) "
+            "AND NOT EXISTS (SELECT 1 FROM source_withdrawals w WHERE w.source_id=claim_reviews.source_id "
+            "AND w.tenant_id=claim_reviews.tenant_id AND w.region=claim_reviews.region AND w.withdrawn_at<=?)"
         )
-        params: list[Any] = [self.tenant_id, self.region, moment, moment]
+        params: list[Any] = [self.tenant_id, self.region, moment, moment, moment]
         if subject:
             sql += " AND subject = ?"
             params.append(subject)

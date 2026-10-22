@@ -106,7 +106,7 @@ export function createApiHandler({env=process.env,fetchImpl=fetch,authStore,reso
     const user=context.user,role=user.role,access=capabilities(user);
     if(req.method==="GET"&&url.pathname==="/api/session")return json(res,200,sessionData(user,env,!!resolveSession));
     const match =
-      /^\/api\/(dhaka|frankfurt|gateway)\/(findings(?:\/[\w:.-]+(?:\/(?:reviews|lineage))?)?|sources(?:\/[\w:.-]+(?:\/(?:content|comparisons|lineage|versions|diff))?)?|answers(?:\/[\w:.-]+(?:\/(?:lineage|bundle))?)?|queries(?:\/gw_\d{8}T\d{12})?|verifications\/(?:source|bundle)|claims(?:\/reviews)?|jobs(?:\/[\w.-]+)?|ingestions\/(?:pdf|slack)|integrations\/slack|activity(?:\/[\w:.-]+)?)$/.exec(
+      /^\/api\/(dhaka|frankfurt|gateway)\/(findings(?:\/[\w:.-]+(?:\/(?:reviews|lineage))?)?|sources(?:\/[\w:.-]+(?:\/(?:content|comparisons|lineage|versions|diff|withdrawal))?)?|answers(?:\/[\w:.-]+(?:\/(?:lineage|bundle))?)?|queries(?:\/gw_\d{8}T\d{12})?|verifications\/(?:source|bundle)|claims(?:\/reviews)?|jobs(?:\/[\w.-]+)?|ingestions\/(?:pdf|slack)|integrations\/slack|activity(?:\/[\w:.-]+)?)$/.exec(
         url.pathname.replace(/%3a/gi, ":"),
       );
     const path = match?.[2];
@@ -118,13 +118,14 @@ export function createApiHandler({env=process.env,fetchImpl=fetch,authStore,reso
     const isSlack = path === "integrations/slack";
     const isQuery = path === "queries";
     const isComparison = path && /^sources\/[\w:.-]+\/comparisons$/.test(path);
+    const isWithdrawal = path && /^sources\/[\w:.-]+\/withdrawal$/.test(path);
     const isVerification = path?.startsWith("verifications/");
     const isSourceVerification = path === "verifications/source";
     if (
       !match || (!isGateway && path?.startsWith("queries/")) || (isGateway && path !== "queries" && !/^queries\/gw_\d{8}T\d{12}$/.test(path)) ||
       !(
         (req.method === "GET" && !isReview && !isUpload && !isSavedSlack && !isComparison && !isVerification && !isQuery) ||
-        (req.method === "POST" && (isReview || isUpload || isComparison || isVerification || isQuery || isSlack || isSavedSlack))
+        (req.method === "POST" && (isReview || isUpload || isComparison || isVerification || isQuery || isSlack || isSavedSlack || isWithdrawal))
       )
     ) {
       return json(res, 404, {
@@ -136,6 +137,8 @@ export function createApiHandler({env=process.env,fetchImpl=fetch,authStore,reso
     }
     // Federation can import signed claims at another office. Require a reviewer
     // account with access to both offices before accepting that operation.
+    if (isWithdrawal && !access.manage)
+      return json(res,403,{error:{code:"forbidden",message:"Only an administrator can withdraw sources."}});
     if (isActivity && !access.audit)
       return json(res, 403, { error: { code: "forbidden", message: "Activity requires audit access." } });
     if (isSlack && !access.upload)

@@ -27,13 +27,14 @@ export const jobLabels: Record<UploadJob["status"], string> = {
   needs_review: "Needs review", failed: "Failed",
 };
 
-export function jobDisplayState(job: UploadJob): UploadJob["status"] | "acknowledged" | "reviewed" {
+export function jobDisplayState(job: UploadJob): UploadJob["status"] | "acknowledged" | "reviewed" | "withdrawn" {
   const review=job.review_summary;
+  if(job.error_code==="source_withdrawn"||review?.state==="withdrawn")return "withdrawn";
   return ["succeeded","needs_review"].includes(job.status)&&review?.total&&review.state!=="none" ? review.state : job.status;
 }
 export function jobDisplayLabel(job: UploadJob) {
   const state=jobDisplayState(job);
-  return state==="reviewed"?"Reviewed":state==="acknowledged"?"Acknowledged":jobLabels[state];
+  return state==="withdrawn"?"Withdrawn":state==="reviewed"?"Reviewed":state==="acknowledged"?"Acknowledged":jobLabels[state];
 }
 export function jobReviewDescription(job: UploadJob) {
   const review=job.review_summary;
@@ -120,9 +121,9 @@ export function buildPolicyManifest(draft: PolicyDraft, replaced?: { manifest: P
   return manifest;
 }
 
-export function visibleSources(sources: Source[], query: string, type: string, sort: string) {
+export function visibleSources(sources: Source[], query: string, type: string, sort: string, status="all") {
   const search = query.trim().toLocaleLowerCase();
-  return sources.filter((s) => (type === "all" || s.source_type === type) &&
+  return sources.filter((s) => (status==="all"||(status==="withdrawn")===(s.status==="withdrawn")) && (type === "all" || s.source_type === type) &&
     [s.source_identity, s.version_label, s.policy_family || "", s.authority].join(" ").toLocaleLowerCase().includes(search))
     .sort((a, b) => (sort === "name" ? a.source_identity.localeCompare(b.source_identity) : Date.parse(b.ingested_at) - Date.parse(a.ingested_at)) || a.source_id.localeCompare(b.source_id));
 }
@@ -143,6 +144,7 @@ export function processingWarnings(job: UploadJob) {
   return (job.review_reason?.split(";").map(s=>s.trim()).filter(Boolean)||[]).map(s=>reasonLabels[s]||s.replaceAll("_"," ")).join(" ");
 }
 export function jobDescription(job: UploadJob) {
+  if(jobDisplayState(job)==="withdrawn")return "This source was withdrawn. Its documents and processing history remain available.";
   if (job.status === "queued") return "Waiting for this office to begin processing.";
   if (job.status === "running") {
     const descriptions: Record<string, string> = {

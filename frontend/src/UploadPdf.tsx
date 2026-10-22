@@ -127,7 +127,7 @@ export default function UploadPdf({ open, office, sources, config, shortcutsEnab
             <div className="upload-field span-two"><span className="upload-label">Version relationship</span>
               <Select label="Version relationship" value={replaceId} options={[
                 { value: "", label: "Independent document — no replacement" },
-                ...sources.filter((s) => s.source_type === "pdf" && s.subject === "general_policy").map((s) => ({ value: s.source_id, label: `Replaces ${s.source_identity} · ${s.version_label}` })),
+                ...sources.filter((s) => s.source_type === "pdf" && s.subject === "general_policy" && s.status!=="withdrawn").map((s) => ({ value: s.source_id, label: `Replaces ${s.source_identity} · ${s.version_label}` })),
               ]} onChange={(value) => {
                 if (!replaceId && value) savedNewDraft.current = draft;
                 if (replaceId && !value && savedNewDraft.current) setDraft(savedNewDraft.current);

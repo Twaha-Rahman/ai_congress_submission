@@ -64,6 +64,7 @@ export interface Source {
   display_name?: string | null;
   slack?: { team_id: string; channel_id: string; message_ts: string; url: string } | null;
   status?: string;
+  withdrawal?: { withdrawn_at: string; reason: string; actor?: string; scope?: string } | null;
   source_id: string;
   source_identity: string;
   version_label: string;
@@ -132,7 +133,7 @@ export interface Session {
 }
 
 export interface UploadJob {
-  review_summary?: { total: number; open: number; acknowledged: number; resolved: number; dismissed: number; state: "none" | "needs_review" | "acknowledged" | "reviewed" } | null;
+  review_summary?: { total: number; open: number; acknowledged: number; resolved: number; dismissed: number; state: "none" | "needs_review" | "acknowledged" | "reviewed" | "withdrawn" } | null;
   display_name?: string | null;
   job_id: string;
   kind: "pdf" | "slack" | "policy_comparison";

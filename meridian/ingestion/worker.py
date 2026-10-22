@@ -172,6 +172,9 @@ class OfficeWorker:
             progress.finish(final_job.status if final_job else "failed")
 
     def _process_job(self, job: JobRow, progress: JobProgress) -> IngestionOutcome | None:
+        current = self.store.get_job(job.job_id)
+        if current and current.error_code == "source_withdrawn":
+            return IngestionOutcome(error_code="source_withdrawn", error_detail="The source was withdrawn.")
         recorder = EgressRecorder(region=self.settings.region, tenant_id=self.settings.tenant_id)
         service = ModelStageService(
             self.settings,
@@ -186,7 +189,7 @@ class OfficeWorker:
 
             try:
                 outcome = recompare_policy_source(self.store, job.request["source_id"],
-                    service=service, signer=self.signer, mode=Mode(job.mode), request_id=job.job_id)
+                    service=service, signer=self.signer, mode=Mode(job.mode), request_id=job.job_id, job_id=job.job_id)
             except Exception as exc:  # keep the durable worker alive
                 outcome = IngestionOutcome(error_code=ErrorCode.INTERNAL_ERROR.value,
                                            error_detail=f"{type(exc).__name__}: {exc}"[:400])
@@ -231,6 +234,7 @@ class OfficeWorker:
                 now=utc_now(),
                 request_id=request_id,
                 source_dir=self.settings.source_dir,
+                job_id=job.job_id,
             )
         except Exception as exc:  # noqa: BLE001 - job must not crash the worker
             status = self._failure_status(job, ErrorCode.INTERNAL_ERROR.value)

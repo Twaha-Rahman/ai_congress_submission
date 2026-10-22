@@ -92,6 +92,7 @@ export default function FindingDetail({
   sourceZoom,
   onSourceChange,
 }: Props) {
+  const historicalFinding=finding.detail?.assessment==="historical"||finding.explanation_code==="revision_not_current";
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">(
     "idle",
   );
@@ -184,7 +185,7 @@ export default function FindingDetail({
         </h2>
         <div className="badge-row">
           <SeverityBadge severity={finding.severity} />
-          <ReviewBadge state={finding.review_state} />
+          {historicalFinding&&<span className="badge">Historical</span>}{(!historicalFinding||finding.review_state!=="open")&&<ReviewBadge state={finding.review_state} />}
         </div>
       </div>
       <p className="finding-explanation">{explanation(finding)}</p>
@@ -377,13 +378,13 @@ export default function FindingDetail({
         <div>
           <span className="eyebrow">Next step</span>
           <h3>
-            {finding.review_state === "open"
+            {historicalFinding ? "Historical assessment" : finding.review_state === "open"
               ? "Record your assessment"
               : "Update the review decision"}
           </h3>
-          <p>A review records your decision; it does not edit the sources.</p>
+          {!historicalFinding&&<p>A review records your decision; it does not edit the sources.</p>}
         </div>
-        {session?.canReview ? (
+        {historicalFinding ? <span className="read-only">Historical finding · no review needed</span> : session?.canReview ? (
           <div className="review-actions">
             <button
               className="button secondary"

@@ -23,7 +23,7 @@ from pydantic import (
 
 SCHEMA_VERSION = "1"
 PARSER_VERSION = "pymupdf-clause-v2"
-PROMPT_VERSION = "extract-v1"
+PROMPT_VERSION = "extract-v4"
 VALIDATOR_VERSION = "validate-v1"
 CANONICAL_ENCODING_VERSION = "canon-1"
 MERKLE_CONVENTION = "rfc9162-sha256"

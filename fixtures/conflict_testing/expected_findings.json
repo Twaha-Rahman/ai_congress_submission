@@ -1,0 +1,182 @@
+{
+  "description": "Expected outcomes for the two Northwind conflict-test PDFs. Conflict matches are model-assisted and require human review; decoys must not become conflict findings.",
+  "upload_order": [
+    "northwind_employee_handbook_2026",
+    "northwind_security_procurement_procedure_2026"
+  ],
+  "scope_note": "Upload both documents with the same applicability (All Northwind Trading Bangladesh employees) and the same effective date (1 January 2026). Do not use Replace; these are independent documents, not versions of one policy.",
+  "expected_conflicts": [
+    {
+      "id": "travel_claim_deadline",
+      "documents": [
+        "northwind_employee_handbook_2026"
+      ],
+      "conflict_type": "deadline versus permission",
+      "left_terms": [
+        "within 30 calendar days"
+      ],
+      "right_terms": [
+        "up to 60 calendar days"
+      ],
+      "expected_finding_type": "contradiction",
+      "expected_severity": "review",
+      "why": "A domestic claim submitted on day 45 satisfies the 60-day permission but violates the 30-day requirement."
+    },
+    {
+      "id": "annual_leave_entitlement",
+      "documents": [
+        "northwind_employee_handbook_2026"
+      ],
+      "conflict_type": "numeric entitlement",
+      "left_terms": [
+        "25 working days"
+      ],
+      "right_terms": [
+        "at most 20 working days"
+      ],
+      "expected_finding_type": "contradiction",
+      "expected_severity": "review",
+      "why": "The same full-time employee cannot be entitled to 25 days and capped at 20 days in the same year."
+    },
+    {
+      "id": "personal_email_customer_data",
+      "documents": [
+        "northwind_security_procurement_procedure_2026"
+      ],
+      "conflict_type": "prohibition versus permission",
+      "left_terms": [
+        "never send customer data"
+      ],
+      "right_terms": [
+        "may send customer data",
+        "working remotely"
+      ],
+      "expected_finding_type": "contradiction",
+      "expected_severity": "review",
+      "why": "The procedure both prohibits and permits the same channel for the same customer data."
+    },
+    {
+      "id": "purchase_approval_threshold",
+      "documents": [
+        "northwind_security_procurement_procedure_2026"
+      ],
+      "conflict_type": "approval threshold",
+      "left_terms": [
+        "EUR 500",
+        "written approval"
+      ],
+      "right_terms": [
+        "up to EUR 2,000",
+        "without prior approval"
+      ],
+      "expected_finding_type": "contradiction",
+      "expected_severity": "review",
+      "why": "A EUR 1,500 purchase is above the approval threshold but also inside the no-approval allowance."
+    },
+    {
+      "id": "cross_document_airfare_class",
+      "documents": [
+        "northwind_employee_handbook_2026",
+        "northwind_security_procurement_procedure_2026"
+      ],
+      "conflict_type": "policy versus procedure / reimbursement class",
+      "left_terms": [
+        "economy-class airfare only"
+      ],
+      "right_terms": [
+        "premium economy"
+      ],
+      "expected_finding_type": "compliance_gap",
+      "expected_severity": "review",
+      "why": "The handbook makes premium cabins non-reimbursable while the procedure allows premium economy at company expense for every business flight."
+    }
+  ],
+  "expected_needs_review": [
+    {
+      "id": "appendix_c_exception",
+      "documents": [
+        "northwind_security_procurement_procedure_2026"
+      ],
+      "conflict_type": "missing exception context",
+      "left_terms": [
+        "Board Audit Committee"
+      ],
+      "right_terms": [
+        "Appendix C exception"
+      ],
+      "expected_finding_type": "needs_review",
+      "why": "Appendix C is not supplied, so a reviewer must decide whether the exception applies; this must not be published as a confirmed conflict."
+    }
+  ],
+  "expected_no_conflict": [
+    {
+      "id": "overseas_deadline_exception",
+      "documents": [
+        "northwind_employee_handbook_2026"
+      ],
+      "left_terms": [
+        "within 30 calendar days"
+      ],
+      "right_terms": [
+        "For overseas travel"
+      ],
+      "why": "The overseas clause is an explicit exception; the 60-day deadline for overseas trips is compatible with the 30-day general rule."
+    },
+    {
+      "id": "password_minimums",
+      "documents": [
+        "northwind_security_procurement_procedure_2026"
+      ],
+      "left_terms": [
+        "at least 12 characters"
+      ],
+      "right_terms": [
+        "at least 16 characters"
+      ],
+      "why": "Both minimums can hold: all accounts need 12 characters and administrative accounts need 16."
+    },
+    {
+      "id": "secure_transfer_portal",
+      "documents": [
+        "northwind_security_procurement_procedure_2026"
+      ],
+      "left_terms": [
+        "personal email accounts"
+      ],
+      "right_terms": [
+        "approved vendors",
+        "secure portal"
+      ],
+      "why": "Approved vendors using a controlled portal are a different channel from personal email."
+    },
+    {
+      "id": "warehouse_dress",
+      "documents": [
+        "northwind_employee_handbook_2026"
+      ],
+      "left_terms": [
+        "high-visibility vests"
+      ],
+      "right_terms": [
+        "business casual attire"
+      ],
+      "why": "Warehouse safety clothing and office dress code apply to different roles and locations."
+    }
+  ],
+  "non_policy_content": [
+    "COO message",
+    "company overview and org chart",
+    "handbook maintenance and controlled-copy note",
+    "travel desk service standards",
+    "leave-at-a-glance table",
+    "office directory",
+    "people metrics",
+    "glossary",
+    "FAQ",
+    "document history",
+    "procurement spend dashboard",
+    "risk register excerpt",
+    "Security Steering Committee minutes",
+    "contacts"
+  ]
+}

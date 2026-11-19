@@ -75,7 +75,19 @@ def main(argv: list[str]) -> int:
             manifest_path=ROOT / "fixtures" / slack["manifest"],
             mode=mode,
         )
-        done = wait_job(dhaka, token_env, job["job_id"])
+        # Live calls have a per-attempt model budget and durable jobs may retry the
+        # extraction up to three times. Wait for that bounded budget rather than
+        # returning while the worker is still legitimately processing the job.
+        live_wait_seconds = max(
+            90.0,
+            3 * float(os.environ.get("LLM_JOB_MODEL_BUDGET_SECONDS", "65")) + 30.0,
+        )
+        done = wait_job(
+            dhaka,
+            token_env,
+            job["job_id"],
+            timeout=live_wait_seconds if mode == "live" else 90.0,
+        )
         item("job_id", done["job_id"])
         item("status", done["status"])
         item("stage modes", done["stage_modes"])

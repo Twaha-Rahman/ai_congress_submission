@@ -38,7 +38,21 @@ SYSTEM_PROMPT = (
     "You have no tools. Return only rules that are explicitly stated with an exact "
     "supporting quote copied verbatim from the source. Do not invent identifiers, "
     "dates, authority levels or permissions. Report unsupported or ambiguous statements "
-    "in 'unsupported_cases' instead of guessing."
+    "in 'unsupported_cases' instead of guessing. Do not create ambiguity that the text "
+    "does not contain: an 'approval' is a count of approval decisions/sign-offs, not a "
+    "count of distinct people unless the text says otherwise. 'One approval is "
+    "sufficient' explicitly means one approval is enough; 'no second sign-off is needed' "
+    "reinforces that reading. Map 'sufficient', 'enough', 'need only', and 'no additional "
+    "step is needed' to ADVISED_SUFFICIENT, not REQUIRED_MINIMUM; use REQUIRED_MINIMUM "
+    "only for mandatory language such as 'must', 'required', or 'at least'. Normalize "
+    "conventional amount shorthand such as '50k' to "
+    "50,000. When the same clause says 'USD business loans up to 50k', USD scopes that "
+    "amount; do not report currency as inferred or ambiguous unless the source gives a "
+    "competing currency or scope. Every unsupported_cases item must describe uncertainty "
+    "in the source text and, when possible, quote that source text. Never report errors "
+    "about your own answer, JSON/schema formatting, trailing commas, placeholders, or "
+    "the user's request as an unsupported source case; the output JSON is only the "
+    "transport format, not source content."
 )
 
 USER_PROMPT_TEMPLATE = (
@@ -47,7 +61,10 @@ USER_PROMPT_TEMPLATE = (
     "Manifest applicability: {scope}\n"
     "Source identity: {source_identity} version {version_label}\n\n"
     "Extract every supported rule. For each rule provide subject, scope, rule and an "
-    "exact evidence quote copied from the clause text below.\n\n"
+    "exact evidence quote copied from the clause text below. Preserve every explicit "
+    "amount limit and its direction/inclusivity. Use unsupported_cases only for a real "
+    "uncertainty in the source, not for ordinary paraphrases of the contract's units or "
+    "conventional number shorthand.\n\n"
     "--- BEGIN UNTRUSTED SOURCE TEXT ---\n{source_text}\n--- END UNTRUSTED SOURCE TEXT ---"
 )
 
@@ -235,44 +252,81 @@ class OpenRouterExtractionProvider:
             if remaining <= 0:
                 break
             attempts += 1
+            request_timeout = min(self.timeout_seconds, remaining)
+            timeout = httpx.Timeout(
+                timeout=request_timeout,
+                connect=request_timeout,
+                read=request_timeout,
+                write=request_timeout,
+                pool=request_timeout,
+            )
             try:
                 with httpx.Client(
-                    timeout=min(self.timeout_seconds, remaining), transport=self._transport
+                    timeout=timeout, transport=self._transport
                 ) as client:
-                    response = client.post(
+                    with client.stream(
+                        "POST",
                         f"{self.base_url}/chat/completions",
                         headers=self._headers(),
                         content=body_bytes,
-                    )
+                    ) as response:
+                        response_status = response.status_code
+                        response_request = response.request
+                        response_content = bytearray()
+                        for chunk in response.iter_bytes():
+                            response_content.extend(chunk)
+                            if time.monotonic() - started >= job_budget:
+                                raise httpx.ReadTimeout(
+                                    "live extraction exceeded its total job model budget",
+                                    request=response_request,
+                                )
+                        if time.monotonic() - started >= job_budget:
+                            raise httpx.ReadTimeout(
+                                "live extraction exceeded its total job model budget",
+                                request=response_request,
+                            )
+                        response_bytes = bytes(response_content)
             except httpx.TimeoutException as exc:
                 last_error = (ErrorCode.PROVIDER_TIMEOUT, f"request timed out: {exc}", None)
-                self._backoff(attempts)
+                self._backoff(
+                    attempts,
+                    remaining_seconds=job_budget
+                    - (time.monotonic() - started),
+                )
                 continue
             except httpx.HTTPError as exc:
                 last_error = (ErrorCode.PROVIDER_ERROR, f"transport error: {exc}", None)
-                self._backoff(attempts)
+                self._backoff(
+                    attempts,
+                    remaining_seconds=job_budget
+                    - (time.monotonic() - started),
+                )
                 continue
 
-            result.status_code = response.status_code
-            result.response_bytes = len(response.content)
-            if response.status_code >= 500 or response.status_code == 429:
+            result.status_code = response_status
+            result.response_bytes = len(response_bytes)
+            if response_status >= 500 or response_status == 429:
                 last_error = (
                     ErrorCode.PROVIDER_ERROR,
-                    f"provider returned transient status {response.status_code}",
-                    response.status_code,
+                    f"provider returned transient status {response_status}",
+                    response_status,
                 )
-                self._backoff(attempts)
+                self._backoff(
+                    attempts,
+                    remaining_seconds=job_budget
+                    - (time.monotonic() - started),
+                )
                 continue
-            if response.status_code >= 400:
+            if response_status >= 400:
                 result.error_code = ErrorCode.PROVIDER_ERROR
                 result.error_detail = (
-                    f"provider rejected the request with status {response.status_code}"
+                    f"provider rejected the request with status {response_status}"
                 )
                 result.attempts = attempts
                 result.latency_ms = int((time.monotonic() - started) * 1000)
                 return result
 
-            parsed = self._parse_response(response.content)
+            parsed = self._parse_response(response_bytes)
             result.attempts = attempts
             result.latency_ms = int((time.monotonic() - started) * 1000)
             if isinstance(parsed, ProviderResult):
@@ -300,9 +354,9 @@ class OpenRouterExtractionProvider:
             result.error_detail = "job model budget exceeded before a successful attempt"
         return result
 
-    def _backoff(self, attempt: int) -> None:
+    def _backoff(self, attempt: int, *, remaining_seconds: float) -> None:
         if attempt < self.max_attempts:
-            self._sleep(min(2.0 * attempt, 5.0))
+            self._sleep(min(2.0 * attempt, 5.0, max(0.0, remaining_seconds)))
 
     def _parse_response(self, content: bytes):  # type: ignore[no-untyped-def]
         try:

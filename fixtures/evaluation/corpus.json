@@ -11,7 +11,7 @@
     "unit mismatch cannot be represented: the contract ties each subject to one unit",
     "labels are authored from the English policy text by the implementation team"
   ],
-  "prompt_version": "extract-v1",
+  "prompt_version": "extract-v4",
   "scenario_time": "2026-03-03T12:00:00Z",
   "scenarios": [
     {

@@ -1,0 +1,24 @@
+{
+  "schema_version": "1",
+  "tenant_id": "meridian_demo",
+  "region": "DHAKA",
+  "source_identity": "northwind_employee_handbook_2026",
+  "version_label": "v1",
+  "source_type": "pdf",
+  "subject": "general_policy",
+  "authority": "policy",
+  "policy_family": "people_travel",
+  "scope": {
+    "kind": "policy",
+    "description": "All Northwind Trading Bangladesh employees",
+    "attributes": {}
+  },
+  "effective_from": "2026-01-01T00:00:00Z",
+  "effective_to": null,
+  "publication_time": "2025-12-15T00:00:00Z",
+  "sensitivity": "demo_shareable",
+  "permissions": {
+    "office_export": false,
+    "hosted_model": true
+  }
+}

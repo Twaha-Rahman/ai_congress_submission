@@ -137,6 +137,23 @@ def test_live_result_is_never_written_unless_explicitly_requested(
     assert service.write_cache is False
 
 
+def test_live_prompt_defines_normal_approval_and_amount_shorthand_semantics(
+    dhaka: OfficeHarness,
+) -> None:
+    from meridian.contracts.common import PROMPT_VERSION
+
+    provider = _live_provider(lambda _request: _completion("{}"))
+    body = provider.build_body(_request(dhaka, mode=Mode.LIVE))
+    system_prompt = body["messages"][0]["content"]
+    user_prompt = body["messages"][1]["content"]
+    assert PROMPT_VERSION == "extract-v4"
+    assert "50k" in system_prompt and "50,000" in system_prompt
+    assert "approval decisions/sign-offs" in system_prompt
+    assert "Map 'sufficient'" in system_prompt and "not REQUIRED_MINIMUM" in system_prompt
+    assert "unsupported_cases item must describe uncertainty in the source text" in system_prompt
+    assert "Preserve every explicit amount limit" in user_prompt
+
+
 def _valid_proposal(harness: OfficeHarness) -> ExtractionProposal:
     result = ReplayExtractionProvider(FIXTURES / "replay" / "dhaka").extract(
         _request(harness)
@@ -221,6 +238,39 @@ def test_fake_transport_timeout_is_reported(dhaka: OfficeHarness) -> None:
     assert result.proposal is None
     assert result.error_code is not None
     assert result.error_code.value == "provider_timeout"
+
+
+def test_live_transport_obeys_total_job_budget_even_if_chunks_keep_arriving(
+    dhaka: OfficeHarness,
+) -> None:
+    import time
+
+    class SlowStream(httpx.SyncByteStream):
+        def __iter__(self):
+            for chunk in (b'{"choices":', b'[]', b'}'):
+                time.sleep(0.08)
+                yield chunk
+
+        def close(self) -> None:
+            return None
+
+    provider = OpenRouterExtractionProvider(
+        base_url="https://openrouter.test/api/v1",
+        model="test/model",
+        api_key="test-key",
+        timeout_seconds=1.0,
+        max_attempts=1,
+        job_budget_seconds=0.12,
+        transport=httpx.MockTransport(
+            lambda _request: httpx.Response(200, stream=SlowStream())
+        ),
+    )
+    started = time.monotonic()
+    result = provider.extract(_request(dhaka, mode=Mode.LIVE))
+    elapsed = time.monotonic() - started
+    assert result.error_code is not None
+    assert result.error_code.value == "provider_timeout"
+    assert elapsed < 0.5
 
 
 def test_fake_transport_transient_failure_retries_without_fallback(

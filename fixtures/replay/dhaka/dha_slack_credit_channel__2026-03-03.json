@@ -7,7 +7,7 @@
     "provider": "synthetic-replay-fixture",
     "route": "offline-replay"
   },
-  "prompt_version": "extract-v1",
+  "prompt_version": "extract-v4",
   "proposal": {
     "notes": "Synthetic saved Slack event; treated as informal guidance, not authority.",
     "rules": [

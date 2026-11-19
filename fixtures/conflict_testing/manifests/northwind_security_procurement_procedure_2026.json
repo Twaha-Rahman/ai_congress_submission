@@ -1,0 +1,24 @@
+{
+  "schema_version": "1",
+  "tenant_id": "meridian_demo",
+  "region": "DHAKA",
+  "source_identity": "northwind_security_procurement_procedure_2026",
+  "version_label": "v1",
+  "source_type": "pdf",
+  "subject": "general_policy",
+  "authority": "procedure",
+  "policy_family": "corporate_security_procurement",
+  "scope": {
+    "kind": "policy",
+    "description": "All Northwind Trading Bangladesh employees",
+    "attributes": {}
+  },
+  "effective_from": "2026-01-01T00:00:00Z",
+  "effective_to": null,
+  "publication_time": "2025-12-18T00:00:00Z",
+  "sensitivity": "demo_shareable",
+  "permissions": {
+    "office_export": false,
+    "hosted_model": true
+  }
+}

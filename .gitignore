@@ -1,6 +1,7 @@
 # runtime data (never commit)
 runtime/
 .env
+.env.bak.*
 .venv/
 evidence/
 __pycache__/

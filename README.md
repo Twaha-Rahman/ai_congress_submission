@@ -6,6 +6,10 @@ claims with evidence, keeps effective-time and knowledge-time history, detects
 stale/contradictory/incomplete guidance, answers scoped questions deterministically,
 and produces signed evidence bundles that an independent verifier can check.
 
+**Live demo:** <http://20.196.153.249/> — sign in with the demo account shared
+separately by the maintainers. The hosted instance is seeded with the synthetic
+demo corpus and runs in replay mode by default.
+
 The repository also contains the synthetic demo corpus, replay proposals, evaluation
 labels, command-line demos and an offline test suite. The frontend includes a
 Claude-inspired findings workspace with persisted reviews and a Sources workspace
